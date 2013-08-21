@@ -1,0 +1,34 @@
+[config]
+type: shortAnswer
+points: 14
+
+[question]
+Complete the following truth table
+\begin{center}
+\begin{tabular}{ | c | c | c | c | c | c | c | c | c |}
+\hline
+
+\verb#P#&\verb#Q#&\verb#P&&Q#&\verb#P||Q#&\verb#!P#&
+\verb#!(P&&Q)#&\verb#!P||!Q#&\verb#!(P||Q)#&\verb#!P&&Q# \\ \hline
+T&T& & & & & & &  \\ \hline
+T&F& & & & & & &  \\ \hline
+T&T& & & & & & &  \\ \hline
+F&F& & & & & & &  \\ \hline
+\end{tabular}
+\end{center}
+
+[solution]
+\begin{center}
+\begin{tabular}{ | c | c | c | c | c | c | c | c | c |}
+\hline
+\verb#P#&\verb#Q#&\verb#P&&Q#&\verb#P||Q#&\verb#!P#&
+\verb#!(P&&Q)#&\verb#!P||!Q#&\verb#!(P||Q)#&\verb#!P&&Q# \\ \hline
+T&T&T&T&F&F&F&F&F \\ \hline
+T&F&F&T&F&T&T&F&F \\ \hline
+T&T&F&T&T&T&T&F&F \\ \hline
+F&F&F&F&T&T&T&T&T \\ \hline
+\end{tabular}
+\end{center}
+
+
+
