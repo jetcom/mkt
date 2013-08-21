@@ -7,18 +7,19 @@ import ConfigParser
 
 class MKT:
    path = ''
-   test = 'No test defined in ini file'
-   instructor = 'No instructor defined in ini file'
-   term = 'No term'
+   test = None
+   instructor = None
+   term = None
    of = None
    cur = None
    courseName = None
    courseNumber = None
    dapartment = None
    school = None
+   answerKey = ''
    points = 2
 
-   def __init__( self, configFile, outfile ):
+   def __init__( self, configFile, outfile, answerKey ):
       config = ConfigParser.RawConfigParser(allow_no_value=True)
       config.optionxform=str
       config.read(configFile)
@@ -30,6 +31,8 @@ class MKT:
       self.term = config.get("config", "term")
       self.school = config.get("config", "school")
       self.department = config.get("config", "department")
+      if answerKey == True: 
+         self.answerKey = "answers,"
 
 
       # TODO: Do not overwrite by default
@@ -46,7 +49,7 @@ class MKT:
 
    def writeHeader( self ):
       # TODO: only print out answer if it was asked for
-      print >> self.of, "\documentclass[11pt,answers, addpoints]{exam}\n"
+      print >> self.of, "\documentclass[11pt,%s addpoints]{exam}\n" % (self.answerKey)
       print >> self.of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
                         "\usepackage{color}\n\n"
@@ -116,7 +119,6 @@ class MKT:
       fileList = self.shuffle( fileList )
       
       for q in fileList:
-         # TODO: Read file and import it into the correct list
          config = ConfigParser.RawConfigParser(allow_no_value=True)
          config.optionxform=str
          config.read(q)
@@ -132,7 +134,7 @@ class MKT:
       # Reorder the questions
       shortAnswer = self.shuffle( shortAnswer )
 
-      # print out the short answer questions. TODO: Print header here
+      # print out the short answer questions. 
       print >> self.of, "\\begin{center}"
       print >> self.of, "{\Large \\textbf{Short Answers Questions}}"
       print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
@@ -167,7 +169,7 @@ class MKT:
       print >> self.of, "\\newpage"
 
 
-      # Print multiple choice questions: TODO print out the header
+      # Print multiple choice questions: 
       print >> self.of, "\\begin{center}"
       print >> self.of, "{\Large \\textbf{Multiple Choice Questions}}"
       print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
@@ -210,13 +212,13 @@ def main( argv ):
    parser = argparse.ArgumentParser()
    parser.add_argument("configFile", help="Config file for this exam" )
    parser.add_argument("ofile", help="Destination .tex file" )
-   parser.add_argument("-a", "--answerKey", help="Generate answer key")
+   parser.add_argument("-a", "--answerKey", help="Generate answer key", action='store_true')
    args = parser.parse_args()
    # TODO: add answer key support
    configFile = args.configFile;
    outfile = args.ofile;
    
-   mkt = MKT( configFile, outfile )
+   mkt = MKT( configFile, outfile, args.answerKey )
       
 
 if __name__ == '__main__':
