@@ -3,10 +3,10 @@
 import os, sys, argparse
 import sqlite3
 from random import random
-import ConfigParser
+#import ConfigParser
+from configobj import ConfigObj
 
 class MKT:
-   path = ''
    test = None
    instructor = None
    term = None
@@ -20,30 +20,41 @@ class MKT:
    points = 2
 
    def __init__( self, configFile, outfile, answerKey ):
-      config = ConfigParser.RawConfigParser(allow_no_value=True)
-      config.optionxform=str
-      config.read(configFile)
-      self.path = config.get("config", "path")
-      self.test = config.get("config", "test")
-      self.instructor = config.get("config", "instructor")
-      self.courseName = config.get("config", "courseName")
-      self.courseNumber = config.get("config", "courseNumber")
-      self.term = config.get("config", "term")
-      self.school = config.get("config", "school")
-      self.department = config.get("config", "department")
+      questions = []
+      path = os.path.dirname( configFile )
+
+      config = ConfigObj(configFile)
+
+      self.test = config["config"]["test"]
+      self.instructor = config["config"]["instructor"]
+      self.courseName = config["config"]["courseName"]
+      self.courseNumber = config["config"]["courseNumber"]
+      self.term = config["config"]["term"]
+      self.school = config["config"]["school"]
+      self.department = config["config"]["department"]
       if answerKey == True: 
          self.answerKey = "answers,"
 
+      for s in config.iterkeys():
+         if s != "config":
+            p = "%s/%s" % (path, s)
+            if not os.path.isdir(p):
+               fatal("%s: directory does not exist" % (p))
+            q = self.readQuestions(self.getQuestions( p ))
+            q = self.shuffle(q);
+
+            # Check to see if there is a config set to limit the number of
+            # questions in this section.  If so, retrieve it and cut the 
+            # list down
+            if 'questions' in config[s]:
+               q = q[:int(config[s]["questions"])]
+            questions+=q
 
       # TODO: Do not overwrite by default
-      if not os.path.isdir(self.path):
-         fatal("%s: directory does not exist" % (selfpath ))
       self.of = open(outfile, 'w')
 
       self.writeHeader()
-      fileList = self.getQuestions()
-      ( m, n ) = self.readQuestions( fileList )
-      self.generateTest( m, n )
+      self.generateTest( questions )
       self.writeFooter()
 
 
@@ -92,14 +103,12 @@ class MKT:
       print >> self.of, "\n"
 
 
-      
-
    def writeFooter( self ):
       print >> self.of, "\end{questions}"
       print >> self.of, "\end{document}"
 
-   def getQuestions(self):
-      for parent, ldirs, lfiles in os.walk(self.path ):
+   def getQuestions(self, path):
+      for parent, ldirs, lfiles in os.walk( path ):
          lfiles   = [nm for nm in lfiles if not nm.startswith('.')]
          ldirs[:] = [nm for nm in ldirs  if not nm.startswith('.')]  # in place
          lfiles.sort()
@@ -112,25 +121,29 @@ class MKT:
 
          
    def readQuestions(self, fileList):
-      shortAnswerQuestions = []
-      multipleChoiceQuestions = []
+      rval = []
 
-      # randomize the list of questions
-      fileList = self.shuffle( fileList )
-      
       for q in fileList:
-         config = ConfigParser.RawConfigParser(allow_no_value=True)
-         config.optionxform=str
-         config.read(q)
-         if config.get("config", "type") == "shortAnswer":
-            shortAnswerQuestions.append( config )
-         elif config.get("config", "type" ) == "multipleChoice":
-            multipleChoiceQuestions.append( config )
+         config = ConfigObj( q )
+         # TODO: check to see if there are multiple questions in a file
+         rval.append( config )
 
-      return ( shortAnswerQuestions, multipleChoiceQuestions )
+      return ( rval )
 
 
-   def generateTest( self, shortAnswer, multipleChoice ):
+   def generateTest( self, questions ):
+      shortAnswer = []
+      multipleChoice = []
+
+      for q in questions:
+         # We don't care about the section name.. Just get the first one
+         # (there should only ever be one!)
+         q = q[q.keys()[0]]
+         if q["type"] == "shortAnswer":
+            shortAnswer.append( q )
+         elif q["type"] == "multipleChoice":
+            multipleChoice.append( q )
+
       # Reorder the questions
       shortAnswer = self.shuffle( shortAnswer )
 
@@ -148,20 +161,19 @@ class MKT:
 
       for m in shortAnswer:
          points = self.points;
-         if m.has_option( "config", "points" ):
-            points = m.getint( "config", "points" )
+         if 'points' in m:
+            points = int(m["points"])
 
          self.of.write("\\question[%d]\n" % points )
 
          # Write out the question
-         for a in m.options("question"):
-            self.of.write("%s\n" % (a))
+         self.of.write("%s\n" % (m["question"]))
 
+         # TODO: read in size for answer section
          self.of.write("\\begin{solution}[%sin]\n" % ( "0" ))
         
          # Write out the solution
-         for a in m.options("solution"):
-            self.of.write("%s\n" % (a))
+         self.of.write("%s\n" % (m["solution"]))
 
          self.of.write("\\end{solution}\n\n")
 
@@ -182,17 +194,20 @@ class MKT:
 
       multipleChoice = self.shuffle( multipleChoice )
       for m in multipleChoice:
-         self.of.write("\\question[%d]\n" % (self.points))
-         for a in m.options("question"):
-            self.of.write("%s\n" % (a))
+         points = self.points;
+         if 'points' in m:
+            points = int(m["points"])
 
-         answers = self.shuffle( m.items("answers"))
+         self.of.write("\\question[%d]\n" % (points))
+         self.of.write("%s\n" % (m["question"]))
+
+         answers = {m["correctAnswer"]:"CorrectChoice"}
+         answers.update({v:"choice" for v in m["wrongAnswers"]})
+         answers = self.shuffle(answers.items())
+
          self.of.write("\\begin{checkboxes}\n")
          for a,b in answers:
-            if b == None:
-               self.of.write("\\choice %s\n" % ( a ))
-            else:
-               self.of.write("\\CorrectChoice %s\n" % ( b ))
+            self.of.write("\\%s %s\n" % (b, a ) )
          self.of.write("\\end{checkboxes}\n\n\n")
 
       print >> self.of, "\\endgradingrange{multiplechoice}"
@@ -214,7 +229,6 @@ def main( argv ):
    parser.add_argument("ofile", help="Destination .tex file" )
    parser.add_argument("-a", "--answerKey", help="Generate answer key", action='store_true')
    args = parser.parse_args()
-   # TODO: add answer key support
    configFile = args.configFile;
    outfile = args.ofile;
    

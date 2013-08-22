@@ -1,8 +1,7 @@
-[config]
-type: shortAnswer
-points: 14
-
-[question]
+[truthTable]
+type=shortAnswer
+points=14
+question='''
 Complete the following truth table
 \begin{center}
 \begin{tabular}{ | c | c | c | c | c | c | c | c | c |}
@@ -16,8 +15,8 @@ T&T& & & & & & &  \\ \hline
 F&F& & & & & & &  \\ \hline
 \end{tabular}
 \end{center}
-
-[solution]
+''''
+solution=''''
 \begin{center}
 \begin{tabular}{ | c | c | c | c | c | c | c | c | c |}
 \hline
@@ -29,6 +28,5 @@ T&T&F&T&T&T&T&F&F \\ \hline
 F&F&F&F&T&T&T&T&T \\ \hline
 \end{tabular}
 \end{center}
-
-
+'''
 
