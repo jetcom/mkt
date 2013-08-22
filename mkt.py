@@ -122,11 +122,21 @@ class MKT:
          
    def readQuestions(self, fileList):
       rval = []
+      maxQuestions = None
 
-      for q in fileList:
-         config = ConfigObj( q )
-         # TODO: check to see if there are multiple questions in a file
-         rval.append( config )
+      for f in fileList:
+         config = ConfigObj( f )
+         for c in config:
+            if c == "config":
+               if "questions" in config[c]:
+                  maxQuestions = int(config["config"]["questions"])
+            else:
+               rval.append( config[c] )
+
+      # Pick a number of questions
+      if maxQuestions:
+         rval = self.shuffle(rval)
+         rval = rval[:maxQuestions]
 
       return ( rval )
 
@@ -138,7 +148,6 @@ class MKT:
       for q in questions:
          # We don't care about the section name.. Just get the first one
          # (there should only ever be one!)
-         q = q[q.keys()[0]]
          if q["type"] == "shortAnswer":
             shortAnswer.append( q )
          elif q["type"] == "multipleChoice":
