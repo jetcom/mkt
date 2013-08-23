@@ -19,7 +19,7 @@ class MKT:
    answerKey = ''
    points = 2
 
-   def __init__( self, configFile, outfile, answerKey ):
+   def __init__( self, configFile, outfile, answerKey, force ):
       questions = []
       path = os.path.dirname( configFile )
 
@@ -50,7 +50,7 @@ class MKT:
                q = q[:int(config[s]["questions"])]
             questions+=q
 
-      if os.path.exists(outfile):
+      if not force and os.path.exists(outfile):
          fatal("%s: file already exists" % ( outfile ))
       self.of = open(outfile, 'w')
 
@@ -238,11 +238,12 @@ def main( argv ):
    parser.add_argument("configFile", help="Config file for this exam" )
    parser.add_argument("ofile", help="Destination .tex file" )
    parser.add_argument("-a", "--answerKey", help="Generate answer key", action='store_true')
+   parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
    args = parser.parse_args()
    configFile = args.configFile;
    outfile = args.ofile;
    
-   mkt = MKT( configFile, outfile, args.answerKey )
+   mkt = MKT( configFile, outfile, args.answerKey, args.force )
       
 
 if __name__ == '__main__':
