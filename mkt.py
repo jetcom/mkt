@@ -16,6 +16,7 @@ class MKT:
    courseNumber = None
    dapartment = None
    school = None
+   solutionSpace = '3in'
    answerKey = ''
    points = 2
 
@@ -32,6 +33,9 @@ class MKT:
       self.term = config["config"]["term"]
       self.school = config["config"]["school"]
       self.department = config["config"]["department"]
+      if 'solutionSpace' in config["config"]:
+         self.solutionSpace = config["config"]["solutionSpace"]
+
       if answerKey == True: 
          self.answerKey = "answers,"
 
@@ -189,8 +193,10 @@ class MKT:
          # Write out the question
          self.of.write("%s\n" % (m["question"]))
 
-         # TODO: read in size for answer section
-         self.of.write("\\begin{solution}[%sin]\n" % ( "0" ))
+         solutionSpace = self.solutionSpace
+         if 'solutionSpace' in m:
+            solutionSpace = m["solutionSpace"]
+         self.of.write("\\begin{solution}[%s]\n" % ( solutionSpace ))
         
          # Write out the solution
          self.of.write("%s\n" % (m["solution"]))
