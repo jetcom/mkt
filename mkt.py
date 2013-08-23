@@ -132,21 +132,29 @@ class MKT:
          
    def readQuestions(self, fileList):
       rval = []
-      maxQuestions = None
 
       for f in fileList:
+         maxQuestions = None
+         qList = []
+
+         print "%s..." % (f)
          config = ConfigObj( f )
          for c in config:
             if c == "config":
                if "questions" in config[c]:
                   maxQuestions = int(config["config"]["questions"])
             else:
-               rval.append( config[c] )
+               qList.append( config[c] )
 
-      # Pick a number of questions
-      if maxQuestions:
-         rval = self.shuffle(rval)
-         rval = rval[:maxQuestions]
+         print "\tFound %d question%s" % (len(qList), 's' if len(qList)>1 else '')
+         # Pick a number of questions
+         if maxQuestions:
+            print "\tLimiting to %d question%s" % (maxQuestions, 's' if maxQuestions>1 else '')
+            qList = self.shuffle(qList)
+            qList = qList[:maxQuestions]
+
+         print "\tAdding %d question%s" % (len(qList), 's' if len(qList)>1 else '')
+         rval += qList
 
       return ( rval )
 
@@ -169,91 +177,93 @@ class MKT:
             multipleChoice.append( q )
 
       # Reorder the questions
-      shortAnswer = self.shuffle( shortAnswer )
+      if len(shortAnswer) > 0:
+         shortAnswer = self.shuffle( shortAnswer )
 
-      # print out the short answer questions. 
-      print >> self.of, "\\begin{center}"
-      print >> self.of, "{\Large \\textbf{Short Answers Questions}}"
-      print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-      print >> self.of, "Answer the questions in the spaces provided on the question sheets."
-      print >> self.of, "If you run out of room for an answer, continue on the back of the page."
-      print >> self.of, "}}}"
-      print >> self.of, "\end{center}\n"
+         # print out the short answer questions. 
+         print >> self.of, "\\begin{center}"
+         print >> self.of, "{\Large \\textbf{Short Answers Questions}}"
+         print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         print >> self.of, "Answer the questions in the spaces provided on the question sheets."
+         print >> self.of, "If you run out of room for an answer, continue on the back of the page."
+         print >> self.of, "}}}"
+         print >> self.of, "\end{center}\n"
 
-      print >> self.of, "\\begin{questions}"
-      print >> self.of, "\\begingradingrange{shortanswer}"
+         print >> self.of, "\\begin{questions}"
+         print >> self.of, "\\begingradingrange{shortanswer}"
 
-      for m in shortAnswer:
-         points = self.points;
-         if 'points' in m:
-            points = int(m["points"])
+         for m in shortAnswer:
+            points = self.points;
+            if 'points' in m:
+               points = int(m["points"])
 
-         self.of.write("\\question[%d]\n" % points )
+            self.of.write("\\question[%d]\n" % points )
 
-         # Write out the question
-         self.of.write("%s\n" % (m["question"]))
+            # Write out the question
+            self.of.write("%s\n" % (m["question"]))
 
-         solutionSpace = self.solutionSpace
-         if 'solutionSpace' in m:
-            solutionSpace = m["solutionSpace"]
-         self.of.write("\\begin{solution}[%s]\n" % ( solutionSpace ))
-        
-         # Write out the solution
-         self.of.write("%s\n" % (m["solution"]))
+            solutionSpace = self.solutionSpace
+            if 'solutionSpace' in m:
+               solutionSpace = m["solutionSpace"]
+            self.of.write("\\begin{solution}[%s]\n" % ( solutionSpace ))
+         
+            # Write out the solution
+            self.of.write("%s\n" % (m["solution"]))
 
-         self.of.write("\\end{solution}\n\n")
+            self.of.write("\\end{solution}\n\n")
 
-      print >> self.of, "\\endgradingrange{shortanswer}"
-      print >> self.of, "\\newpage"
-
-
-      # Print multiple choice questions: 
-      print >> self.of, "\\begin{center}"
-      print >> self.of, "{\Large \\textbf{Multiple Choice Questions}}"
-      print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-      print >> self.of, "Mark the box the represents the \textit{best} answer.  If you make an"
-      print >> self.of, "incorrect mark, erase your mark and clearly mark the correct answer."
-      print >> self.of, "If the intended mark is not clear, you will receive a 0 for that question"
-      print >> self.of, "}}}"
-      print >> self.of, "\end{center}\n"
+         print >> self.of, "\\endgradingrange{shortanswer}"
+         print >> self.of, "\\newpage"
 
 
-      multipleChoice = self.shuffle( multipleChoice )
-      for m in multipleChoice:
-         points = self.points;
-         if 'points' in m:
-            points = int(m["points"])
-
-         self.of.write("\\question[%d]\n" % (points))
-         self.of.write("%s\n" % (m["question"]))
-
-         answers = {m["correctAnswer"]:"CorrectChoice"}
-         answers.update({v:"choice" for v in m["wrongAnswers"]})
-         answers = self.shuffle(answers.items())
-
-         self.of.write("\\begin{checkboxes}\n")
-         for a,b in answers:
-            self.of.write("\\%s %s\n" % (b, a ) )
-         self.of.write("\\end{checkboxes}\n\n\n")
+      if len(multipleChoice) > 0 or len(bonusQuestions)>0:
+         # Print multiple choice questions: 
+         print >> self.of, "\\begin{center}"
+         print >> self.of, "{\Large \\textbf{Multiple Choice Questions}}"
+         print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         print >> self.of, "Mark the box the represents the \textit{best} answer.  If you make an"
+         print >> self.of, "incorrect mark, erase your mark and clearly mark the correct answer."
+         print >> self.of, "If the intended mark is not clear, you will receive a 0 for that question"
+         print >> self.of, "}}}"
+         print >> self.of, "\end{center}\n"
 
 
-      for m in self.shuffle(bonusQuestions):
-         points = self.points;
-         if 'points' in m:
-            points = int(m["points"])
-         self.of.write("\\bonusquestion[%d]\n" % (points))
-         self.of.write("%s\n" % (m["question"]))
+         multipleChoice = self.shuffle( multipleChoice )
+         for m in multipleChoice:
+            points = self.points;
+            if 'points' in m:
+               points = int(m["points"])
 
-         answers = {m["correctAnswer"]:"CorrectChoice"}
-         answers.update({v:"choice" for v in m["wrongAnswers"]})
-         answers = self.shuffle(answers.items())
+            self.of.write("\\question[%d]\n" % (points))
+            self.of.write("%s\n" % (m["question"]))
 
-         self.of.write("\\begin{checkboxes}\n")
-         for a,b in answers:
-            self.of.write("\\%s %s\n" % (b, a ) )
-         self.of.write("\\end{checkboxes}\n\n\n")
+            answers = {m["correctAnswer"]:"CorrectChoice"}
+            answers.update({v:"choice" for v in m["wrongAnswers"]})
+            answers = self.shuffle(answers.items())
 
-      print >> self.of, "\\endgradingrange{multiplechoice}"
+            self.of.write("\\begin{checkboxes}\n")
+            for a,b in answers:
+               self.of.write("\\%s %s\n" % (b, a ) )
+            self.of.write("\\end{checkboxes}\n\n\n")
+
+
+         for m in self.shuffle(bonusQuestions):
+            points = self.points;
+            if 'points' in m:
+               points = int(m["points"])
+            self.of.write("\\bonusquestion[%d]\n" % (points))
+            self.of.write("%s\n" % (m["question"]))
+
+            answers = {m["correctAnswer"]:"CorrectChoice"}
+            answers.update({v:"choice" for v in m["wrongAnswers"]})
+            answers = self.shuffle(answers.items())
+
+            self.of.write("\\begin{checkboxes}\n")
+            for a,b in answers:
+               self.of.write("\\%s %s\n" % (b, a ) )
+            self.of.write("\\end{checkboxes}\n\n\n")
+
+         print >> self.of, "\\endgradingrange{multiplechoice}"
 
 
 
