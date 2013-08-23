@@ -38,9 +38,14 @@ class MKT:
       for s in config.iterkeys():
          if s != "config":
             p = "%s/%s" % (path, s)
-            if not os.path.isdir(p):
-               fatal("%s: directory does not exist" % (p))
-            q = self.readQuestions(self.getQuestions( p ))
+            if os.path.isdir(p):
+               files = self.getQuestions(p)
+            elif os.path.isfile(p):
+               files = [p]
+            else:
+               fatal("%s: directory or file does not exist" % (p))
+
+            q = self.readQuestions(files)
             q = self.shuffle(q);
 
             # Check to see if there is a config set to limit the number of
@@ -145,11 +150,16 @@ class MKT:
    def generateTest( self, questions ):
       shortAnswer = []
       multipleChoice = []
+      bonusQuestions = []
 
       for q in questions:
          # We don't care about the section name.. Just get the first one
          # (there should only ever be one!)
-         if q["type"] == "shortAnswer":
+         if "bonus" in q and q["bonus"].lower() == "true":
+            if q["type"] != "multipleChoice":
+               fatal("Only multiple choice bonus questions are currently supported")
+            bonusQuestions.append(q)
+         elif q["type"] == "shortAnswer":
             shortAnswer.append( q )
          elif q["type"] == "multipleChoice":
             multipleChoice.append( q )
@@ -209,6 +219,23 @@ class MKT:
             points = int(m["points"])
 
          self.of.write("\\question[%d]\n" % (points))
+         self.of.write("%s\n" % (m["question"]))
+
+         answers = {m["correctAnswer"]:"CorrectChoice"}
+         answers.update({v:"choice" for v in m["wrongAnswers"]})
+         answers = self.shuffle(answers.items())
+
+         self.of.write("\\begin{checkboxes}\n")
+         for a,b in answers:
+            self.of.write("\\%s %s\n" % (b, a ) )
+         self.of.write("\\end{checkboxes}\n\n\n")
+
+
+      for m in self.shuffle(bonusQuestions):
+         points = self.points;
+         if 'points' in m:
+            points = int(m["points"])
+         self.of.write("\\bonusquestion[%d]\n" % (points))
          self.of.write("%s\n" % (m["question"]))
 
          answers = {m["correctAnswer"]:"CorrectChoice"}
