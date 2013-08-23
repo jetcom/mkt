@@ -16,6 +16,7 @@ class MKT:
    courseNumber = None
    dapartment = None
    school = None
+   nameOnEveryPage = False
    solutionSpace = '3in'
    answerKey = ''
    points = 2
@@ -33,6 +34,11 @@ class MKT:
       self.term = config["config"]["term"]
       self.school = config["config"]["school"]
       self.department = config["config"]["department"]
+      if 'nameOnEveryPage' in config["config"]:
+         if config["config"]["nameOnEveryPage"].lower() == "true":
+            nameOnEveryPage = True
+
+
       if 'solutionSpace' in config["config"]:
          self.solutionSpace = config["config"]["solutionSpace"]
 
@@ -77,8 +83,14 @@ class MKT:
 
       print >> self.of, "\pagestyle{headandfoot}"
 
-      print >> self.of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
-      print >> self.of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
+      if ( self.nameOnEveryPage ):
+         print >> self.of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
+         print >> self.of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
+      else:
+         print >> self.of, "\\firstpageheader{%s} {} {}" % ( self.test )
+         print >> self.of, "\\runningheader{%s} {} {}" % ( self.test)
+
+
       print >> self.of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.courseNumber )
       print >> self.of, "\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % ( self.courseNumber )
 
