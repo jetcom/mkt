@@ -50,7 +50,8 @@ class MKT:
                q = q[:int(config[s]["questions"])]
             questions+=q
 
-      # TODO: Do not overwrite by default
+      if os.path.exists(outfile):
+         fatal("%s: file already exists" % ( outfile ))
       self.of = open(outfile, 'w')
 
       self.writeHeader()
