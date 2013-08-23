@@ -1,0 +1,18 @@
+[insert]
+type=shortAnswer
+points=10
+solutionSpace=3in
+
+question='''
+If you had to maintain an unsorted collection of data, and you had to insert
+and remove elements from the middle of the collection, what container would
+you chose, and why?
+'''
+solution='''
+A list would be the container of choice because it efficiently adds elements
+to the middle of the list. This works because a list actually implements a
+doubly linked list and no data has to be shifted in order to add elements to
+the middle
+'''
+
+
