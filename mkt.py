@@ -197,6 +197,7 @@ class MKT:
             if 'points' in m:
                points = int(m["points"])
 
+            self.of.write("\\begin{minipage}[b]{\\linewidth} % Keep the following lines together\n")
             self.of.write("\\question[%d]\n" % points )
 
             # Write out the question
@@ -210,12 +211,15 @@ class MKT:
             # Write out the solution
             self.of.write("%s\n" % (m["solution"]))
 
-            self.of.write("\\end{solution}\n\n")
+            self.of.write("\\end{solution}\n")
+            self.of.write("\\end{minipage}\n\n")
 
          print >> self.of, "\\endgradingrange{shortanswer}"
+
          print >> self.of, "\\newpage"
 
 
+      count = 0
       if len(multipleChoice) > 0 or len(bonusQuestions)>0:
          # Print multiple choice questions: 
          print >> self.of, "\\begin{center}"
@@ -246,6 +250,10 @@ class MKT:
                self.of.write("\\%s %s\n" % (b, a ) )
             self.of.write("\\end{checkboxes}\n\n\n")
 
+            count = count + 1
+            if count % 4 == 0:
+               self.of.write("\\pagebreak\n\n")
+
 
          for m in self.shuffle(bonusQuestions):
             points = self.points;
@@ -262,6 +270,10 @@ class MKT:
             for a,b in answers:
                self.of.write("\\%s %s\n" % (b, a ) )
             self.of.write("\\end{checkboxes}\n\n\n")
+
+            count = count + 1
+            if count % 4 == 0:
+               self.of.write("\\pagebreak\n\n")
 
          print >> self.of, "\\endgradingrange{multiplechoice}"
 
