@@ -199,6 +199,8 @@ class MKT:
                shortAnswer.append( q )
             elif q["type"] == "multipleChoice":
                multipleChoice.append( q )
+            else:
+               fatal("unknown test type: %s" % (q["type"]))
          except KeyError:
             fatal("'type' not defined: %s" % ( q ))
 
