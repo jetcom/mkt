@@ -47,7 +47,11 @@ class MKT:
 
       for s in config.iterkeys():
          if s != "config":
-            p = "%s/%s" % (path, s)
+            if len(path) > 0:
+               p = "%s/%s" % (path, s)
+            else: 
+               p=s
+
             if os.path.isdir(p):
                files = self.getQuestions(p)
             elif os.path.isfile(p):
@@ -171,6 +175,13 @@ class MKT:
       return ( rval )
 
 
+   def beginMinipage( self ):
+      self.of.write("\\par\\vspace{.5in}\\begin{minipage}{\\linewidth}\n")
+
+   def endMinipage( self ):
+      self.of.write("\\end{minipage}\n")
+      self.of.write("\n\n")
+
    def generateTest( self, questions ):
       shortAnswer = []
       multipleChoice = []
@@ -179,14 +190,17 @@ class MKT:
       for q in questions:
          # We don't care about the section name.. Just get the first one
          # (there should only ever be one!)
-         if "bonus" in q and q["bonus"].lower() == "true":
-            if q["type"] != "multipleChoice":
-               fatal("Only multiple choice bonus questions are currently supported")
-            bonusQuestions.append(q)
-         elif q["type"] == "shortAnswer":
-            shortAnswer.append( q )
-         elif q["type"] == "multipleChoice":
-            multipleChoice.append( q )
+         try:
+            if "bonus" in q and q["bonus"].lower() == "true":
+               if q["type"] != "multipleChoice":
+                  fatal("Only multiple choice bonus questions are currently supported")
+               bonusQuestions.append(q)
+            elif q["type"] == "shortAnswer":
+               shortAnswer.append( q )
+            elif q["type"] == "multipleChoice":
+               multipleChoice.append( q )
+         except KeyError:
+            fatal("'type' not defined: %s" % ( q ))
 
       # Reorder the questions
       if len(shortAnswer) > 0:
@@ -209,11 +223,16 @@ class MKT:
             if 'points' in m:
                points = int(m["points"])
 
-            self.of.write("\\begin{minipage}[b]{\\linewidth} % Keep the following lines together\n")
+            #self.of.write("\\begin{minipage}[b]{\\linewidth} % Keep the following lines together\n")
+            self.beginMinipage();
+
             self.of.write("\\question[%d]\n" % points )
 
             # Write out the question
-            self.of.write("%s\n" % (m["question"]))
+            try:
+               self.of.write("%s\n" % (m["question"]))
+            except KeyError:
+               fatal("'question' not defined for %s" % (m))
 
             solutionSpace = self.solutionSpace
             if 'solutionSpace' in m:
@@ -224,7 +243,9 @@ class MKT:
             self.of.write("%s\n" % (m["solution"]))
 
             self.of.write("\\end{solution}\n")
-            self.of.write("\\end{minipage}\n\n")
+
+            self.endMinipage()
+            #self.of.write("\\end{minipage}\n\n")
 
          print >> self.of, "\\endgradingrange{shortanswer}"
 
@@ -250,11 +271,16 @@ class MKT:
             if 'points' in m:
                points = int(m["points"])
 
+            self.beginMinipage()
             self.of.write("\\question[%d]\n" % (points))
             self.of.write("%s\n" % (m["question"]))
+            self.of.write("\\medskip\n")
 
             answers = {m["correctAnswer"]:"CorrectChoice"}
-            answers.update({v:"choice" for v in m["wrongAnswers"]})
+            try:
+               answers.update({v:"choice" for v in m["wrongAnswers"]})
+            except KeyError:
+               fatal("'wrongAnswers' not defined for %s" % (m))
             answers = self.shuffle(answers.items())
 
             self.of.write("\\begin{checkboxes}\n")
@@ -262,30 +288,41 @@ class MKT:
                self.of.write("\\%s %s\n" % (b, a ) )
             self.of.write("\\end{checkboxes}\n\n\n")
 
+            self.endMinipage()
+
             count = count + 1
             if count % 4 == 0:
-               self.of.write("\\pagebreak\n\n")
+               pass
+               #self.of.write("\\pagebreak\n\n")
 
 
          for m in self.shuffle(bonusQuestions):
             points = self.points;
             if 'points' in m:
                points = int(m["points"])
+
+            self.beginMinipage()
             self.of.write("\\bonusquestion[%d]\n" % (points))
             self.of.write("%s\n" % (m["question"]))
+            self.of.write("\\medskip\n")
 
             answers = {m["correctAnswer"]:"CorrectChoice"}
-            answers.update({v:"choice" for v in m["wrongAnswers"]})
+            try:
+               answers.update({v:"choice" for v in m["wrongAnswers"]})
+            except KeyError:
+               fatal("'wrongAnswers' not defined for %s" % (m))
             answers = self.shuffle(answers.items())
 
             self.of.write("\\begin{checkboxes}\n")
             for a,b in answers:
                self.of.write("\\%s %s\n" % (b, a ) )
             self.of.write("\\end{checkboxes}\n\n\n")
+            self.endMinipage()
 
             count = count + 1
             if count % 4 == 0:
-               self.of.write("\\pagebreak\n\n")
+               pass
+               #self.of.write("\\pagebreak\n\n")
 
          print >> self.of, "\\endgradingrange{multiplechoice}"
 
