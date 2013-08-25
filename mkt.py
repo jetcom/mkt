@@ -27,26 +27,26 @@ class MKT:
 
       config = ConfigObj(configFile)
 
-      self.test = config["config"]["test"]
-      self.instructor = config["config"]["instructor"]
-      self.courseName = config["config"]["courseName"]
-      self.courseNumber = config["config"]["courseNumber"]
-      self.term = config["config"]["term"]
-      self.school = config["config"]["school"]
-      self.department = config["config"]["department"]
-      if 'nameOnEveryPage' in config["config"]:
-         if config["config"]["nameOnEveryPage"].lower() == "true":
+      self.test = config["test"]
+      self.instructor = config["instructor"]
+      self.courseName = config["courseName"]
+      self.courseNumber = config["courseNumber"]
+      self.term = config["term"]
+      self.school = config["school"]
+      self.department = config["department"]
+      if 'nameOnEveryPage' in config:
+         if config["nameOnEveryPage"].lower() == "true":
             nameOnEveryPage = True
 
 
-      if 'solutionSpace' in config["config"]:
-         self.solutionSpace = config["config"]["solutionSpace"]
+      if 'solutionSpace' in config:
+         self.solutionSpace = config["solutionSpace"]
 
       if answerKey == True: 
          self.answerKey = "answers,"
 
       for s in config.iterkeys():
-         if s != "config":
+         if not isinstance( config[s], str ):
             if len(path) > 0:
                p = "%s/%s" % (path, s)
             else: 
@@ -62,11 +62,6 @@ class MKT:
             q = self.readQuestions(files)
             q = self.shuffle(q);
 
-            # Check to see if there is a config set to limit the number of
-            # questions in this section.  If so, retrieve it and cut the 
-            # list down
-            if 'questions' in config[s]:
-               q = q[:int(config[s]["questions"])]
             questions+=q
 
       if not force and os.path.exists(outfile):
@@ -146,31 +141,49 @@ class MKT:
       return [t[1] for t in sorted((random(), i) for i in items)]
 
          
+   def addQuestion( self, config, indent=1 ):
+      qList = []
+      maxQuestions = None
+      maxPoints = None
+
+      if "question" in config:
+         # found a question. Add it!
+         qList.append(config)
+      else:
+         # No questions at this level.  Need to recursive look for them
+         for c in config:
+            if not isinstance (config[c], str ):
+               for i in range( indent ):
+                  sys.stdout.write("\t")
+               print "Prcessing '%s' section" % ( c )
+               qList += self.addQuestion( config[c], indent=indent+1 )
+            else:
+               if c == "questions":
+                  maxQuestions = int(config[c])
+               if c == "maxPoints";
+                  maxPoints = int(config[c])
+
+      #print "\tFound %d question%s" % (len(qList), 's' if len(qList)>1 else '')
+      # Pick a number of questions
+      if maxQuestions and len(qList) > maxQuestions:
+         print "\tFound %d question%s, limiting to %d" % (len(qList), 's' if len(qList) >1 else '', maxQuestions)
+         qList = self.shuffle(qList)
+         qList = qList[:maxQuestions]
+
+      return qList
+
+
+
    def readQuestions(self, fileList):
       rval = []
 
       for f in fileList:
-         maxQuestions = None
-         qList = []
 
          print "%s..." % (f)
-         config = ConfigObj( f )
-         for c in config:
-            if c == "config":
-               if "questions" in config[c]:
-                  maxQuestions = int(config["config"]["questions"])
-            else:
-               qList.append( config[c] )
-
-         print "\tFound %d question%s" % (len(qList), 's' if len(qList)>1 else '')
-         # Pick a number of questions
-         if maxQuestions:
-            print "\tLimiting to %d question%s" % (maxQuestions, 's' if maxQuestions>1 else '')
-            qList = self.shuffle(qList)
-            qList = qList[:maxQuestions]
-
+         config = ConfigObj( f, interpolation=True )
+         qList = self.addQuestion( config )
          print "\tAdding %d question%s" % (len(qList), 's' if len(qList)>1 else '')
-         rval += qList
+         rval += qList 
 
       return ( rval )
 
@@ -188,8 +201,6 @@ class MKT:
       bonusQuestions = []
 
       for q in questions:
-         # We don't care about the section name.. Just get the first one
-         # (there should only ever be one!)
          try:
             if "bonus" in q and q["bonus"].lower() == "true":
                if q["type"] != "multipleChoice":
