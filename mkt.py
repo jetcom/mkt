@@ -7,17 +7,31 @@ from random import random
 from configobj import ConfigObj
 
 class MKT:
+   # output file pointer
    of = None
+
+   # set to 'answers,' when the user specifies -a on the command line
    answerKey = ''
 
+   # set to True when the master settings are read. This is done so we only
+   # have to do it once
    mainSettingsStored = False
+
+   # config structure for the master settings
    config = None
 
+   # default number of points for questions that don't have it set
    defaultPoints = 2
+
+   # default space for the solution, for questions that don't have it set
    defaultSolutionSpace = None
 
+   # current indent level
    indent = 0 
 
+   ###########################################
+   # __init__
+   ##########################################
    def __init__( self, configFile, outfile, answerKey, force ):
       questions = []
       path = os.path.dirname( configFile )
@@ -29,20 +43,21 @@ class MKT:
          fatal("%s: file already exists" % ( outfile ))
       self.of = open(outfile, 'w')
 
+      # Read in the ini file specified on the command line
       print "Reading %s" % ( configFile )
       config = ConfigObj(configFile)
-
-
-
       questions = self.parseConfig( 'File', configFile, config, root=path)
+
 
       self.writeHeader()
       self.generateTest( questions )
       self.writeFooter()
 
 
+   ###########################################
+   # writeHeader
+   ##########################################
    def writeHeader( self ):
-      # TODO: only print out answer if it was asked for
       print >> self.of, "\documentclass[11pt,%s addpoints]{exam}\n" % (self.answerKey)
       print >> self.of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
@@ -92,10 +107,16 @@ class MKT:
       print >> self.of, "\n"
 
 
+   ###########################################
+   # writeFooter
+   ##########################################
    def writeFooter( self ):
       print >> self.of, "\end{questions}"
       print >> self.of, "\end{document}"
 
+   ###########################################
+   # getQuestions
+   ##########################################
    def getQuestions(self, path):
       for parent, ldirs, lfiles in os.walk( path ):
          lfiles   = [nm for nm in lfiles if not nm.startswith('.')]
@@ -105,9 +126,15 @@ class MKT:
             nm = os.path.join(parent, nm)
             yield nm
 
+   ###########################################
+   # shuffle
+   ##########################################
    def shuffle(self, items):  # returns new list
       return [t[1] for t in sorted((random(), i) for i in items)]
 
+   ###########################################
+   # processInclude
+   ##########################################
    def processInclude( self, config, root=None ):
       rval = []
       # If there is only one thing in out list, make it a list so we can
@@ -135,6 +162,9 @@ class MKT:
          self.indent-=1
       return rval
 
+   ###########################################
+   # parseTestSettings
+   ##########################################
    def parseTestSettings( self, c, config ):
       if c in [ "test", "instructor",  "courseName", "courseNumber", "term", "school", "department", "nameOnEveryPage", "defaultPoints", "defaultSolutionSpace" ]: 
          if not  self.mainSettingsStored:
@@ -153,10 +183,15 @@ class MKT:
                self.defaultSolutionSpace = config["defaultSolutionSpace"]
 
 
+         # We did consumer this key
          return True
 
+      # We did NOT consume this key
       return False
 
+   ###########################################
+   # parseConfig
+   ##########################################
    def parseConfig( self, descriptor, name, config, root=None ):
       sys.stdout.write("  "*self.indent)
 
@@ -167,7 +202,7 @@ class MKT:
 
       # found a question. Add it!
       if "question" in config:
-
+         print "%s: %s - Adding question" % ( descriptor, name )
          # If points is not set, set it here
          if not "points" in config:
             config["points"] = self.defaultPoints
@@ -179,10 +214,9 @@ class MKT:
                config["solutionSpace"] = self.defaultSolutionSpace
             else:
                fatal("'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
-
          qList.append(config)
-         print "%s: %s - Adding question" % ( descriptor, name )
-      else:
+
+      else: # Not a question
          print "%s: '%s' - Parsing" % ( descriptor, name )
          # No questions at this level.  Need to recursive look for them
          for c in config:
@@ -254,13 +288,22 @@ class MKT:
 
 
 
+   ###########################################
+   # beginMinipage
+   ##########################################
    def beginMinipage( self ):
       self.of.write("\\par\\vspace{.5in}\\begin{minipage}{\\linewidth}\n")
 
+   ###########################################
+   # endMinipage
+   ##########################################
    def endMinipage( self ):
       self.of.write("\\end{minipage}\n")
       self.of.write("\n\n")
 
+   ###########################################
+   # generateTest
+   ##########################################
    def generateTest( self, questions ):
       shortAnswer = []
       multipleChoice = []
@@ -281,7 +324,9 @@ class MKT:
          except KeyError:
             fatal("'type' not defined: %s" % ( q ))
 
-      # Reorder the questions
+      # 
+      # START: Short Answer Questions
+      #
       if len(shortAnswer) > 0:
          shortAnswer = self.shuffle( shortAnswer )
 
@@ -315,6 +360,9 @@ class MKT:
          print >> self.of, "\\newpage"
 
 
+      # 
+      # START: Multiple choice questions
+      #
       if len(multipleChoice) > 0 or len(bonusQuestions)>0:
          # Print multiple choice questions: 
          print >> self.of, "\\begin{center}"
@@ -327,6 +375,9 @@ class MKT:
          print >> self.of, "\end{center}\n"
 
 
+         #
+         # START: Regular multiple choice questions
+         #
          multipleChoice = self.shuffle( multipleChoice )
          for m in multipleChoice:
             self.beginMinipage()
@@ -349,6 +400,9 @@ class MKT:
             self.endMinipage()
 
 
+         #
+         # START: Bonus multiple choice questions
+         #
          for m in self.shuffle(bonusQuestions):
 
             self.beginMinipage()
