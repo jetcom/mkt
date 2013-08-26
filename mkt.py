@@ -7,67 +7,43 @@ from random import random
 from configobj import ConfigObj
 
 class MKT:
-   test = None
-   instructor = None
-   term = None
+   #test = None
+   #instructor = None
+   #term = None
    of = None
-   cur = None
-   courseName = None
-   courseNumber = None
-   dapartment = None
-   school = None
-   nameOnEveryPage = False
-   solutionSpace = '3in'
+   #courseName = None
+   #courseNumber = None
+   #dapartment = None
+   #school = None
+   #nameOnEveryPage = False
+   #solutionSpace = '3in'
    answerKey = ''
+
+   mainSettingsStored = False
+   config = None
+
    points = 2
+   indent = 0 
 
    def __init__( self, configFile, outfile, answerKey, force ):
       questions = []
       path = os.path.dirname( configFile )
 
-      config = ConfigObj(configFile)
-
-      self.test = config["test"]
-      self.instructor = config["instructor"]
-      self.courseName = config["courseName"]
-      self.courseNumber = config["courseNumber"]
-      self.term = config["term"]
-      self.school = config["school"]
-      self.department = config["department"]
-      if 'nameOnEveryPage' in config:
-         if config["nameOnEveryPage"].lower() == "true":
-            nameOnEveryPage = True
-
-
-      if 'solutionSpace' in config:
-         self.solutionSpace = config["solutionSpace"]
-
       if answerKey == True: 
          self.answerKey = "answers,"
-
-      for s in config.iterkeys():
-         if not isinstance( config[s], str ):
-            if len(path) > 0:
-               p = "%s/%s" % (path, s)
-            else: 
-               p=s
-
-            if os.path.isdir(p):
-               files = self.getQuestions(p)
-            elif os.path.isfile(p):
-               files = [p]
-            else:
-               fatal("%s: directory or file does not exist" % (p))
-
-            q = self.readQuestions(files)
-            q = self.shuffle(q);
-
-            questions+=q
 
       if not force and os.path.exists(outfile):
          fatal("%s: file already exists" % ( outfile ))
       self.of = open(outfile, 'w')
 
+      print "Reading %s" % ( configFile )
+      config = ConfigObj(configFile)
+
+
+
+      questions = self.parseConfig( 'File', configFile, config, root=path)
+
+      print "Generating test with %d questions" % len( questions )
       self.writeHeader()
       self.generateTest( questions )
       self.writeFooter()
@@ -82,16 +58,16 @@ class MKT:
 
       print >> self.of, "\pagestyle{headandfoot}"
 
-      if ( self.nameOnEveryPage ):
+      if ( "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true" ):
          print >> self.of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
          print >> self.of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
       else:
-         print >> self.of, "\\firstpageheader{%s} {} {}" % ( self.test )
-         print >> self.of, "\\runningheader{%s} {} {}" % ( self.test)
+         print >> self.of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
+         print >> self.of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
 
 
-      print >> self.of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.courseNumber )
-      print >> self.of, "\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % ( self.courseNumber )
+      print >> self.of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.config["courseNumber"] )
+      print >> self.of, "\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % ( self.config["courseNumber"] )
 
       print >> self.of, "\n"
       print >> self.of, "\\checkboxchar{$\\Box$}"
@@ -109,10 +85,10 @@ class MKT:
 
       print >> self.of, "\n"
 
-      print >> self.of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % ( self.school, self.department )  
-      print >> self.of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.courseName )
-      print >> self.of, "\\textsc{\LARGE %s}\\\\[2cm]" % ( self.term )
-      print >> self.of, "\\textsc{\Huge %s}" % ( self.test )
+      print >> self.of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % ( self.config["school"], self.config["department"] )  
+      print >> self.of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.config["courseName"] )
+      print >> self.of, "\\textsc{\LARGE %s}\\\\[2cm]" % ( self.config["term"] )
+      print >> self.of, "\\textsc{\Huge %s}" % ( self.config["test"] )
       print >> self.of, "\\vfill"
 
       print >> self.of, "\n"
@@ -140,8 +116,46 @@ class MKT:
    def shuffle(self, items):  # returns new list
       return [t[1] for t in sorted((random(), i) for i in items)]
 
+   def processInclude( self, config, root=None ):
+      rval = []
+      # If there is only one thing in out list, make it a list so we can
+      # reuse the same code below
+      if isinstance ( config, str ):
+         config = [config]
          
-   def addQuestion( self, config, indent=1 ):
+      for inc in config:
+         self.indent+=1
+         # If it's a directory, read all the files in the directory
+         if root:
+            inc = "%s/%s" % (root, inc)
+
+         if os.path.isdir( inc ):
+            files = self.getQuestions( inc )
+
+         # If it's a file, read it in
+         elif os.path.isfile( inc ):
+            files = [inc]
+         else:
+            fatal("%s: directory or file does not exist" % (inc))
+
+         for f in files:
+            rval += self.parseConfig( 'File', f, ConfigObj( f, interpolation=True ))
+         self.indent-=1
+      return rval
+
+   def parseTestSettings( self, c, config ):
+      if c in [ "test", "instructor",  "courseName", "courseNumber", "term", "school", "department", "nameOnEveryPage", "defaultPoints" ]:
+         if not  self.mainSettingsStored:
+            self.mainSettingsStored = True
+            self.config = config
+         return True
+
+      return False
+
+   def parseConfig( self, descriptor, name, config, root=None ):
+      for i in range( self.indent ):
+         sys.stdout.write("\t")
+
       qList = []
       maxQuestions = None
       maxPoints = None
@@ -149,43 +163,45 @@ class MKT:
       if "question" in config:
          # found a question. Add it!
          qList.append(config)
+         print "%s: %s - Adding question" % ( descriptor, name )
       else:
+         print "%s: '%s' - Parsing" % ( descriptor, name )
          # No questions at this level.  Need to recursive look for them
          for c in config:
-            if not isinstance (config[c], str ):
-               for i in range( indent ):
-                  sys.stdout.write("\t")
-               print "Prcessing '%s' section" % ( c )
-               qList += self.addQuestion( config[c], indent=indent+1 )
+            if c == "maxQuestions":
+               maxQuestions = int(config[c])
+            elif c == "maxPoints":
+               maxPoints = int(config[c])
+            elif c == "include":
+               qList += self.processInclude( config["include"], root=root )
+            elif self.parseTestSettings( c, config ):
+               continue
+            elif not isinstance (config[c], str ):
+               self.indent+=1
+               qList += self.parseConfig( 'Section',  c, config[c], root=root )
+               #if len( rval ) > 1:
+                  #for i in range( self.indent ):
+                     #sys.stdout.write("\t")
+                  #print "Section: '%s' - Adding %d questions" % (c, len(rval))
+               #qList += rval
+               self.indent-=1
             else:
-               if c == "questions":
-                  maxQuestions = int(config[c])
-               if c == "maxPoints";
-                  maxPoints = int(config[c])
+               fatal("Unknown token: %s" % c )
 
-      #print "\tFound %d question%s" % (len(qList), 's' if len(qList)>1 else '')
-      # Pick a number of questions
       if maxQuestions and len(qList) > maxQuestions:
-         print "\tFound %d question%s, limiting to %d" % (len(qList), 's' if len(qList) >1 else '', maxQuestions)
+         for i in range( self.indent  ):
+            sys.stdout.write("\t")
+         print "%s: '%s': maxQuestions set to %d" % (descriptor, name, maxQuestions)
          qList = self.shuffle(qList)
          qList = qList[:maxQuestions]
 
+      if len( qList ) > 1:
+         for i in range( self.indent ):
+            sys.stdout.write("\t")
+         print "%s: '%s' - Adding %d questions" % (descriptor, name, len(qList))
+
       return qList
 
-
-
-   def readQuestions(self, fileList):
-      rval = []
-
-      for f in fileList:
-
-         print "%s..." % (f)
-         config = ConfigObj( f, interpolation=True )
-         qList = self.addQuestion( config )
-         print "\tAdding %d question%s" % (len(qList), 's' if len(qList)>1 else '')
-         rval += qList 
-
-      return ( rval )
 
 
    def beginMinipage( self ):
@@ -247,9 +263,11 @@ class MKT:
             except KeyError:
                fatal("'question' not defined for %s" % (m))
 
-            solutionSpace = self.solutionSpace
+            if "solutionSpace" in self.config:
+               solutionSpace = self.config["solutionSpace"]
             if 'solutionSpace' in m:
                solutionSpace = m["solutionSpace"]
+
             self.of.write("\\begin{solution}[%s]\n" % ( solutionSpace ))
          
             # Write out the solution

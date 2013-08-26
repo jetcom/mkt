@@ -1,4 +1,4 @@
-questions=1
+maxQuestions=1
 
 [timbuktu]
 bonus=true

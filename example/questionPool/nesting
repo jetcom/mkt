@@ -1,5 +1,5 @@
 [waitTime]
-questions=1
+maxQuestions=1
 
    [[1]]
    type=shortAnswer
