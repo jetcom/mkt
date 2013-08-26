@@ -36,7 +36,6 @@ class MKT:
 
       questions = self.parseConfig( 'File', configFile, config, root=path)
 
-      print "Generating test with %d questions" % len( questions )
       self.writeHeader()
       self.generateTest( questions )
       self.writeFooter()
@@ -159,12 +158,12 @@ class MKT:
       return False
 
    def parseConfig( self, descriptor, name, config, root=None ):
-      for i in range( self.indent ):
-         sys.stdout.write("\t")
+      sys.stdout.write("  "*self.indent)
 
       qList = []
       maxQuestions = None
       maxPoints = None
+      showSummary = True
 
       # found a question. Add it!
       if "question" in config:
@@ -209,7 +208,7 @@ class MKT:
          totalPoints += int(p["points"])
 
       if maxPoints and totalPoints > maxPoints:
-
+         showSummary = False
          qList = self.shuffle(qList)
          newList = []
 
@@ -219,16 +218,12 @@ class MKT:
                newPoints += int(p["points"])
                newList.append(p)
 
-         for i in range( self.indent  ):
-            sys.stdout.write("\t")
+         sys.stdout.write("  "*self.indent)
          print "%s: '%s': maxPoints set to %d" % ( descriptor, name, maxPoints) 
-         for i in range( self.indent  ):
-            sys.stdout.write("\t")
-         print "   old total: %d   old # of questions: %d" % ( totalPoints, len(qList ))
-         for i in range( self.indent  ):
-            sys.stdout.write("\t")
-
-         print "   new total: %d   new # of questions: %d" % ( newPoints, len(newList))
+         sys.stdout.write("  "*self.indent)
+         print "  old total: %d   old # of questions: %d" % ( totalPoints, len(qList ))
+         sys.stdout.write("  "*self.indent)
+         print "  new total: %d   new # of questions: %d" % ( newPoints, len(newList))
 
          qList = newList
          totalPoints = newPoints
@@ -236,19 +231,24 @@ class MKT:
 
 
       if maxQuestions and len(qList) > maxQuestions:
-         for i in range( self.indent  ):
-            sys.stdout.write("\t")
-         print "%s: '%s': maxQuestions set to %d" % (descriptor, name, maxQuestions)
+         showSummary = False
          qList = self.shuffle(qList)
          qList = qList[:maxQuestions]
 
-      if len( qList ) > 1:
-         for i in range( self.indent ):
-            sys.stdout.write("\t")
+         sys.stdout.write("  " * self.indent)
+         print "%s: '%s': maxQuestions set to %d" % (descriptor, name, maxQuestions)
+
+      # if we didn't already show a summary
+      #   AND
+      #     We are in a section with at least 2 elements
+      #       OR
+      #     We are a file
+      if showSummary and ((len( qList ) > 1 and descriptor == 'Section') or
+            descriptor == 'File'):
+         sys.stdout.write("  " * self.indent )
 
          print "%s: '%s' - Adding %d questions worth %d points" % (descriptor,
                name, len(qList), totalPoints )
-
 
       return qList
 
