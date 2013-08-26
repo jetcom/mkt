@@ -215,11 +215,9 @@ class MKT:
 
          newPoints = 0
          for p in qList:
-            newPoints += int(p["points"])
-            if newPoints <= maxPoints:
+            if newPoints + int(p["points"]) <= maxPoints:
+               newPoints += int(p["points"])
                newList.append(p)
-            else:
-               break
 
          for i in range( self.indent  ):
             sys.stdout.write("\t")
