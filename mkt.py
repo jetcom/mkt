@@ -7,22 +7,15 @@ from random import random
 from configobj import ConfigObj
 
 class MKT:
-   #test = None
-   #instructor = None
-   #term = None
    of = None
-   #courseName = None
-   #courseNumber = None
-   #dapartment = None
-   #school = None
-   #nameOnEveryPage = False
-   #solutionSpace = '3in'
    answerKey = ''
 
    mainSettingsStored = False
    config = None
 
-   points = 2
+   defaultPoints = 2
+   defaultSolutionSpace = None
+
    indent = 0 
 
    def __init__( self, configFile, outfile, answerKey, force ):
@@ -144,10 +137,23 @@ class MKT:
       return rval
 
    def parseTestSettings( self, c, config ):
-      if c in [ "test", "instructor",  "courseName", "courseNumber", "term", "school", "department", "nameOnEveryPage", "defaultPoints" ]:
+      if c in [ "test", "instructor",  "courseName", "courseNumber", "term", "school", "department", "nameOnEveryPage", "defaultPoints", "defaultSolutionSpace" ]: 
          if not  self.mainSettingsStored:
             self.mainSettingsStored = True
             self.config = config
+
+            # We need to do this once here because when we add questions, it
+            # we want to add the default points settings. Everything else is
+            # used on page genreation so it can be saved in the struct for
+            # later
+            if "defaultPoints" in config:
+               self.defaultPoints = config["defaultPoints"]
+
+            # Same for defaultSolutionSpace
+            if "defaultSolutionSpace" in config:
+               self.defaultSolutionSpace = config["defaultSolutionSpace"]
+
+
          return True
 
       return False
@@ -160,8 +166,21 @@ class MKT:
       maxQuestions = None
       maxPoints = None
 
+      # found a question. Add it!
       if "question" in config:
-         # found a question. Add it!
+
+         # If points is not set, set it here
+         if not "points" in config:
+            config["points"] = self.defaultPoints
+
+         # If it's a short answer question, make sure there is a solution
+         # space defined
+         if config["type"].lower() == "shortanswer" and not "solutionSpace" in config:
+            if self.defaultSolutionSpace:
+               config["solutionSpace"] = self.defaultSolutionSpace
+            else:
+               fatal("'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
+
          qList.append(config)
          print "%s: %s - Adding question" % ( descriptor, name )
       else:
@@ -179,14 +198,43 @@ class MKT:
             elif not isinstance (config[c], str ):
                self.indent+=1
                qList += self.parseConfig( 'Section',  c, config[c], root=root )
-               #if len( rval ) > 1:
-                  #for i in range( self.indent ):
-                     #sys.stdout.write("\t")
-                  #print "Section: '%s' - Adding %d questions" % (c, len(rval))
-               #qList += rval
                self.indent-=1
             else:
                fatal("Unknown token: %s" % c )
+      
+
+      # Cut the list down to get the max points requested
+      totalPoints = 0;
+      for p in qList:
+         totalPoints += int(p["points"])
+
+      if maxPoints and totalPoints > maxPoints:
+
+         qList = self.shuffle(qList)
+         newList = []
+
+         newPoints = 0
+         for p in qList:
+            newPoints += int(p["points"])
+            if newPoints <= maxPoints:
+               newList.append(p)
+            else:
+               break
+
+         for i in range( self.indent  ):
+            sys.stdout.write("\t")
+         print "%s: '%s': maxPoints set to %d" % ( descriptor, name, maxPoints) 
+         for i in range( self.indent  ):
+            sys.stdout.write("\t")
+         print "   old total: %d   old # of questions: %d" % ( totalPoints, len(qList ))
+         for i in range( self.indent  ):
+            sys.stdout.write("\t")
+
+         print "   new total: %d   new # of questions: %d" % ( newPoints, len(newList))
+
+         qList = newList
+
+
 
       if maxQuestions and len(qList) > maxQuestions:
          for i in range( self.indent  ):
@@ -199,6 +247,7 @@ class MKT:
          for i in range( self.indent ):
             sys.stdout.write("\t")
          print "%s: '%s' - Adding %d questions" % (descriptor, name, len(qList))
+
 
       return qList
 
@@ -248,42 +297,23 @@ class MKT:
          print >> self.of, "\\begingradingrange{shortanswer}"
 
          for m in shortAnswer:
-            points = self.points;
-            if 'points' in m:
-               points = int(m["points"])
-
-            #self.of.write("\\begin{minipage}[b]{\\linewidth} % Keep the following lines together\n")
             self.beginMinipage();
 
-            self.of.write("\\question[%d]\n" % points )
+            self.of.write("\\question[%d]\n" % int(m["points"]))
+            self.of.write("%s\n" % (m["question"]))
 
-            # Write out the question
-            try:
-               self.of.write("%s\n" % (m["question"]))
-            except KeyError:
-               fatal("'question' not defined for %s" % (m))
-
-            if "solutionSpace" in self.config:
-               solutionSpace = self.config["solutionSpace"]
-            if 'solutionSpace' in m:
-               solutionSpace = m["solutionSpace"]
-
-            self.of.write("\\begin{solution}[%s]\n" % ( solutionSpace ))
-         
             # Write out the solution
+            self.of.write("\\begin{solution}[%s]\n" % ( m["solutionSpace"] ))
             self.of.write("%s\n" % (m["solution"]))
-
             self.of.write("\\end{solution}\n")
 
             self.endMinipage()
-            #self.of.write("\\end{minipage}\n\n")
+
 
          print >> self.of, "\\endgradingrange{shortanswer}"
-
          print >> self.of, "\\newpage"
 
 
-      count = 0
       if len(multipleChoice) > 0 or len(bonusQuestions)>0:
          # Print multiple choice questions: 
          print >> self.of, "\\begin{center}"
@@ -298,12 +328,8 @@ class MKT:
 
          multipleChoice = self.shuffle( multipleChoice )
          for m in multipleChoice:
-            points = self.points;
-            if 'points' in m:
-               points = int(m["points"])
-
             self.beginMinipage()
-            self.of.write("\\question[%d]\n" % (points))
+            self.of.write("\\question[%d]\n" % int(m["points"]))
             self.of.write("%s\n" % (m["question"]))
             self.of.write("\\medskip\n")
 
@@ -320,20 +346,12 @@ class MKT:
             self.of.write("\\end{checkboxes}\n\n\n")
 
             self.endMinipage()
-
-            count = count + 1
-            if count % 4 == 0:
-               pass
-               #self.of.write("\\pagebreak\n\n")
 
 
          for m in self.shuffle(bonusQuestions):
-            points = self.points;
-            if 'points' in m:
-               points = int(m["points"])
 
             self.beginMinipage()
-            self.of.write("\\bonusquestion[%d]\n" % (points))
+            self.of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
             self.of.write("%s\n" % (m["question"]))
             self.of.write("\\medskip\n")
 
@@ -349,11 +367,6 @@ class MKT:
                self.of.write("\\%s %s\n" % (b, a ) )
             self.of.write("\\end{checkboxes}\n\n\n")
             self.endMinipage()
-
-            count = count + 1
-            if count % 4 == 0:
-               pass
-               #self.of.write("\\pagebreak\n\n")
 
          print >> self.of, "\\endgradingrange{multiplechoice}"
 

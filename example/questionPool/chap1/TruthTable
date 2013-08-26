@@ -1,6 +1,7 @@
 [truthTable]
 type=shortAnswer
 points=14
+solutionSpace=0in
 question='''
 Complete the following truth table
 \begin{center}
