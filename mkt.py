@@ -231,6 +231,7 @@ class MKT:
          print "   new total: %d   new # of questions: %d" % ( newPoints, len(newList))
 
          qList = newList
+         totalPoints = newPoints
 
 
 
@@ -244,7 +245,9 @@ class MKT:
       if len( qList ) > 1:
          for i in range( self.indent ):
             sys.stdout.write("\t")
-         print "%s: '%s' - Adding %d questions" % (descriptor, name, len(qList))
+
+         print "%s: '%s' - Adding %d questions worth %d points" % (descriptor,
+               name, len(qList), totalPoints )
 
 
       return qList
