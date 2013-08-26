@@ -219,12 +219,12 @@ class MKT:
       for q in questions:
          try:
             if "bonus" in q and q["bonus"].lower() == "true":
-               if q["type"] != "multipleChoice":
+               if q["type"].lower() != "multiplechoice":
                   fatal("Only multiple choice bonus questions are currently supported")
                bonusQuestions.append(q)
-            elif q["type"] == "shortAnswer":
+            elif q["type"].lower() == "shortanswer":
                shortAnswer.append( q )
-            elif q["type"] == "multipleChoice":
+            elif q["type"].lower() == "multiplechoice":
                multipleChoice.append( q )
             else:
                fatal("unknown test type: %s" % (q["type"]))
