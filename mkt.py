@@ -54,7 +54,7 @@ class MKT:
          fatal("%s: file already exists" % ( outfile ))
       of = open(outfile, 'w')
 
-      if answerKey and not force and os.path.exists(outfile):
+      if answerKey and not force and os.path.exists(answerFilename):
          fatal("%s: file already exists" % ( answerFilename ))
       kf = open(answerFilename, 'w')
 
