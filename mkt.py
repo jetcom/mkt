@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 
 import os, sys, argparse
-import sqlite3
+import tempfile
+import shutil
 from random import random
 #import ConfigParser
 from configobj import ConfigObj
 
 class MKT:
-   # output file pointer
-   of = None
-
-   # set to 'answers,' when the user specifies -a on the command line
-   answerKey = ''
-
    # set to True when the master settings are read. This is done so we only
    # have to do it once
    mainSettingsStored = False
@@ -33,15 +28,35 @@ class MKT:
    # __init__
    ##########################################
    def __init__( self, configFile, outfile, answerKey, force ):
+      # List of questions
       questions = []
-      path = os.path.dirname( configFile )
 
-      if answerKey == True: 
-         self.answerKey = "answers,"
+      # Name of the file for the answer key
+      answerFilename = ''
+
+      # output file pointer
+      of = None
+
+      # keyfile points
+      kf = None
+
+
+      fileName, fileExtension = os.path.splitext(outfile)
+
+      answerFilename = fileName + ".key.tex"
+
+      if not fileExtension.lower() == ".tex":
+         outfile+=".tex"
+
+      path = os.path.dirname( configFile )
 
       if not force and os.path.exists(outfile):
          fatal("%s: file already exists" % ( outfile ))
-      self.of = open(outfile, 'w')
+      of = open(outfile, 'w')
+
+      if answerKey and not force and os.path.exists(outfile):
+         fatal("%s: file already exists" % ( answerFilename ))
+      kf = open(answerFilename, 'w')
 
       # Read in the ini file specified on the command line
       print "Reading %s" % ( configFile )
@@ -49,70 +64,95 @@ class MKT:
       questions = self.parseConfig( 'File', configFile, config, root=path)
 
 
-      self.writeHeader()
-      self.generateTest( questions )
-      self.writeFooter()
 
+      # Generate the test onec
+      tempFile = tempfile.TemporaryFile()
+      self.generateTest( tempFile, questions )
+
+      self.writeHeader( of, '' )
+
+      # Now we write copy from the temp file to the test file
+      tempFile.seek(0,0)
+      shutil.copyfileobj( tempFile, of )
+
+      self.writeFooter( of )
+      print("\nTest file written: %s" % (outfile))
+
+
+
+      if answerKey:
+         self.writeHeader( kf, 'answers,' )
+
+         # Write the same test contents
+         tempFile.seek(0,0)
+         shutil.copyfileobj( tempFile, kf )
+
+         self.writeFooter( kf )
+         print("Answer key file written: %s" % ( answerFilename ))
+
+      of.close()
+      kf.close()
+      tempFile.close()
 
    ###########################################
    # writeHeader
    ##########################################
-   def writeHeader( self ):
-      print >> self.of, "\documentclass[11pt,%s addpoints]{exam}\n" % (self.answerKey)
-      print >> self.of, "\usepackage{amssymb}\n" \
+   def writeHeader( self, of, answerKey ):
+      print >> of, "\documentclass[11pt,%s addpoints]{exam}\n" % (answerKey)
+      print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
                         "\usepackage{color}\n\n"
 
-      print >> self.of, "\pagestyle{headandfoot}"
+      print >> of, "\pagestyle{headandfoot}"
 
       if ( "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true" ):
-         print >> self.of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
-         print >> self.of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
+         print >> of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
+         print >> of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
       else:
-         print >> self.of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
-         print >> self.of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
+         print >> of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
+         print >> of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
 
 
-      print >> self.of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.config["courseNumber"] )
-      print >> self.of, "\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % ( self.config["courseNumber"] )
+      print >> of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.config["courseNumber"] )
+      print >> of, "\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % ( self.config["courseNumber"] )
 
-      print >> self.of, "\n"
-      print >> self.of, "\\checkboxchar{$\\Box$}"
-      print >> self.of, "\\CorrectChoiceEmphasis{\color{red}}"
-      print >> self.of, "\\SolutionEmphasis{\color{red}}"
-      print >> self.of, "\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}"
-      print >> self.of, "\\bonuspointpoints{bonus point}{bonus points}"
+      print >> of, "\n"
+      print >> of, "\\checkboxchar{$\\Box$}"
+      print >> of, "\\CorrectChoiceEmphasis{\color{red}}"
+      print >> of, "\\SolutionEmphasis{\color{red}}"
+      print >> of, "\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}"
+      print >> of, "\\bonuspointpoints{bonus point}{bonus points}"
 
-      print >> self.of, "\n"
+      print >> of, "\n"
 
-      print >> self.of, "\\begin{document}"
-      print >> self.of, "\\begin{coverpages}"
-      print >> self.of, "\\begin{center}"
-      print >> self.of, "\\vspace*{1in}"
+      print >> of, "\\begin{document}"
+      print >> of, "\\begin{coverpages}"
+      print >> of, "\\begin{center}"
+      print >> of, "\\vspace*{1in}"
 
-      print >> self.of, "\n"
+      print >> of, "\n"
 
-      print >> self.of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % ( self.config["school"], self.config["department"] )  
-      print >> self.of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.config["courseName"] )
-      print >> self.of, "\\textsc{\LARGE %s}\\\\[2cm]" % ( self.config["term"] )
-      print >> self.of, "\\textsc{\Huge %s}" % ( self.config["test"] )
-      print >> self.of, "\\vfill"
+      print >> of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % ( self.config["school"], self.config["department"] )  
+      print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.config["courseName"] )
+      print >> of, "\\textsc{\LARGE %s}\\\\[2cm]" % ( self.config["term"] )
+      print >> of, "\\textsc{\Huge %s}" % ( self.config["test"] )
+      print >> of, "\\vfill"
 
-      print >> self.of, "\n"
-      print >> self.of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
-      print >> self.of, "\end{center}"
-      print >> self.of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
-      print >> self.of, "\end{coverpages}"
+      print >> of, "\n"
+      print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
+      print >> of, "\end{center}"
+      print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
+      print >> of, "\end{coverpages}"
 
-      print >> self.of, "\n"
+      print >> of, "\n"
 
 
    ###########################################
    # writeFooter
    ##########################################
-   def writeFooter( self ):
-      print >> self.of, "\end{questions}"
-      print >> self.of, "\end{document}"
+   def writeFooter( self, of ):
+      print >> of, "\end{questions}"
+      print >> of, "\end{document}"
 
    ###########################################
    # getQuestions
@@ -291,20 +331,20 @@ class MKT:
    ###########################################
    # beginMinipage
    ##########################################
-   def beginMinipage( self ):
-      self.of.write("\\par\\vspace{.5in}\\begin{minipage}{\\linewidth}\n")
+   def beginMinipage( self, of ):
+      of.write("\\par\\vspace{.5in}\\begin{minipage}{\\linewidth}\n")
 
    ###########################################
    # endMinipage
    ##########################################
-   def endMinipage( self ):
-      self.of.write("\\end{minipage}\n")
-      self.of.write("\n\n")
+   def endMinipage( self, of ):
+      of.write("\\end{minipage}\n")
+      of.write("\n\n")
 
    ###########################################
    # generateTest
    ##########################################
-   def generateTest( self, questions ):
+   def generateTest( self, of, questions ):
       shortAnswer = []
       multipleChoice = []
       bonusQuestions = []
@@ -331,33 +371,33 @@ class MKT:
          shortAnswer = self.shuffle( shortAnswer )
 
          # print out the short answer questions. 
-         print >> self.of, "\\begin{center}"
-         print >> self.of, "{\Large \\textbf{Short Answers Questions}}"
-         print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-         print >> self.of, "Answer the questions in the spaces provided on the question sheets."
-         print >> self.of, "If you run out of room for an answer, continue on the back of the page."
-         print >> self.of, "}}}"
-         print >> self.of, "\end{center}\n"
+         print >> of, "\\begin{center}"
+         print >> of, "{\Large \\textbf{Short Answers Questions}}"
+         print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         print >> of, "Answer the questions in the spaces provided on the question sheets."
+         print >> of, "If you run out of room for an answer, continue on the back of the page."
+         print >> of, "}}}"
+         print >> of, "\end{center}\n"
 
-         print >> self.of, "\\begin{questions}"
-         print >> self.of, "\\begingradingrange{shortanswer}"
+         print >> of, "\\begin{questions}"
+         print >> of, "\\begingradingrange{shortanswer}"
 
          for m in shortAnswer:
-            self.beginMinipage();
+            self.beginMinipage( of );
 
-            self.of.write("\\question[%d]\n" % int(m["points"]))
-            self.of.write("%s\n" % (m["question"]))
+            of.write("\\question[%d]\n" % int(m["points"]))
+            of.write("%s\n" % (m["question"]))
 
             # Write out the solution
-            self.of.write("\\begin{solution}[%s]\n" % ( m["solutionSpace"] ))
-            self.of.write("%s\n" % (m["solution"]))
-            self.of.write("\\end{solution}\n")
+            of.write("\\begin{solution}[%s]\n" % ( m["solutionSpace"] ))
+            of.write("%s\n" % (m["solution"]))
+            of.write("\\end{solution}\n")
 
-            self.endMinipage()
+            self.endMinipage( of )
 
 
-         print >> self.of, "\\endgradingrange{shortanswer}"
-         print >> self.of, "\\newpage"
+         print >> of, "\\endgradingrange{shortanswer}"
+         print >> of, "\\newpage"
 
 
       # 
@@ -365,14 +405,14 @@ class MKT:
       #
       if len(multipleChoice) > 0 or len(bonusQuestions)>0:
          # Print multiple choice questions: 
-         print >> self.of, "\\begin{center}"
-         print >> self.of, "{\Large \\textbf{Multiple Choice Questions}}"
-         print >> self.of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-         print >> self.of, "Mark the box the represents the \textit{best} answer.  If you make an"
-         print >> self.of, "incorrect mark, erase your mark and clearly mark the correct answer."
-         print >> self.of, "If the intended mark is not clear, you will receive a 0 for that question"
-         print >> self.of, "}}}"
-         print >> self.of, "\end{center}\n"
+         print >> of, "\\begin{center}"
+         print >> of, "{\Large \\textbf{Multiple Choice Questions}}"
+         print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         print >> of, "Mark the box the represents the \textit{best} answer.  If you make an"
+         print >> of, "incorrect mark, erase your mark and clearly mark the correct answer."
+         print >> of, "If the intended mark is not clear, you will receive a 0 for that question"
+         print >> of, "}}}"
+         print >> of, "\end{center}\n"
 
 
          #
@@ -380,10 +420,10 @@ class MKT:
          #
          multipleChoice = self.shuffle( multipleChoice )
          for m in multipleChoice:
-            self.beginMinipage()
-            self.of.write("\\question[%d]\n" % int(m["points"]))
-            self.of.write("%s\n" % (m["question"]))
-            self.of.write("\\medskip\n")
+            self.beginMinipage( of )
+            of.write("\\question[%d]\n" % int(m["points"]))
+            of.write("%s\n" % (m["question"]))
+            of.write("\\medskip\n")
 
             answers = {m["correctAnswer"]:"CorrectChoice"}
             try:
@@ -392,12 +432,12 @@ class MKT:
                fatal("'wrongAnswers' not defined for %s" % (m))
             answers = self.shuffle(answers.items())
 
-            self.of.write("\\begin{checkboxes}\n")
+            of.write("\\begin{checkboxes}\n")
             for a,b in answers:
-               self.of.write("\\%s %s\n" % (b, a ) )
-            self.of.write("\\end{checkboxes}\n\n\n")
+               of.write("\\%s %s\n" % (b, a ) )
+            of.write("\\end{checkboxes}\n\n\n")
 
-            self.endMinipage()
+            self.endMinipage( of )
 
 
          #
@@ -405,10 +445,10 @@ class MKT:
          #
          for m in self.shuffle(bonusQuestions):
 
-            self.beginMinipage()
-            self.of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
-            self.of.write("%s\n" % (m["question"]))
-            self.of.write("\\medskip\n")
+            self.beginMinipage( of )
+            of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
+            of.write("%s\n" % (m["question"]))
+            of.write("\\medskip\n")
 
             answers = {m["correctAnswer"]:"CorrectChoice"}
             try:
@@ -417,13 +457,13 @@ class MKT:
                fatal("'wrongAnswers' not defined for %s" % (m))
             answers = self.shuffle(answers.items())
 
-            self.of.write("\\begin{checkboxes}\n")
+            of.write("\\begin{checkboxes}\n")
             for a,b in answers:
-               self.of.write("\\%s %s\n" % (b, a ) )
-            self.of.write("\\end{checkboxes}\n\n\n")
-            self.endMinipage()
+               of.write("\\%s %s\n" % (b, a ) )
+            of.write("\\end{checkboxes}\n\n\n")
+            self.endMinipage( of )
 
-         print >> self.of, "\\endgradingrange{multiplechoice}"
+         print >> of, "\\endgradingrange{multiplechoice}"
 
 
 
@@ -440,13 +480,13 @@ def main( argv ):
    parser = argparse.ArgumentParser()
    parser.add_argument("configFile", help="Config file for this exam" )
    parser.add_argument("ofile", help="Destination .tex file" )
-   parser.add_argument("-a", "--answerKey", help="Generate answer key", action='store_true')
+   parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
    args = parser.parse_args()
    configFile = args.configFile;
    outfile = args.ofile;
    
-   mkt = MKT( configFile, outfile, args.answerKey, args.force )
+   mkt = MKT( configFile, outfile, not args.noAnswerKey, args.force )
       
 
 if __name__ == '__main__':
