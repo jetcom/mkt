@@ -24,10 +24,13 @@ class MKT:
    # current indent level
    indent = 0 
 
+   # Enable test mode
+   testMode = False
+
    ###########################################
    # __init__
    ##########################################
-   def __init__( self, configFile, outfile, answerKey, force ):
+   def __init__( self, configFile, outfile, answerKey, force, testMode ):
       # List of questions
       questions = []
 
@@ -40,6 +43,10 @@ class MKT:
       # keyfile points
       kf = None
 
+      self.testMode = testMode
+
+      if self.testMode:
+         print ">>> TEST MODE ENABLED <<<"
 
       fileName, fileExtension = os.path.splitext(outfile)
 
@@ -60,6 +67,8 @@ class MKT:
 
       # Read in the ini file specified on the command line
       print "Reading %s" % ( configFile )
+
+
       config = ConfigObj(configFile)
       questions = self.parseConfig( 'File', configFile, config, root=path)
 
@@ -170,7 +179,10 @@ class MKT:
    # shuffle
    ##########################################
    def shuffle(self, items):  # returns new list
-      return [t[1] for t in sorted((random(), i) for i in items)]
+      if self.testMode:
+         return items
+      else:
+         return [t[1] for t in sorted((random(), i) for i in items)]
 
    ###########################################
    # processInclude
@@ -261,9 +273,11 @@ class MKT:
          # No questions at this level.  Need to recursive look for them
          for c in config:
             if c == "maxQuestions":
-               maxQuestions = int(config[c])
+               if not self.testMode:
+                  maxQuestions = int(config[c])
             elif c == "maxPoints":
-               maxPoints = int(config[c])
+               if not self.testMode:
+                  maxPoints = int(config[c])
             elif c == "include":
                qList += self.processInclude( config["include"], root=root )
             elif self.parseTestSettings( c, config ):
@@ -425,7 +439,10 @@ class MKT:
             of.write("%s\n" % (m["question"]))
             of.write("\\medskip\n")
 
-            answers = {m["correctAnswer"]:"CorrectChoice"}
+            try:
+               answers = {m["correctAnswer"]:"CorrectChoice"}
+            except TypeError:
+               fatal("correctAnswer not defined for %s" % (m))
             try:
                answers.update({v:"choice" for v in m["wrongAnswers"]})
             except KeyError:
@@ -482,11 +499,11 @@ def main( argv ):
    parser.add_argument("ofile", help="Destination .tex file" )
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
+   parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
    args = parser.parse_args()
-   configFile = args.configFile;
-   outfile = args.ofile;
    
-   mkt = MKT( configFile, outfile, not args.noAnswerKey, args.force )
+   mkt = MKT( args.configFile, args.ofile, not args.noAnswerKey, args.force,
+         args.test )
       
 
 if __name__ == '__main__':
