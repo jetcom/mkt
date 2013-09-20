@@ -110,6 +110,7 @@ class MKT:
       print >> of, "\documentclass[11pt,%s addpoints]{exam}\n" % (answerKey)
       print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
+                        "\usepackage{listings}\n" \
                         "\usepackage{color}\n\n"
 
       print >> of, "\pagestyle{headandfoot}"
