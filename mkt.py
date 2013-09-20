@@ -3,8 +3,8 @@
 import os, sys, argparse
 import tempfile
 import shutil
+import subprocess
 from random import random
-#import ConfigParser
 from configobj import ConfigObj
 
 class MKT:
@@ -30,7 +30,7 @@ class MKT:
    ###########################################
    # __init__
    ##########################################
-   def __init__( self, configFile, outfile, answerKey, force, testMode ):
+   def __init__( self, configFile, outfile, answerKey, force, testMode, generatePDF ):
       # List of questions
       questions = []
 
@@ -103,7 +103,51 @@ class MKT:
       kf.close()
       tempFile.close()
 
-   ###########################################
+
+      if generatePDF:
+         self.createPDF( outfile, answerFilename )
+
+   ##########################################
+   # createPDF
+   ##########################################
+   def createPDF( self, outFile, answerFilename ):
+      print("Generating PDFs...")
+      fileName, fileExtension = os.path.splitext(outFile)
+      oldpath = os.getcwd()
+      newpath = os.path.dirname(outFile)
+      logFile = open("%s.log" % (fileName), "w" )
+
+      if len(newpath) == 0:
+         newpath = "."
+
+      executable = ["pdflatex", outFile]
+      for i in range(0,3):
+         process = subprocess.Popen( executable, stdout=subprocess.PIPE)
+         for line in process.stdout:
+            logFile.write(line)
+         if process.wait() != 0:
+            logFile.close()
+            os.chdir(oldpath)
+            print("Error running pdflatex. Check logs.")
+            return;
+
+      if len(answerFilename) > 0:
+         executable = ["pdflatex", answerFilename ]
+         for i in range(0,3):
+            process = subprocess.Popen( executable, stdout=subprocess.PIPE)
+            for line in process.stdout:
+               logFile.write(line)
+            if process.wait() != 0:
+               logFile.close()
+               os.chdir(oldpath)
+               print("Error running pdflatex. Check logs.")
+               return;
+
+      logFile.close();
+      os.chdir(oldpath)
+
+
+   ##########################################
    # writeHeader
    ##########################################
    def writeHeader( self, of, answerKey ):
@@ -501,10 +545,12 @@ def main( argv ):
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
    parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
+   parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
+
    args = parser.parse_args()
    
    mkt = MKT( args.configFile, args.ofile, not args.noAnswerKey, args.force,
-         args.test )
+         args.test, args.pdf )
       
 
 if __name__ == '__main__':
