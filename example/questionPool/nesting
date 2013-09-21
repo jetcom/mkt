@@ -2,7 +2,7 @@
 maxQuestions=1
 
    [[1]]
-   type=shortAnswer
+   type=longAnswer
    points=8
    solutionSpace=0in
    question="Question 1"
@@ -10,7 +10,7 @@ maxQuestions=1
 
 
    [[2]]
-   type=shortAnswer
+   type=longAnswer
    points=8
    solutionSpace=0in
    question="Question 2"

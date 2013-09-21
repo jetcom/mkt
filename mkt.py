@@ -263,7 +263,9 @@ class MKT:
    # parseTestSettings
    ##########################################
    def parseTestSettings( self, c, config ):
-      if c in [ "test", "instructor",  "courseName", "courseNumber", "term", "school", "department", "nameOnEveryPage", "defaultPoints", "defaultSolutionSpace" ]: 
+      if c in [ "test", "instructor",  "courseName", "courseNumber", "term",
+            "school", "department", "nameOnEveryPage", "defaultPoints",
+            "defaultSolutionSpace", "useCheckboxes" ]: 
          if not  self.mainSettingsStored:
             self.mainSettingsStored = True
             self.config = config
@@ -306,7 +308,7 @@ class MKT:
 
          # If it's a short answer question, make sure there is a solution
          # space defined
-         if config["type"].lower() == "shortanswer" and not "solutionSpace" in config:
+         if config["type"].lower() == "longanswer" and not "solutionSpace" in config:
             if self.defaultSolutionSpace:
                config["solutionSpace"] = self.defaultSolutionSpace
             else:
@@ -401,9 +403,54 @@ class MKT:
       of.write("\n\n")
 
    ###########################################
+   # createMultipleChoiceQuestions
+   ##########################################
+   def createMultipleChoiceQuestions( self, of, questions, bonus = None ):
+      for m in self.shuffle( questions ):
+         self.beginMinipage( of )
+         if bonus: 
+            of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
+         else:
+            of.write("\\question[%d]\n" % int(m["points"]))
+
+         of.write("%s\n" % (m["question"]))
+         of.write("\\medskip\n")
+
+         try:
+            answers = {m["correctAnswer"]:"CorrectChoice"}
+         except TypeError:
+            fatal("correctAnswer not defined for %s" % (m))
+         try:
+            answers.update({v:"choice" for v in m["wrongAnswers"]})
+         except KeyError:
+            fatal("'wrongAnswers' not defined for %s" % (m))
+         answers = self.shuffle(answers.items())
+
+         if self.config["useCheckboxes"].lower() == "true":
+            of.write("\\begin{checkboxes}\n")
+            for a,b in answers:
+               of.write("\\%s %s\n" % (b, a ) )
+            of.write("\\end{checkboxes}\n\n\n")
+         else:
+            of.write("\\begin{choices}\n")
+            currentAnswer = 'A'
+            for a,b in answers:
+               of.write("\\%s %s\n" % ( "choice", a ))
+               if b == "CorrectChoice" :
+                  correctAnswer = currentAnswer
+               currentAnswer = chr(ord(currentAnswer)+1)
+
+            of.write("\\end{choices}\n")
+            of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
+         self.endMinipage( of )
+
+      
+
+   ###########################################
    # generateTest
    ##########################################
    def generateTest( self, of, questions ):
+      longAnswer = []
       shortAnswer = []
       multipleChoice = []
       bonusQuestions = []
@@ -414,8 +461,8 @@ class MKT:
                if q["type"].lower() != "multiplechoice":
                   fatal("Only multiple choice bonus questions are currently supported")
                bonusQuestions.append(q)
-            elif q["type"].lower() == "shortanswer":
-               shortAnswer.append( q )
+            elif q["type"].lower() == "longanswer":
+               longAnswer.append( q )
             elif q["type"].lower() == "multiplechoice":
                multipleChoice.append( q )
             else:
@@ -426,8 +473,8 @@ class MKT:
       # 
       # START: Short Answer Questions
       #
-      if len(shortAnswer) > 0:
-         shortAnswer = self.shuffle( shortAnswer )
+      if len(longAnswer) > 0:
+         longAnswer = self.shuffle( longAnswer )
 
          # print out the short answer questions. 
          print >> of, "\\begin{center}"
@@ -439,9 +486,9 @@ class MKT:
          print >> of, "\end{center}\n"
 
          print >> of, "\\begin{questions}"
-         print >> of, "\\begingradingrange{shortanswer}"
+         print >> of, "\\begingradingrange{longanswer}"
 
-         for m in shortAnswer:
+         for m in longAnswer:
             self.beginMinipage( of );
 
             of.write("\\question[%d]\n" % int(m["points"]))
@@ -455,7 +502,7 @@ class MKT:
             self.endMinipage( of )
 
 
-         print >> of, "\\endgradingrange{shortanswer}"
+         print >> of, "\\endgradingrange{longanswer}"
          print >> of, "\\newpage"
 
 
@@ -467,63 +514,28 @@ class MKT:
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Multiple Choice Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-         print >> of, "Mark the box the represents the \textit{best} answer.  If you make an"
-         print >> of, "incorrect mark, erase your mark and clearly mark the correct answer."
-         print >> of, "If the intended mark is not clear, you will receive a 0 for that question"
+         if self.config["useCheckboxes"].lower() == "true":
+            print >> of, "Mark the box the represents the \\textit{best} answer.  If you make an"
+            print >> of, "incorrect mark, erase your mark and clearly mark the correct answer."
+            print >> of, "If the intended mark is not clear, you will receive a 0 for that question"
+         else:
+            print >> of, "Write the \\textit{best} answer in the space provided next to the question."
+            print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
+
          print >> of, "}}}"
          print >> of, "\end{center}\n"
+         print >> of, "\\begingradingrange{multipleChoice}"
 
 
          #
          # START: Regular multiple choice questions
          #
-         multipleChoice = self.shuffle( multipleChoice )
-         for m in multipleChoice:
-            self.beginMinipage( of )
-            of.write("\\question[%d]\n" % int(m["points"]))
-            of.write("%s\n" % (m["question"]))
-            of.write("\\medskip\n")
-
-            try:
-               answers = {m["correctAnswer"]:"CorrectChoice"}
-            except TypeError:
-               fatal("correctAnswer not defined for %s" % (m))
-            try:
-               answers.update({v:"choice" for v in m["wrongAnswers"]})
-            except KeyError:
-               fatal("'wrongAnswers' not defined for %s" % (m))
-            answers = self.shuffle(answers.items())
-
-            of.write("\\begin{checkboxes}\n")
-            for a,b in answers:
-               of.write("\\%s %s\n" % (b, a ) )
-            of.write("\\end{checkboxes}\n\n\n")
-
-            self.endMinipage( of )
-
+         self.createMultipleChoiceQuestions( of, multipleChoice )
 
          #
          # START: Bonus multiple choice questions
          #
-         for m in self.shuffle(bonusQuestions):
-
-            self.beginMinipage( of )
-            of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
-            of.write("%s\n" % (m["question"]))
-            of.write("\\medskip\n")
-
-            answers = {m["correctAnswer"]:"CorrectChoice"}
-            try:
-               answers.update({v:"choice" for v in m["wrongAnswers"]})
-            except KeyError:
-               fatal("'wrongAnswers' not defined for %s" % (m))
-            answers = self.shuffle(answers.items())
-
-            of.write("\\begin{checkboxes}\n")
-            for a,b in answers:
-               of.write("\\%s %s\n" % (b, a ) )
-            of.write("\\end{checkboxes}\n\n\n")
-            self.endMinipage( of )
+         self.createMultipleChoiceQuestions( of, bonusQuestions, True )
 
          print >> of, "\\endgradingrange{multiplechoice}"
 
