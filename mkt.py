@@ -265,10 +265,17 @@ class MKT:
    def parseTestSettings( self, c, config ):
       if c in [ "test", "instructor",  "courseName", "courseNumber", "term",
             "school", "department", "nameOnEveryPage", "defaultPoints",
-            "defaultSolutionSpace", "useCheckboxes" ]: 
+            "defaultSolutionSpace", "useCheckboxes", "defaultLineLength" ]: 
          if not  self.mainSettingsStored:
             self.mainSettingsStored = True
             self.config = config
+
+            # Set up some defaults of the keys aren't found
+            if "useCheckboxes" not in self.config:
+               self.config["useCheckboxes"] = "false"
+
+            if "defaultLineLength" not in self.config:
+               self.config["defaultLineLength"] = "1in"
 
             # We need to do this once here because when we add questions, it
             # we want to add the default points settings. Everything else is
@@ -306,8 +313,11 @@ class MKT:
          if not "points" in config:
             config["points"] = self.defaultPoints
 
-         # If it's a short answer question, make sure there is a solution
+         # If it's a long answer question, make sure there is a solution
          # space defined
+         if "type" not in config:
+            fatal("'type' not defined for question")
+
          if config["type"].lower() == "longanswer" and not "solutionSpace" in config:
             if self.defaultSolutionSpace:
                config["solutionSpace"] = self.defaultSolutionSpace
@@ -440,7 +450,13 @@ class MKT:
                   correctAnswer = currentAnswer
                currentAnswer = chr(ord(currentAnswer)+1)
 
+            if "lineLength" in m:
+               lineLength = m["lineLength"]
+            else:
+               lineLength = self.config["defaultLineLength"]
+
             of.write("\\end{choices}\n")
+            of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
             of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
          self.endMinipage( of )
 
@@ -465,6 +481,8 @@ class MKT:
                longAnswer.append( q )
             elif q["type"].lower() == "multiplechoice":
                multipleChoice.append( q )
+            elif q["type"].lower() == "shortanswer":
+               shortAnswer.append( q )
             else:
                fatal("unknown test type: %s" % (q["type"]))
          except KeyError:
@@ -474,8 +492,6 @@ class MKT:
       # START: Short Answer Questions
       #
       if len(longAnswer) > 0:
-         longAnswer = self.shuffle( longAnswer )
-
          # print out the short answer questions. 
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Short Answers Questions}}"
@@ -488,7 +504,7 @@ class MKT:
          print >> of, "\\begin{questions}"
          print >> of, "\\begingradingrange{longanswer}"
 
-         for m in longAnswer:
+         for m in self.shuffle(longAnswer):
             self.beginMinipage( of );
 
             of.write("\\question[%d]\n" % int(m["points"]))
@@ -501,6 +517,40 @@ class MKT:
 
             self.endMinipage( of )
 
+
+         print >> of, "\\endgradingrange{longanswer}"
+         print >> of, "\\newpage"
+
+
+      #
+      # START: Short answer questions
+      #
+      if len( shortAnswer) > 0 :
+         print >> of, "\\begin{center}"
+         print >> of, "{\Large \\textbf{Short Answer Choice Questions}}"
+         print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         print >> of, "Write the correct answer in the space provided next to the question."
+         print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
+
+         print >> of, "}}}"
+         print >> of, "\end{center}\n"
+         print >> of, "\\begingradingrange{shortAnswer}"
+
+         for m in self.shuffle( shortAnswer ):
+            self.beginMinipage( of );
+
+            of.write("\\question[%d]\n" % int(m["points"]))
+            of.write("%s\n" % (m["question"]))
+
+            # Write out the solution
+            if "lineLength" in m:
+               lineLength = m["lineLength"]
+            else:
+               lineLength = self.config["defaultLineLength"]
+            of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
+            of.write("\\answerline[%s]\n" % (m["solution"]))
+
+            self.endMinipage( of )
 
          print >> of, "\\endgradingrange{longanswer}"
          print >> of, "\\newpage"
