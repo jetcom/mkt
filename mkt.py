@@ -456,7 +456,9 @@ class MKT:
                lineLength = self.config["defaultLineLength"]
 
             of.write("\\end{choices}\n")
-            of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
+            
+            # Answer lines for multiple choice questions are always 1in
+            of.write("\\setlength\\answerlinelength{1in}\n") 
             of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
          self.endMinipage( of )
 
@@ -526,6 +528,12 @@ class MKT:
       # START: Short answer questions
       #
       if len( shortAnswer) > 0 :
+         if self.config["useCheckboxes"].lower() == "true":
+            print "#########################################################"
+            print "# Multiple choice checkboxes not recommended when using  "
+            print "# short answer questions.  Unset useCheckboxes in your "
+            print "# config file to remove this warning."
+            print "#########################################################"
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Short Answer Choice Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
