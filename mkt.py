@@ -573,11 +573,11 @@ class MKT:
 
             # If we have more than one solution, print out each on it's own
             # answer line
-            if len(m["solution"]) > 1:
+            if isinstance ( m["solution"], str ):
+               of.write("\\answerline[%s]\n" % m["solution"])
+            else:
                for s in m["solution"]:
                   of.write("\\answerline[%s]\n" % s)
-            else:
-                  of.write("\\answerline[%s]\n" % m["solution"])
 
 
             self.endMinipage( of )
