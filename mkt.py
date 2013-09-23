@@ -120,7 +120,7 @@ class MKT:
       if len(newpath) == 0:
          newpath = "."
 
-      executable = ["pdflatex", outFile]
+      executable = ["pdflatex", "-halt-on-error", outFile]
       for i in range(0,3):
          process = subprocess.Popen( executable, stdout=subprocess.PIPE)
          for line in process.stdout:
@@ -132,7 +132,7 @@ class MKT:
             return;
 
       if len(answerFilename) > 0:
-         executable = ["pdflatex", answerFilename ]
+         executable = ["pdflatex", "-halt-on-error", answerFilename ]
          for i in range(0,3):
             process = subprocess.Popen( executable, stdout=subprocess.PIPE)
             for line in process.stdout:
