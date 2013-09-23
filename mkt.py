@@ -557,9 +557,22 @@ class MKT:
                lineLength = self.config["defaultLineLength"]
             of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
             
+
+            # Since "solutions" is more correct for a multiple answer
+            # questions, also allow that
+            if "solutions" in m:
+               if "solution" in m:
+                  fatal("'solution' and 'solutions' cannot be defined for the same question.\nQuestion: \"%s\"" % m["question"] )
+               else:
+                  m["solution"] = m["solutions"]
+
+            # If solution wasn't defined, error out
             if "solution" not in m:
                fatal("No 'solution' found!\nQuestion: \"%s\"\nKeys found: %s" % (m["question"] , (m.keys())))
 
+
+            # If we have more than one solution, print out each on it's own
+            # answer line
             if len(m["solution"]) > 1:
                for s in m["solution"]:
                   of.write("\\answerline[%s]\n" % s)

@@ -27,4 +27,4 @@ solution="66 million years ago"
 [AgeToDrink]
 type=shortAnswer
 question="How old do you have to be to drink (legally) in the US?  In Canada?"
-solution="21","18"
+solutions="21","18"
