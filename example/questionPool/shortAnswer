@@ -12,7 +12,7 @@ solution="42"
 [sun]
 type=shortAnswer
 question="How long does it take for light to travel from the Sun to the Earth?"
-soltuion="8 minutes"
+solution="8 minutes"
 
 [apollo]
 type=shortAnswer
@@ -24,3 +24,7 @@ type=shortAnswer
 question="When did the Cretaceous peroid end?"
 solution="66 million years ago"
 
+[AgeToDrink]
+type=shortAnswer
+question="How old do you have to be to drink (legally) in the US?  In Canada?"
+solution="21","18"

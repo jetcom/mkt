@@ -496,7 +496,7 @@ class MKT:
       if len(longAnswer) > 0:
          # print out the short answer questions. 
          print >> of, "\\begin{center}"
-         print >> of, "{\Large \\textbf{Short Answers Questions}}"
+         print >> of, "{\Large \\textbf{Long Answers Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
          print >> of, "Answer the questions in the spaces provided on the question sheets."
          print >> of, "If you run out of room for an answer, continue on the back of the page."
@@ -556,11 +556,20 @@ class MKT:
             else:
                lineLength = self.config["defaultLineLength"]
             of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
-            of.write("\\answerline[%s]\n" % (m["solution"]))
+            
+            if "solution" not in m:
+               fatal("No 'solution' found!\nQuestion: \"%s\"\nKeys found: %s" % (m["question"] , (m.keys())))
+
+            if len(m["solution"]) > 1:
+               for s in m["solution"]:
+                  of.write("\\answerline[%s]\n" % s)
+            else:
+                  of.write("\\answerline[%s]\n" % m["solution"])
+
 
             self.endMinipage( of )
 
-         print >> of, "\\endgradingrange{longanswer}"
+         print >> of, "\\endgradingrange{shortanswer}"
          print >> of, "\\newpage"
 
 
@@ -601,6 +610,7 @@ class MKT:
 
 
 def fatal( str ):
+   print >> sys.stderr, "\nFATAL ERROR:"
    print >> sys.stderr, str
    sys.exit(2)
 
