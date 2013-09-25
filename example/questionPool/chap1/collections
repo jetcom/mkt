@@ -1,3 +1,12 @@
+[delete]
+type=longAnswer
+points=20
+solutionSpace=3in
+
+question='''delete'''
+solution='''do I have to'''
+
+
 [insert]
 type=longAnswer
 points=10

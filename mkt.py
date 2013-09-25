@@ -4,7 +4,8 @@ import os, sys, argparse
 import tempfile
 import shutil
 import subprocess
-from random import random
+import random
+import uuid
 from configobj import ConfigObj
 
 class MKT:
@@ -30,7 +31,10 @@ class MKT:
    ###########################################
    # __init__
    ##########################################
-   def __init__( self, configFile, outfile, answerKey, force, testMode, generatePDF ):
+   def __init__( self, args ):
+
+      answerKey = not args.noAnswerKey
+      
       # List of questions
       questions = []
 
@@ -43,34 +47,40 @@ class MKT:
       # keyfile points
       kf = None
 
-      self.testMode = testMode
+      # Initialize RNG
+      if not args.uuid:
+         args.uuid = uuid.uuid1()
+         print "New UUID: %s" % args.uuid
+      random.seed(args.uuid)
+
+      self.testMode = args.test
 
       if self.testMode:
          print ">>> TEST MODE ENABLED <<<"
 
-      fileName, fileExtension = os.path.splitext(outfile)
+      fileName, fileExtension = os.path.splitext(args.outfile)
 
       answerFilename = fileName + ".key.tex"
 
       if not fileExtension.lower() == ".tex":
-         outfile+=".tex"
+         args.outfile+=".tex"
 
-      path = os.path.dirname( configFile )
+      path = os.path.dirname( args.configFile )
 
-      if not force and os.path.exists(outfile):
-         fatal("%s: file already exists" % ( outfile ))
-      of = open(outfile, 'w')
+      if not args.force and os.path.exists(args.outfile):
+         fatal("%s: file already exists" % ( args.outfile ))
+      of = open(args.outfile, 'w')
 
-      if answerKey and not force and os.path.exists(answerFilename):
+      if answerKey and not args.force and os.path.exists(answerFilename):
          fatal("%s: file already exists" % ( answerFilename ))
       kf = open(answerFilename, 'w')
 
       # Read in the ini file specified on the command line
-      print "Reading %s" % ( configFile )
+      print "Reading %s" % ( args.configFile )
 
 
-      config = ConfigObj(configFile)
-      questions = self.parseConfig( 'File', configFile, config, root=path)
+      config = ConfigObj(args.configFile)
+      questions = self.parseConfig( 'File', args.configFile, config, root=path)
 
 
 
@@ -78,19 +88,17 @@ class MKT:
       tempFile = tempfile.TemporaryFile()
       self.generateTest( tempFile, questions )
 
-      self.writeHeader( of, '' )
+      self.writeHeader( of, '', args )
 
       # Now we write copy from the temp file to the test file
       tempFile.seek(0,0)
       shutil.copyfileobj( tempFile, of )
 
       self.writeFooter( of )
-      print("\nTest file written: %s" % (outfile))
-
-
+      print("\nTest file written: %s" % (args.outfile))
 
       if answerKey:
-         self.writeHeader( kf, 'answers,' )
+         self.writeHeader( kf, 'answers,', args )
 
          # Write the same test contents
          tempFile.seek(0,0)
@@ -104,8 +112,14 @@ class MKT:
       tempFile.close()
 
 
-      if generatePDF:
-         self.createPDF( outfile, answerFilename )
+      if args.pdf:
+         self.createPDF( args.outfile, answerFilename )
+
+      print ""
+      print "If you have the same config file and question set, you can regenerate"
+      print "this test with by specifing the following argument to mkt:"
+      print "\t-u %s" % args.uuid
+      print ""
 
    ##########################################
    # createPDF
@@ -150,7 +164,10 @@ class MKT:
    ##########################################
    # writeHeader
    ##########################################
-   def writeHeader( self, of, answerKey ):
+   def writeHeader( self, of, answerKey, args ):
+      print >> of, "% This document generated with mkt"
+      print >> of, "%%       uuid: %s" % args.uuid
+      print >> of, "%% configFile: %s" % args.configFile
       print >> of, "\documentclass[11pt,%s addpoints]{exam}\n" % (answerKey)
       print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
@@ -227,7 +244,7 @@ class MKT:
       if self.testMode:
          return items
       else:
-         return [t[1] for t in sorted((random(), i) for i in items)]
+         return [t[1] for t in sorted((random.random(), i) for i in items)]
 
    ###########################################
    # processInclude
@@ -309,6 +326,7 @@ class MKT:
       # found a question. Add it!
       if "question" in config:
          print "%s: %s - Adding question" % ( descriptor, name )
+
          # If points is not set, set it here
          if not "points" in config:
             config["points"] = self.defaultPoints
@@ -323,6 +341,9 @@ class MKT:
                config["solutionSpace"] = self.defaultSolutionSpace
             else:
                fatal("'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
+
+         # Append the question to the question List
+         config["key"] = name
          qList.append(config)
 
       else: # Not a question
@@ -507,6 +528,13 @@ class MKT:
          print >> of, "\\begingradingrange{longanswer}"
 
          for m in self.shuffle(longAnswer):
+
+            #print ">>>>>>>>>>>>>>>>>>>"
+            #print m
+            #print ">>>>>>>>>>>>>>>>>>>"
+            #print m.parent
+            #print ">>>>>>>>>>>>>>>>>>>"
+            #sys.exit(0)
             self.beginMinipage( of );
 
             of.write("\\question[%d]\n" % int(m["points"]))
@@ -634,16 +662,15 @@ def main( argv ):
 
    parser = argparse.ArgumentParser()
    parser.add_argument("configFile", help="Config file for this exam" )
-   parser.add_argument("ofile", help="Destination .tex file" )
-   parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
+   parser.add_argument("outfile", help="Destination .tex file" )
    parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
-   parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
+   parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
+   parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
 
-   args = parser.parse_args()
+   parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID" )
    
-   mkt = MKT( args.configFile, args.ofile, not args.noAnswerKey, args.force,
-         args.test, args.pdf )
+   mkt = MKT( parser.parse_args() )
       
 
 if __name__ == '__main__':
