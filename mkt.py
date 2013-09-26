@@ -174,6 +174,15 @@ class MKT:
                         "\usepackage{listings}\n" \
                         "\usepackage{color}\n\n"
 
+      print >> of, "\makeatletter"
+      print >> of, "\ifcase \@ptsize \relax% 10pt"
+      print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{4}{5}}% \\tiny: 5/6"
+      print >> of, "\or% 11pt"
+      print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7"
+      print >> of, "\or% 12pt"
+      print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7"
+      print >> of, "\\fi"
+      print >> of, "\makeatother"
       print >> of, "\pagestyle{headandfoot}"
 
       if ( "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true" ):
