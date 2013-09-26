@@ -124,7 +124,7 @@ class MKT:
       print("\nTest file written: %s" % ( outFilename ))
 
       if answerKey:
-         self.writeHeader( kf, 'answers,', args )
+         self.writeHeader( kf, 'answers,', args, version )
 
          # Write the same test contents
          tempFile.seek(0,0)
