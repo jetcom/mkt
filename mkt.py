@@ -227,7 +227,9 @@ class MKT:
       else:
          print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
 
-      print >> of, "{\\tiny{ Exam ID: %s}}" % args.uuid
+      #print >> of, "\\begin{center}{\\tiny{ Exam ID: %s}}\end{center}" % args.uuid
+      print >> of, "\covercfoot{\\tiny{ Exam ID: %s}}" % args.uuid
+
       print >> of, "\end{coverpages}"
 
       print >> of, "\n"
