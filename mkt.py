@@ -226,6 +226,8 @@ class MKT:
          print >> of, "\makebox[\\textwidth]{\\textcolor{red}{KEY}}"
       else:
          print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
+
+      print >> of, "{\\tiny{ Exam ID: %s}}" % args.uuid
       print >> of, "\end{coverpages}"
 
       print >> of, "\n"
