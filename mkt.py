@@ -98,7 +98,7 @@ class MKT:
       print("\nTest file written: %s" % (args.outfile))
 
       if answerKey:
-         self.writeHeader( kf, 'answers,', args )
+         self.writeHeader( kf, answerKey, args )
 
          # Write the same test contents
          tempFile.seek(0,0)
@@ -142,8 +142,7 @@ class MKT:
          if process.wait() != 0:
             logFile.close()
             os.chdir(oldpath)
-            print("Error running pdflatex. Check logs.")
-            return;
+            fatal("Error running pdflatex. Check logs.")
 
       if len(answerFilename) > 0:
          executable = ["pdflatex", "-halt-on-error", answerFilename ]
@@ -154,8 +153,7 @@ class MKT:
             if process.wait() != 0:
                logFile.close()
                os.chdir(oldpath)
-               print("Error running pdflatex. Check logs.")
-               return;
+               fatal("Error running pdflatex. Check logs.")
 
       logFile.close();
       os.chdir(oldpath)
@@ -168,7 +166,11 @@ class MKT:
       print >> of, "% This document generated with mkt"
       print >> of, "%%       uuid: %s" % args.uuid
       print >> of, "%% configFile: %s" % args.configFile
-      print >> of, "\documentclass[11pt,%s addpoints]{exam}\n" % (answerKey)
+      if answerKey:
+         print >> of, "\documentclass[11pt,answers,addpoints]{exam}\n"
+      else:
+         print >> of, "\documentclass[11pt,addpoints]{exam}\n" 
+
       print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
                         "\usepackage{listings}\n" \
@@ -176,12 +178,16 @@ class MKT:
 
       print >> of, "\pagestyle{headandfoot}"
 
-      if ( "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true" ):
-         print >> of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
-         print >> of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
+      if answerKey:
+         print >> of, "\\firstpageheader{%s} {} { \\textcolor{red}{KEY} }" % ( self.config["test"] )
+         print >> of, "\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % ( self.config["test"])
       else:
-         print >> of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
-         print >> of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
+         if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
+            print >> of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.config["test"] )
+            print >> of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.config["test"])
+         else:
+            print >> of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
+            print >> of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
 
 
       print >> of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.config["courseNumber"] )
@@ -210,9 +216,16 @@ class MKT:
       print >> of, "\\vfill"
 
       print >> of, "\n"
-      print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
+      if answerKey:
+         print >> of, "{\Large { Score: \makebox[1in]{\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]" 
+      else:
+         print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
+
       print >> of, "\end{center}"
-      print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
+      if answerKey:
+         print >> of, "\makebox[\\textwidth]{\\textcolor{red}{KEY}}"
+      else:
+         print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
       print >> of, "\end{coverpages}"
 
       print >> of, "\n"
