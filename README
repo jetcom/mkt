@@ -1,2 +1,31 @@
-This branch is to implement the mulitple version of a single test.  See issue
-#6 for details
+mkt is a program design to read test questions from 1 or more files and
+generate written exams.  The config files can specify the maximum number of
+points for a group of questions, or the maximum number of questions to pick
+from a set.  This makes it possible to have n different ways to ask a
+questions, and leaving it up to mkt to pick one at random.  
+
+mkt outputs files in LaTeX format and will optionally generate
+pdf files from the tex file.  
+
+By default, a corresponding answer key is generated for the supplied test.
+
+
+mkt supports the following types of questions:
+   * long answer - at least one sentance for the answer
+   * short answer - typically one word answers
+   * multiple choice 
+
+The example folder provides samples of how mkt can be used. To run mkt with
+these samples, run:
+   ./mkt examples/sample.ini outdir/exam.tex 
+
+Optional arguments include:
+   -v <#> - generate multiple copies of the same exam with where only the 
+            order of the questions and the multiple choice answers differs
+   -p     - generate pdfs.  If you chose this option, it is highly recommended
+            you output your files into a separate directory
+   -f     - overwrite existing files
+   -n     - do NOT generate and answer key
+   -t     - test mode. Ignore all restrictions on maximum number of questions
+            or maximum number of points
+

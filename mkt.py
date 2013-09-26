@@ -33,6 +33,13 @@ class MKT:
    ##########################################
    def __init__( self, args ):
 
+      # If the user specifies 1 versions, it's the same as none specified
+      if args.versions < 1:
+         fatal("-v <#> must be 1, or greater")
+      if args.versions > 10:
+         fatal("-v <#> must be 10, or less")
+      if args.versions == 1:
+         args.versions = None
       
       # List of questions
       questions = []
@@ -66,6 +73,7 @@ class MKT:
 
       config = ConfigObj(args.configFile)
       questions = self.parseConfig( 'File', args.configFile, config, root=path)
+
 
       if args.versions:
          for v in range( 0, int(args.versions) ):
@@ -702,7 +710,7 @@ def main( argv ):
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
    parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
-   parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam"  )
+   parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam", type=int  )
    parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID" )
    
    mkt = MKT( parser.parse_args() )
