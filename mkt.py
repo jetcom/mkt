@@ -33,7 +33,6 @@ class MKT:
    ##########################################
    def __init__( self, args ):
 
-      answerKey = not args.noAnswerKey
       
       # List of questions
       questions = []
@@ -58,47 +57,74 @@ class MKT:
       if self.testMode:
          print ">>> TEST MODE ENABLED <<<"
 
-      fileName, fileExtension = os.path.splitext(args.outfile)
 
-      answerFilename = fileName + ".key.tex"
-
-      if not fileExtension.lower() == ".tex":
-         args.outfile+=".tex"
-
-      path = os.path.dirname( args.configFile )
-
-      if not args.force and os.path.exists(args.outfile):
-         fatal("%s: file already exists" % ( args.outfile ))
-      of = open(args.outfile, 'w')
-
-      if answerKey and not args.force and os.path.exists(answerFilename):
-         fatal("%s: file already exists" % ( answerFilename ))
-      kf = open(answerFilename, 'w')
 
       # Read in the ini file specified on the command line
       print "Reading %s" % ( args.configFile )
 
+      path = os.path.dirname( args.configFile )
 
       config = ConfigObj(args.configFile)
       questions = self.parseConfig( 'File', args.configFile, config, root=path)
 
+      if args.versions:
+         for v in range( 0, int(args.versions) ):
+            self.writeTest( args, questions, chr(v+ord('A') ))
+      else:
+         self.writeTest( args, questions )
 
 
-      # Generate the test onec
+
+
+
+      print ""
+      print "If you have the same config file and question set, you can regenerate"
+      print "this test with by specifing the following argument to mkt:"
+      print "\t-u %s" % args.uuid
+      print ""
+
+
+
+   ##########################################
+   # writeTest
+   ##########################################
+   def writeTest( self, args, questions, version = None ):
+      # invert this so it makes it easy to use 
+      answerKey = not args.noAnswerKey
+
+      fileName, fileExtension = os.path.splitext(args.outfile)
+
+      if version:
+         fileName += "." + version
+
+      outFilename = fileName + ".tex"
+      answerFilename = fileName + ".key.tex"
+
+      # Check if the files exist 
+      if not args.force and os.path.exists( outFilename):
+         fatal("%s: file already exists" % ( outFilename ))
+      of = open(outFilename, 'w')
+
+      if answerKey:
+         if not args.force and os.path.exists(answerFilename):
+            fatal("%s: file already exists" % ( answerFilename ))
+         kf = open(answerFilename, 'w')
+
+      # Generate the test once
       tempFile = tempfile.TemporaryFile()
       self.generateTest( tempFile, questions )
 
-      self.writeHeader( of, '', args )
+      self.writeHeader( of, '', args, version )
 
       # Now we write copy from the temp file to the test file
       tempFile.seek(0,0)
       shutil.copyfileobj( tempFile, of )
 
       self.writeFooter( of )
-      print("\nTest file written: %s" % (args.outfile))
+      print("\nTest file written: %s" % ( outFilename ))
 
       if answerKey:
-         self.writeHeader( kf, answerKey, args )
+         self.writeHeader( kf, answerKey, args, version )
 
          # Write the same test contents
          tempFile.seek(0,0)
@@ -111,15 +137,8 @@ class MKT:
       kf.close()
       tempFile.close()
 
-
       if args.pdf:
-         self.createPDF( args.outfile, answerFilename )
-
-      print ""
-      print "If you have the same config file and question set, you can regenerate"
-      print "this test with by specifing the following argument to mkt:"
-      print "\t-u %s" % args.uuid
-      print ""
+         self.createPDF( outFilename, answerFilename )
 
    ##########################################
    # createPDF
@@ -163,10 +182,13 @@ class MKT:
    ##########################################
    # writeHeader
    ##########################################
-   def writeHeader( self, of, answerKey, args ):
+   def writeHeader( self, of, answerKey, args, version ):
       print >> of, "% This document generated with mkt"
       print >> of, "%%       uuid: %s" % args.uuid
       print >> of, "%% configFile: %s" % args.configFile
+      if version:
+         print >> of, "%%    version: %s" % version
+
       if answerKey:
          print >> of, "\documentclass[11pt,answers,addpoints]{exam}\n"
       else:
@@ -223,6 +245,9 @@ class MKT:
       print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.config["courseName"] )
       print >> of, "\\textsc{\LARGE %s}\\\\[2cm]" % ( self.config["term"] )
       print >> of, "\\textsc{\Huge %s}" % ( self.config["test"] )
+      if version:
+         print >> of, "\\\\[1cm]\\textsc{\LARGE Version: %s}" % ( version )
+
       print >> of, "\\vfill"
 
       print >> of, "\n"
@@ -556,12 +581,6 @@ class MKT:
 
          for m in self.shuffle(longAnswer):
 
-            #print ">>>>>>>>>>>>>>>>>>>"
-            #print m
-            #print ">>>>>>>>>>>>>>>>>>>"
-            #print m.parent
-            #print ">>>>>>>>>>>>>>>>>>>"
-            #sys.exit(0)
             self.beginMinipage( of );
 
             of.write("\\question[%d]\n" % int(m["points"]))
@@ -620,6 +639,7 @@ class MKT:
                   fatal("'solution' and 'solutions' cannot be defined for the same question.\nQuestion: \"%s\"" % m["question"] )
                else:
                   m["solution"] = m["solutions"]
+                  del m["solutions"]
 
             # If solution wasn't defined, error out
             if "solution" not in m:
@@ -694,7 +714,7 @@ def main( argv ):
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
    parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
-
+   parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam"  )
    parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID" )
    
    mkt = MKT( parser.parse_args() )
