@@ -213,7 +213,6 @@ class MKT:
       print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
       print >> of, "\end{center}"
       print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
-      print >> of, "{\\tiny{ Exam ID: %s}}" % args.uuid
       print >> of, "\end{coverpages}"
 
       print >> of, "\n"
