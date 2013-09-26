@@ -129,12 +129,13 @@ class MKT:
       fileName, fileExtension = os.path.splitext(outFile)
       oldpath = os.getcwd()
       newpath = os.path.dirname(outFile)
-      logFile = open("%s.log" % (fileName), "w" )
+      os.chdir( newpath )
+      logFile = open("%s.log" % (os.path.basename(fileName)), "w" )
 
       if len(newpath) == 0:
          newpath = "."
 
-      executable = ["pdflatex", "-halt-on-error", outFile]
+      executable = ["pdflatex", "-halt-on-error", os.path.basename(outFile) ]
       for i in range(0,3):
          process = subprocess.Popen( executable, stdout=subprocess.PIPE)
          for line in process.stdout:
@@ -145,7 +146,7 @@ class MKT:
             fatal("Error running pdflatex. Check logs.")
 
       if len(answerFilename) > 0:
-         executable = ["pdflatex", "-halt-on-error", answerFilename ]
+         executable = ["pdflatex", "-halt-on-error", os.path.basename(answerFilename) ]
          for i in range(0,3):
             process = subprocess.Popen( executable, stdout=subprocess.PIPE)
             for line in process.stdout:
