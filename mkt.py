@@ -124,7 +124,7 @@ class MKT:
       print("\nTest file written: %s" % ( outFilename ))
 
       if answerKey:
-         self.writeHeader( kf, answerKey, args, version )
+         self.writeHeader( kf, 'answers,', args )
 
          # Write the same test contents
          tempFile.seek(0,0)
@@ -162,7 +162,8 @@ class MKT:
          if process.wait() != 0:
             logFile.close()
             os.chdir(oldpath)
-            fatal("Error running pdflatex. Check logs.")
+            print("Error running pdflatex. Check logs.")
+            return;
 
       if len(answerFilename) > 0:
          executable = ["pdflatex", "-halt-on-error", os.path.basename(answerFilename) ]
@@ -173,7 +174,8 @@ class MKT:
             if process.wait() != 0:
                logFile.close()
                os.chdir(oldpath)
-               fatal("Error running pdflatex. Check logs.")
+               print("Error running pdflatex. Check logs.")
+               return;
 
       logFile.close();
       os.chdir(oldpath)
@@ -210,16 +212,12 @@ class MKT:
       print >> of, "\makeatother"
       print >> of, "\pagestyle{headandfoot}"
 
-      if answerKey:
-         print >> of, "\\firstpageheader{%s} {} { \\textcolor{red}{KEY} }" % ( self.config["test"] )
-         print >> of, "\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % ( self.config["test"])
+      if ( "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true" ):
+         print >> of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test )
+         print >> of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.test)
       else:
-         if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
-            print >> of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.config["test"] )
-            print >> of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % ( self.config["test"])
-         else:
-            print >> of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
-            print >> of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
+         print >> of, "\\firstpageheader{%s} {} {}" % ( self.config["test"] )
+         print >> of, "\\runningheader{%s} {} {}" % ( self.config["test"] )
 
 
       print >> of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (self.config["courseNumber"] )
@@ -251,20 +249,10 @@ class MKT:
       print >> of, "\\vfill"
 
       print >> of, "\n"
-      if answerKey:
-         print >> of, "{\Large { Score: \makebox[1in]{\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]" 
-      else:
-         print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
-
+      print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
       print >> of, "\end{center}"
-      if answerKey:
-         print >> of, "\makebox[\\textwidth]{\\textcolor{red}{KEY}}"
-      else:
-         print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
-
-      #print >> of, "\\begin{center}{\\tiny{ Exam ID: %s}}\end{center}" % args.uuid
-      print >> of, "\covercfoot{\\tiny{ Exam ID: %s}}" % args.uuid
-
+      print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
+      print >> of, "{\\tiny{ Exam ID: %s}}" % args.uuid
       print >> of, "\end{coverpages}"
 
       print >> of, "\n"
