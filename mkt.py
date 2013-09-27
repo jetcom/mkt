@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import random
 import uuid
+import hashlib
 from configobj import ConfigObj
 
 class MKT:
@@ -28,19 +29,32 @@ class MKT:
    # Enable test mode
    testMode = False
 
+   # hash used for duplicate question detection. Since we want to keep track
+   # of ALL questions, regardless of whether we use it in a test or not, we
+   # can make it a member variable
+   qHash = {}
+
    ###########################################
    # __init__
    ##########################################
    def __init__( self, args ):
 
       # If the user specifies 1 versions, it's the same as none specified
-      if args.versions < 1:
+      if not args.versions:
+         pass
+      elif args.versions < 1:
          fatal("-v <#> must be 1, or greater")
-      if args.versions > 10:
+      elif args.versions > 10:
          fatal("-v <#> must be 10, or less")
+
       if args.versions == 1:
          args.versions = None
       
+      try:
+         with open ( args.configFile ): pass
+      except IOError:
+         fatal("Could not open %s" % (args.configFile ))
+
       # List of questions
       questions = []
 
@@ -260,7 +274,7 @@ class MKT:
       print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
       print >> of, "\end{center}"
       print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
-      print >> of, "{\\tiny{ Exam ID: %s}}" % args.uuid
+      print >> of, "\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid
       print >> of, "\end{coverpages}"
 
       print >> of, "\n"
@@ -321,6 +335,7 @@ class MKT:
 
          for f in files:
             rval += self.parseConfig( 'File', f, ConfigObj( f, interpolation=True ))
+
          self.indent-=1
       return rval
 
@@ -373,7 +388,7 @@ class MKT:
 
       # found a question. Add it!
       if "question" in config:
-         print "%s: %s - Adding question" % ( descriptor, name )
+         print "%s: %s - Adding question" % ( descriptor, os.path.basename(name) )
 
          # If points is not set, set it here
          if not "points" in config:
@@ -390,12 +405,26 @@ class MKT:
             else:
                fatal("'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
 
-         # Append the question to the question List
-         config["key"] = name
-         qList.append(config)
+         # Check for dupes.  Strip out all whitespace in the string and
+         # then get an md5 hash.  It's less to store and fairly quick to
+         # compute
+         s = "".join(config["question"].split())
+         m = hashlib.md5(s).hexdigest()
+
+         if m in self.qHash:
+            print >> sys.stderr, "\nFATAL ERROR!! Duplication questions detected!"
+            print >> sys.stderr, "   Question: \"%s\"" % config["question"]
+            print >> sys.stderr, "   Initially processed in '%s'" % ( self.qHash[m] )
+            print >> sys.stderr, "   Also processed in '%s'" % (name)
+            sys.exit(2)
+         else:
+            self.qHash[m] = name
+            # Append the question to the question List
+            config["key"] = name
+            qList.append(config)
 
       else: # Not a question
-         print "%s: '%s' - Parsing" % ( descriptor, name )
+         print "%s: '%s' - Parsing" % ( descriptor, os.path.basename(name) )
          # No questions at this level.  Need to recursive look for them
          for c in config:
             if c == "maxQuestions":
@@ -410,7 +439,7 @@ class MKT:
                continue
             elif not isinstance (config[c], str ):
                self.indent+=1
-               qList += self.parseConfig( 'Section',  c, config[c], root=root )
+               qList += self.parseConfig( 'Section', "%s/%s" % (name, c), config[c], root=root )
                self.indent-=1
             else:
                fatal("Unknown token: %s" % c )
@@ -433,7 +462,7 @@ class MKT:
                newList.append(p)
 
          sys.stdout.write("  "*self.indent)
-         print "%s: '%s': maxPoints set to %d" % ( descriptor, name, maxPoints) 
+         print "%s: '%s': maxPoints set to %d" % ( descriptor, os.path.basename(name), maxPoints) 
          sys.stdout.write("  "*self.indent)
          print "  old total: %d   old # of questions: %d" % ( totalPoints, len(qList ))
          sys.stdout.write("  "*self.indent)
@@ -450,7 +479,7 @@ class MKT:
          qList = qList[:maxQuestions]
 
          sys.stdout.write("  " * self.indent)
-         print "%s: '%s': maxQuestions set to %d" % (descriptor, name, maxQuestions)
+         print "%s: '%s': maxQuestions set to %d" % (descriptor, os.path.basename(name), maxQuestions)
 
       # if we didn't already show a summary
       #   AND
@@ -462,7 +491,7 @@ class MKT:
          sys.stdout.write("  " * self.indent )
 
          print "%s: '%s' - Adding %d questions worth %d points" % (descriptor,
-               name, len(qList), totalPoints )
+               os.path.basename(name), len(qList), totalPoints )
 
       return qList
 
@@ -694,7 +723,7 @@ class MKT:
 
 
 def fatal( str ):
-   print >> sys.stderr, "\nFATAL ERROR:"
+   print >> sys.stderr, "\nFATAL ERROR!!"
    print >> sys.stderr, str
    sys.exit(2)
 

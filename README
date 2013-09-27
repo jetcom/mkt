@@ -28,4 +28,5 @@ Optional arguments include:
    -n     - do NOT generate and answer key
    -t     - test mode. Ignore all restrictions on maximum number of questions
             or maximum number of points
-
+   -u <ID>- Used as the random seed for tests. Using the same question set and
+            UUID as a previous test will generate identical tests
