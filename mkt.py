@@ -212,9 +212,9 @@ class MKT:
          print >> of, "%%    version: %s" % version
 
       if answerKey:
-         print >> of, "\documentclass[11pt,answers,addpoints]{exam}\n"
+         print >> of, "\documentclass[10pt,answers,addpoints]{exam}\n"
       else:
-         print >> of, "\documentclass[11pt,addpoints]{exam}\n" 
+         print >> of, "\documentclass[10pt,addpoints]{exam}\n" 
 
       print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
@@ -222,7 +222,7 @@ class MKT:
                         "\usepackage{color}\n\n"
 
       print >> of, "\makeatletter"
-      print >> of, "\ifcase \@ptsize \relax% 10pt"
+      print >> of, "\ifcase \@ptsize \\relax % 10pt"
       print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{4}{5}}% \\tiny: 5/6"
       print >> of, "\or% 11pt"
       print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7"
@@ -285,7 +285,12 @@ class MKT:
       if answerKey:
          print >> of, "\makebox[\\textwidth]{\\textcolor{red}{KEY}}"
       else:
-         print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
+         if "promptForLogin" in self.config and self.config["promptForLogin"].lower() == "true":
+            print >> of, "\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}"
+            print >> of, "\makebox[0.40\\textwidth]{User ID: \enspace\hrulefill}"
+
+         else:
+            print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
 
       print >> of, "\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid
       print >> of, "\end{coverpages}"
@@ -358,7 +363,8 @@ class MKT:
    def parseTestSettings( self, c, config ):
       if c in [ "test", "instructor",  "courseName", "courseNumber", "term",
             "school", "department", "nameOnEveryPage", "defaultPoints",
-            "defaultSolutionSpace", "useCheckboxes", "defaultLineLength" ]: 
+            "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
+            "promptForLogin" ]: 
          if not  self.mainSettingsStored:
             self.mainSettingsStored = True
             self.config = config
