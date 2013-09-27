@@ -520,7 +520,11 @@ class MKT:
    # beginMinipage
    ##########################################
    def beginMinipage( self, of ):
-      of.write("\\par\\vspace{.5in}\\begin{minipage}{\\linewidth}\n")
+      if self.config["useCheckboxes"].lower() == "true":
+         space = .25
+      else:
+         space = .10
+      of.write("\\par\\vspace{%fin}\\begin{minipage}{\\linewidth}\n" % (space))
 
    ###########################################
    # endMinipage
