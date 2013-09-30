@@ -664,6 +664,8 @@ class MKT:
 
          print >> of, "}}}"
          print >> of, "\end{center}\n"
+         if len( longAnswer ) == 0:
+            print >> of, "\\begin{questions}"
          print >> of, "\\begingradingrange{shortAnswer}"
 
          for m in self.shuffle( shortAnswer ):
@@ -727,6 +729,8 @@ class MKT:
 
          print >> of, "}}}"
          print >> of, "\end{center}\n"
+         if len( shortAnswer) == 0 and len( longAnswer ) == 0:
+            print >> of, "\\begin{questions}"
          print >> of, "\\begingradingrange{multipleChoice}"
 
 
