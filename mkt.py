@@ -766,8 +766,9 @@ def main( argv ):
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
    parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
-   parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam", type=int  )
    parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID" )
+   parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam", type=int  )
+   parser.add_argument("--version", action='version', version='%(prog)s 0.10')
    
    mkt = MKT( parser.parse_args() )
       
