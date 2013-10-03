@@ -583,6 +583,53 @@ class MKT:
             of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
          self.endMinipage( of )
 
+   ###########################################
+   # createShortAnswerQuestions
+   ##########################################
+   def createShortAnswerQuestions( self, of, questions, bonus = None ):
+      for m in self.shuffle( questions ):
+         self.beginMinipage( of );
+
+         if bonus: 
+            of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
+         else:
+            of.write("\\question[%d]\n" % int(m["points"]))
+
+         of.write("%s\n" % (m["question"]))
+
+         # Write out the solution
+         if "lineLength" in m:
+            lineLength = m["lineLength"]
+         else:
+            lineLength = self.config["defaultLineLength"]
+         of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
+         
+
+         # Since "solutions" is more correct for a multiple answer
+         # questions, also allow that
+         if "solutions" in m:
+            if "solution" in m:
+               fatal("'solution' and 'solutions' cannot be defined for the same question.\nQuestion: \"%s\"" % m["question"] )
+            else:
+               m["solution"] = m["solutions"]
+               del m["solutions"]
+
+         # If solution wasn't defined, error out
+         if "solution" not in m:
+            fatal("No 'solution' found!\nQuestion: \"%s\"\nKeys found: %s" % (m["question"] , (m.keys())))
+
+
+         # If we have more than one solution, print out each on it's own
+         # answer line
+         if isinstance ( m["solution"], str ):
+            of.write("\\answerline[%s]\n" % m["solution"])
+         else:
+            for s in m["solution"]:
+               of.write("\\answerline[%s]\n" % s)
+
+
+         self.endMinipage( of )
+
       
 
    ###########################################
@@ -592,14 +639,22 @@ class MKT:
       longAnswer = []
       shortAnswer = []
       multipleChoice = []
-      bonusQuestions = []
+      multipleChoiceBonus = []
+      shortAnswerBonus = []
 
       for q in questions:
          try:
+            # Handle bonus questions
             if "bonus" in q and q["bonus"].lower() == "true":
-               if q["type"].lower() != "multiplechoice":
-                  fatal("Only multiple choice bonus questions are currently supported")
-               bonusQuestions.append(q)
+               if q["type"].lower() == "multiplechoice":
+                  multipleChoiceBonus.append(q)
+               elif q["type"].lower() == "shortanswer":
+                  shortAnswerBonus.append(q)
+               else:
+                  fatal("Only multiple choice and short answer bonus questions are currently supported")
+
+
+
             elif q["type"].lower() == "longanswer":
                longAnswer.append( q )
             elif q["type"].lower() == "multiplechoice":
@@ -643,7 +698,6 @@ class MKT:
 
 
          print >> of, "\\endgradingrange{longanswer}"
-         print >> of, "\\newpage"
 
 
       #
@@ -656,66 +710,29 @@ class MKT:
             print "# short answer questions.  Unset useCheckboxes in your "
             print "# config file to remove this warning."
             print "#########################################################"
+         print >> of, "\\newpage"
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Short Answer Choice Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
          print >> of, "Write the correct answer in the space provided next to the question."
          print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
-
          print >> of, "}}}"
          print >> of, "\end{center}\n"
          if len( longAnswer ) == 0:
             print >> of, "\\begin{questions}"
          print >> of, "\\begingradingrange{shortAnswer}"
-
-         for m in self.shuffle( shortAnswer ):
-            self.beginMinipage( of );
-
-            of.write("\\question[%d]\n" % int(m["points"]))
-            of.write("%s\n" % (m["question"]))
-
-            # Write out the solution
-            if "lineLength" in m:
-               lineLength = m["lineLength"]
-            else:
-               lineLength = self.config["defaultLineLength"]
-            of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
-            
-
-            # Since "solutions" is more correct for a multiple answer
-            # questions, also allow that
-            if "solutions" in m:
-               if "solution" in m:
-                  fatal("'solution' and 'solutions' cannot be defined for the same question.\nQuestion: \"%s\"" % m["question"] )
-               else:
-                  m["solution"] = m["solutions"]
-                  del m["solutions"]
-
-            # If solution wasn't defined, error out
-            if "solution" not in m:
-               fatal("No 'solution' found!\nQuestion: \"%s\"\nKeys found: %s" % (m["question"] , (m.keys())))
-
-
-            # If we have more than one solution, print out each on it's own
-            # answer line
-            if isinstance ( m["solution"], str ):
-               of.write("\\answerline[%s]\n" % m["solution"])
-            else:
-               for s in m["solution"]:
-                  of.write("\\answerline[%s]\n" % s)
-
-
-            self.endMinipage( of )
+        
+         self.createShortAnswerQuestions( of, shortAnswer )
 
          print >> of, "\\endgradingrange{shortanswer}"
-         print >> of, "\\newpage"
 
 
       # 
       # START: Multiple choice questions
       #
-      if len(multipleChoice) > 0 or len(bonusQuestions)>0:
+      if len(multipleChoice) > 0:
          # Print multiple choice questions: 
+         print >> of, "\\newpage"
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Multiple Choice Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
@@ -738,11 +755,22 @@ class MKT:
          # START: Regular multiple choice questions
          #
          self.createMultipleChoiceQuestions( of, multipleChoice )
+         print >> of, "\\endgradingrange{multiplechoice}"
 
-         #
-         # START: Bonus multiple choice questions
-         #
-         self.createMultipleChoiceQuestions( of, bonusQuestions, True )
+      #
+      # START: Bonus questions
+      #
+      if len( multipleChoiceBonus)>0 or len( shortAnswerBonus )> 0:
+         print >> of, "\\newpage"
+         print >> of, "\\begin{center}"
+         print >> of, "{\Large \\textbf{Bonus Questions}}"
+         print >> of, "\end{center}\n"
+         if len( shortAnswer) == 0 and len( longAnswer ) == 0:
+            print >> of, "\\begin{questions}"
+         print >> of, "\\begingradingrange{bonus}"
+
+         self.createMultipleChoiceQuestions( of, multipleChoiceBonus, True )
+         self.createShortAnswerQuestions( of, shortAnswerBonus, True )
 
          print >> of, "\\endgradingrange{multiplechoice}"
 
