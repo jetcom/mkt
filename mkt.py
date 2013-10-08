@@ -219,6 +219,7 @@ class MKT:
       print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
                         "\usepackage{listings}\n" \
+                        "\usepackage{tabularx}\n" \
                         "\usepackage{color}\n\n"
 
       print >> of, "\makeatletter"
@@ -323,6 +324,8 @@ class MKT:
    def shuffle(self, items):  # returns new list
       if self.testMode:
          return items
+      if type(items) is dict:
+         fatal("Cannot shuffle dictionaries")
       else:
          return [t[1] for t in sorted((random.random(), i) for i in items)]
 
@@ -639,8 +642,12 @@ class MKT:
       longAnswer = []
       shortAnswer = []
       multipleChoice = []
+      matching = []
+
       multipleChoiceBonus = []
       shortAnswerBonus = []
+
+      beginQuestions = False
 
       for q in questions:
          try:
@@ -661,6 +668,8 @@ class MKT:
                multipleChoice.append( q )
             elif q["type"].lower() == "shortanswer":
                shortAnswer.append( q )
+            elif q["type"].lower() == "matching":
+               matching.append( q )
             else:
                fatal("unknown test type: %s" % (q["type"]))
          except KeyError:
@@ -681,6 +690,7 @@ class MKT:
 
          print >> of, "\\begin{questions}"
          print >> of, "\\begingradingrange{longanswer}"
+         beginQuestions=True
 
          for m in self.shuffle(longAnswer):
 
@@ -697,7 +707,7 @@ class MKT:
             self.endMinipage( of )
 
 
-         print >> of, "\\endgradingrange{longanswer}"
+         print >> of, "\\endgradingrange{longanswer}\n\n\n"
 
 
       #
@@ -715,17 +725,70 @@ class MKT:
          print >> of, "{\Large \\textbf{Short Answer Choice Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
          print >> of, "Write the correct answer in the space provided next to the question."
-         print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
+         print >> of, "Answers that are not legible or not made in the space provided will result in a 0 for that question."
          print >> of, "}}}"
          print >> of, "\end{center}\n"
-         if len( longAnswer ) == 0:
+         if not beginQuestions:
             print >> of, "\\begin{questions}"
+            beginQuestions = True
          print >> of, "\\begingradingrange{shortAnswer}"
         
          self.createShortAnswerQuestions( of, shortAnswer )
 
-         print >> of, "\\endgradingrange{shortanswer}"
+         print >> of, "\\endgradingrange{shortanswer}\n\n\n"
 
+      #
+      # START: Matching questions
+      #
+      if len(matching) > 0:
+         print >> of, "\\newpage"
+         print >> of, "\\begin{center}"
+         print >> of, "{\Large \\textbf{Matching Questions}}"
+         print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         print >> of, "Match the selection on the left with the best answer on the right."
+         print >> of, "Answers that are not legible or not made in the space provided will result in a 0 for that question."
+         print >> of, "}}}"
+         print >> of, "\end{center}\n"
+         if not beginQuestions:
+            print >> of, "\\begin{questions}"
+            beginQuestions = True
+         print >> of, "\\begingradingrange{matching}"
+
+         for m in self.shuffle(matching):
+            self.beginMinipage( of )
+            of.write("\\question[%d]\n" % int(m["points"]))
+            of.write("%s\\\\\n" % (m["question"]))
+            of.write("\\def\\arraystretch{1.5}\n")
+            of.write("\\medskip\n")
+            of.write("\\begin{tabularx}{\\textwidth}{ X r X }\n")
+
+            letter = 0
+            solutions = {}
+            for s in m["solutions"]:
+               solutions[s] = chr(letter+ord('A'))
+               letter += 1
+
+            keys = self.shuffle(solutions.keys())
+               
+            index = 0
+            for k in keys:
+               of.write("%s. %s &\n" % (chr(index+ord('A')), m["choices"][index] ))
+               of.write("\ifprintanswers\n")
+               of.write("\\underline{\\hspace{.25cm}\\textcolor{red}{%s}\\hspace{.25cm}}\n" % (solutions[k]))
+               of.write("\\else\n")
+               of.write("\\underline{\\hspace{1cm}}")
+               of.write("\\fi\n")
+               of.write("& %s\n" % k ) 
+               of.write("\\\\\n")
+               index += 1
+
+
+
+            of.write("\\end{tabularx}\n")
+            self.endMinipage( of )
+
+
+         print >> of, "\\endgradingrange{matching}\n\n\n"
 
       # 
       # START: Multiple choice questions
@@ -746,8 +809,9 @@ class MKT:
 
          print >> of, "}}}"
          print >> of, "\end{center}\n"
-         if len( shortAnswer) == 0 and len( longAnswer ) == 0:
+         if not beginQuestions:
             print >> of, "\\begin{questions}"
+            beginQuestions = True
          print >> of, "\\begingradingrange{multipleChoice}"
 
 
@@ -755,7 +819,7 @@ class MKT:
          # START: Regular multiple choice questions
          #
          self.createMultipleChoiceQuestions( of, multipleChoice )
-         print >> of, "\\endgradingrange{multiplechoice}"
+         print >> of, "\\endgradingrange{multiplechoice}\n\n\n"
 
       #
       # START: Bonus questions
@@ -765,14 +829,15 @@ class MKT:
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Bonus Questions}}"
          print >> of, "\end{center}\n"
-         if len( shortAnswer) == 0 and len( longAnswer ) == 0:
+         if not beginQuestions:
             print >> of, "\\begin{questions}"
+            beginQuestions = True
          print >> of, "\\begingradingrange{bonus}"
 
          self.createMultipleChoiceQuestions( of, multipleChoiceBonus, True )
          self.createShortAnswerQuestions( of, shortAnswerBonus, True )
 
-         print >> of, "\\endgradingrange{multiplechoice}"
+         print >> of, "\\endgradingrange{multiplechoice}\n\n\n"
 
 
 
