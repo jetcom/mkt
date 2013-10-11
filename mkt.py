@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, argparse
+import os, sys, argparse, errno
 import tempfile
 import shutil
 import subprocess
@@ -114,13 +114,32 @@ class MKT:
       # invert this so it makes it easy to use 
       answerKey = not args.noAnswerKey
 
-      fileName, fileExtension = os.path.splitext(args.outfile)
+
+      fileName, fileExtension = os.path.splitext(args.configFile)
+      baseName = os.path.basename( fileName )
+
+      if args.dest:
+         destDir = args.dest + "/" 
+      else:
+         destDir = fileName + "/"
+
+
+      try:
+         os.makedirs( destDir, 0700 )
+      except OSError as e:
+         if e.errno == errno.EEXIST and os.path.isdir(destDir):
+            pass
+         else: 
+            fatal("Can not create destination direction %s" % (destDir))
+
+
+
 
       if version:
          fileName += "." + version
 
-      outFilename = fileName + ".tex"
-      answerFilename = fileName + ".key.tex"
+      outFilename = destDir + baseName + ".tex"
+      answerFilename = destDir + baseName + ".key.tex"
 
       # Check if the files exist 
       if not args.force and os.path.exists( outFilename):
@@ -166,6 +185,7 @@ class MKT:
    # createPDF
    ##########################################
    def createPDF( self, outFile, answerFilename ):
+      # TODO: This could stand to be reworked. It's ugly
       print("Generating PDFs...")
       fileName, fileExtension = os.path.splitext(outFile)
       oldpath = os.getcwd()
@@ -854,8 +874,8 @@ def main( argv ):
 
    parser = argparse.ArgumentParser()
    parser.add_argument("configFile", help="Config file for this exam" )
-   parser.add_argument("outfile", help="Destination .tex file" )
    parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
+   parser.add_argument("-d", "--dest", help="Destination for output" )
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
    parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
