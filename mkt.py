@@ -513,14 +513,9 @@ class MKT:
             else:
                fatal("Unknown token: %s" % c )
 
-      # This is needed to correctly fetch maxPoints and maxQuestions from the "config" section
-      # of the ini file
+      # This is needed to correctly fetch maxPoints and maxQuestions from the 
+      # "config" section of the ini file
       if "config" in config and "maxPoints" in config["config"]:
-         # If we are on the first pass (because maxPercent was specified)
-         # ignore maxPoints. We'll get it on the second pass
-         #if self.needSecondPass and self.currentPass==1:
-            #pass
-         #else:
          maxPoints = (int)(config["config"]["maxPoints"])
       if "config" in config and "maxQuestions" in config["config"]:
          maxQuestions = (int)(config["config"]["maxQuestions"])
