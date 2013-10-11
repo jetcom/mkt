@@ -29,6 +29,15 @@ class MKT:
    # Enable test mode
    testMode = False
 
+   # Total points is used for maxPercent calculations
+   totalPoints = None
+
+   # For maxPercent to work, we need to make two passes. This will be set to
+   # true if we encounter a maxPercent keyword
+   needSecondPass = False
+   currentPass = 1
+
+
    # hash used for duplicate question detection. Since we want to keep track
    # of ALL questions, regardless of whether we use it in a test or not, we
    # can make it a member variable
@@ -88,6 +97,18 @@ class MKT:
       config = ConfigObj(args.configFile)
       questions = self.parseConfig( 'File', args.configFile, config, root=path)
 
+      if self.needSecondPass:
+         self.currentPass = 2
+         self.qHash = {}
+         self.totalPoints = 0
+         for q in questions:
+            self.totalPoints += int(q["points"])
+         print("Encounted maxPercent.. reparsing.")
+         print("Total points: %d" % ( self.totalPoints ))
+
+         # Reseed with the same UUID so we get the same questionsList
+         random.seed(args.uuid)
+         questions = self.parseConfig( 'File', args.configFile, config, root=path)
 
       if args.versions:
          for v in range( 0, int(args.versions) ):
@@ -426,6 +447,7 @@ class MKT:
       qList = []
       maxQuestions = None
       maxPoints = None
+      maxPercent = None
       showSummary = True
 
       # found a question. Add it!
@@ -469,12 +491,15 @@ class MKT:
          print "%s: '%s' - Parsing" % ( descriptor, os.path.basename(name) )
          # No questions at this level.  Need to recursive look for them
          for c in config:
-            if c == "maxQuestions":
+            if c.lower() == "maxquestions":
                if not self.testMode:
                   maxQuestions = int(config[c])
-            elif c == "maxPoints":
+            elif c.lower() == "maxpoints":
                if not self.testMode:
                   maxPoints = int(config[c])
+            elif c.lower() == "maxpercent":
+                  maxPercent = int(config[c])
+                  self.needSecondPass = True
             elif c == "include":
                qList += self.processInclude( config["include"], root=root )
             elif self.parseTestSettings( c, config ):
@@ -485,14 +510,29 @@ class MKT:
                self.indent-=1
             else:
                fatal("Unknown token: %s" % c )
-      
+
+      # This is needed to correctly fetch maxPoints and maxQuestions from the "config" section
+      # of the ini file
+      if "config" in config and "maxPoints" in config["config"]:
+         # If we are on the first pass (because maxPercent was specified)
+         # ignore maxPoints. We'll get it on the second pass
+         if self.needSecondPass and self.currentPass==1:
+            pass
+         else:
+            maxPoints = (int)(config["config"]["maxPoints"])
+      if "config" in config and "maxQuestions" in config["config"]:
+         maxQuestions = (int)(config["config"]["maxQuestions"])
+
+
+      if maxPoints and maxPercent:
+         fatal("maxPoints and maxPercent cannot be specified for the same section!")
 
       # Cut the list down to get the max points requested
-      totalPoints = 0;
+      sectionPoints = 0;
       for p in qList:
-         totalPoints += int(p["points"])
+         sectionPoints += int(p["points"])
 
-      if maxPoints and totalPoints > maxPoints:
+      if maxPoints and sectionPoints > maxPoints:
          showSummary = False
          qList = self.shuffle(qList)
          newList = []
@@ -506,12 +546,12 @@ class MKT:
          sys.stdout.write("  "*self.indent)
          print "%s: '%s': maxPoints set to %d" % ( descriptor, os.path.basename(name), maxPoints) 
          sys.stdout.write("  "*self.indent)
-         print "  old total: %d   old # of questions: %d" % ( totalPoints, len(qList ))
+         print "  old total: %d   old # of questions: %d" % ( sectionPoints, len(qList ))
          sys.stdout.write("  "*self.indent)
          print "  new total: %d   new # of questions: %d" % ( newPoints, len(newList))
 
          qList = newList
-         totalPoints = newPoints
+         sectionPoints = newPoints
 
 
 
@@ -523,6 +563,44 @@ class MKT:
          sys.stdout.write("  " * self.indent)
          print "%s: '%s': maxQuestions set to %d" % (descriptor, os.path.basename(name), maxQuestions)
 
+
+
+      # Cut the list down to get the maxPercent requested.  This should happen
+      # after maxQuestions since it's possible maxQuestions was used to pick 1
+      # of 3 identical type questions.  
+
+      if self.totalPoints and maxPercent: # if we didn't get through the first pass yet, this won't work
+
+         percentPoints = (int)(maxPercent/100.0 * self.totalPoints)
+         if sectionPoints > percentPoints:
+            showSummary = False
+            qList = self.shuffle(qList)
+            newList = []
+
+            newPoints = 0
+            for p in qList:
+               if newPoints + int(p["points"]) <= percentPoints:
+                  newPoints += int(p["points"])
+                  newList.append(p)
+
+            sys.stdout.write("  "*self.indent)
+            print " %s: '%s': maxPercent set to %d" % ( descriptor, os.path.basename(name), maxPercent) 
+            sys.stdout.write("  "*self.indent)
+            print "  old total: %d   old # of questions: %d" % ( sectionPoints, len(qList ))
+            sys.stdout.write("  "*self.indent)
+            print "  new total: %d   new # of questions: %d" % ( newPoints, len(newList))
+
+            qList = newList
+            sectionPoints = newPoints
+         else:
+            sys.stdout.write("  "*self.indent)
+            print " !! %s: '%s': maxPercent set to %d" % (descriptor, os.path.basename(name), maxPercent )
+            sys.stdout.write("  "*self.indent)
+            print " !!  We required at least %d points to meet this requirement, " % ( percentPoints )
+            sys.stdout.write("  "*self.indent)
+            print " !!  but only %d points were available." % ( sectionPoints )
+
+
       # if we didn't already show a summary
       #   AND
       #     We are in a section with at least 2 elements
@@ -533,7 +611,7 @@ class MKT:
          sys.stdout.write("  " * self.indent )
 
          print "%s: '%s' - Adding %d questions worth %d points" % (descriptor,
-               os.path.basename(name), len(qList), totalPoints )
+               os.path.basename(name), len(qList), sectionPoints )
 
       return qList
 
