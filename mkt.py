@@ -103,8 +103,10 @@ class MKT:
          self.totalPoints = 0
          for q in questions:
             self.totalPoints += int(q["points"])
+         print("-------------------------------------------------------")
          print("Encounted maxPercent.. reparsing.")
          print("Total points: %d" % ( self.totalPoints ))
+         print("-------------------------------------------------------")
 
          # Reseed with the same UUID so we get the same questionsList
          random.seed(args.uuid)
@@ -516,10 +518,10 @@ class MKT:
       if "config" in config and "maxPoints" in config["config"]:
          # If we are on the first pass (because maxPercent was specified)
          # ignore maxPoints. We'll get it on the second pass
-         if self.needSecondPass and self.currentPass==1:
-            pass
-         else:
-            maxPoints = (int)(config["config"]["maxPoints"])
+         #if self.needSecondPass and self.currentPass==1:
+            #pass
+         #else:
+         maxPoints = (int)(config["config"]["maxPoints"])
       if "config" in config and "maxQuestions" in config["config"]:
          maxQuestions = (int)(config["config"]["maxQuestions"])
 
@@ -538,6 +540,7 @@ class MKT:
          newList = []
 
          newPoints = 0
+
          for p in qList:
             if newPoints + int(p["points"]) <= maxPoints:
                newPoints += int(p["points"])
@@ -577,18 +580,24 @@ class MKT:
             qList = self.shuffle(qList)
             newList = []
 
+            # In this case, we want to get one MORE question than what is
+            # required for maxPoints since we are just going for rough
+            # percentages
             newPoints = 0
             for p in qList:
-               if newPoints + int(p["points"]) <= percentPoints:
-                  newPoints += int(p["points"])
-                  newList.append(p)
+               newPoints += int(p["points"])
+               newList.append(p)
+               if newPoints > percentPoints:
+                  break
 
             sys.stdout.write("  "*self.indent)
-            print " %s: '%s': maxPercent set to %d" % ( descriptor, os.path.basename(name), maxPercent) 
+            print " %s: '%s': maxPercent set to %d%%" % ( descriptor, os.path.basename(name), maxPercent) 
             sys.stdout.write("  "*self.indent)
             print "  old total: %d   old # of questions: %d" % ( sectionPoints, len(qList ))
             sys.stdout.write("  "*self.indent)
             print "  new total: %d   new # of questions: %d" % ( newPoints, len(newList))
+            sys.stdout.write("  "*self.indent)
+            print "  actual percentage: %d%%" % ( newPoints*100/self.totalPoints )
 
             qList = newList
             sectionPoints = newPoints
@@ -599,6 +608,8 @@ class MKT:
             print " !!  We required at least %d points to meet this requirement, " % ( percentPoints )
             sys.stdout.write("  "*self.indent)
             print " !!  but only %d points were available." % ( sectionPoints )
+            sys.stdout.write("  "*self.indent)
+            print " !!  actual percentage: %d%%" % ( sectionPoints*100/self.totalPoints )
 
 
       # if we didn't already show a summary
