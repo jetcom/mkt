@@ -641,6 +641,39 @@ class MKT:
       of.write("\n\n")
 
    ###########################################
+   # createTrueFalseQuestions
+   ##########################################
+   def createTrueFalseQuestions( self, of, questions, bonus = None ):
+      for m in self.shuffle( questions ):
+         self.beginMinipage( of )
+         if bonus: 
+            of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
+         else:
+            of.write("\\question[%d]\n" % int(m["points"]))
+
+         if self.config["useCheckboxes"].lower() == "true":
+            of.write("\ifprintanswers\n")
+            if m["solution"].lower() == "true":
+               of.write("\\textbf{[ \\textcolor{red}{True} / False ]} ")
+            else:
+               of.write("\\textbf{[ True / \\textcolor{red}{False} ]} ")
+            of.write("\\else\n")
+            of.write("\\textbf{[ True / False ]} ")
+            of.write("\\fi\n")
+            of.write("%s\n" % (m["question"]))
+         else:
+            if m["solution"].lower() == "true":
+               correctAnswer = "True"
+            else:
+               correctAnswer = "False"
+            of.write("%s\n" % (m["question"]))
+            of.write("\\setlength\\answerlinelength{1in}\n") 
+            of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
+
+         of.write("\\medskip\n")
+         self.endMinipage( of )
+   
+   ###########################################
    # createMultipleChoiceQuestions
    ##########################################
    def createMultipleChoiceQuestions( self, of, questions, bonus = None ):
@@ -747,6 +780,7 @@ class MKT:
       shortAnswer = []
       multipleChoice = []
       matching = []
+      tf = []
 
       multipleChoiceBonus = []
       shortAnswerBonus = []
@@ -774,6 +808,8 @@ class MKT:
                shortAnswer.append( q )
             elif q["type"].lower() == "matching":
                matching.append( q )
+            elif q["type"].lower() == "tf":
+               tf.append( q )
             else:
                fatal("unknown test type: %s" % (q["type"]))
          except KeyError:
@@ -840,6 +876,32 @@ class MKT:
          self.createShortAnswerQuestions( of, shortAnswer )
 
          print >> of, "\\endgradingrange{shortanswer}\n\n\n"
+
+      # 
+      # START: T/F questions
+      #
+      if len( tf ) > 0:
+         print >> of, "\\newpage"
+         print >> of, "\\begin{center}"
+         print >> of, "{\Large \\textbf{True/False Questions}}"
+         print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+         if self.config["useCheckboxes"].lower() == "true":
+            print >> of, "Circle either 'True' or 'False' at the begging of the line. If you make an"
+            print >> of, "incorrect mark, erase your mark and clearly mark the correct answer."
+            print >> of, "If the intended mark is not clear, you will receive a 0 for that question"
+         else:
+            print >> of, "Write 'True' or 'False' \\textit{clearly} in the space provided next to the question."
+            print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
+
+         print >> of, "}}}"
+         print >> of, "\end{center}\n"
+         if not beginQuestions:
+            print >> of, "\\begin{questions}"
+            beginQuestions = True
+         print >> of, "\\begingradingrange{TF}"
+         self.createTrueFalseQuestions( of, tf )
+         print >> of, "\\endgradingrange{TF}"
+
 
       #
       # START: Matching questions
