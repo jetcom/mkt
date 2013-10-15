@@ -862,7 +862,7 @@ class MKT:
             print "#########################################################"
          print >> of, "\\newpage"
          print >> of, "\\begin{center}"
-         print >> of, "{\Large \\textbf{Short Answer Choice Questions}}"
+         print >> of, "{\Large \\textbf{Short Answer Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
          print >> of, "Write the correct answer in the space provided next to the question."
          print >> of, "Answers that are not legible or not made in the space provided will result in a 0 for that question."
