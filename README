@@ -15,6 +15,7 @@ mkt supports the following types of questions:
    * short answer - typically one word answers
    * multiple choice
    * matching
+   * true/false
 
 The example folder provides samples of how mkt can be used. To run mkt with
 these samples, run:
