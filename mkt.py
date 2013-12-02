@@ -159,7 +159,7 @@ class MKT:
 
 
       if version:
-         fileName += "." + version
+         baseName += "." + version
 
       outFilename = destDir + baseName + ".tex"
       answerFilename = destDir + baseName + ".key.tex"
@@ -331,7 +331,7 @@ class MKT:
       else:
          if "promptForLogin" in self.config and self.config["promptForLogin"].lower() == "true":
             print >> of, "\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}"
-            print >> of, "\makebox[0.40\\textwidth]{User ID: \enspace\hrulefill}"
+            print >> of, "\makebox[0.40\\textwidth]{DCE Login: \enspace\hrulefill}"
 
          else:
             print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
@@ -570,7 +570,7 @@ class MKT:
       if self.totalPoints and maxPercent: # if we didn't get through the first pass yet, this won't work
 
          percentPoints = (int)(maxPercent/100.0 * self.totalPoints)
-         if sectionPoints > percentPoints:
+         if sectionPoints >= percentPoints:
             showSummary = False
             qList = self.shuffle(qList)
             newList = []
