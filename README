@@ -26,6 +26,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -f, --force           Force overwriting of outfile, if it exists
   -d DEST, --dest DEST  Destination for output
+  -r, --draft           Adds a draft watermark, makes the exam ID larger
   -n, --noAnswerKey     do NOT generate corresponding answer key
   -p, --pdf             Generate pdf for test and key files
   -t, --test            Ignore limits on number of points and questions.
