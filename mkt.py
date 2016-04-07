@@ -24,10 +24,13 @@ class MKT:
    defaultSolutionSpace = None
 
    # current indent level
-   indent = 0 
+   indent = 0
 
    # Enable test mode
    testMode = False
+
+   # Enable draft mode
+   draftMode = False
 
    # Total points is used for maxPercent calculations
    totalPoints = None
@@ -58,7 +61,7 @@ class MKT:
 
       if args.versions == 1:
          args.versions = None
-      
+
       try:
          with open ( args.configFile ): pass
       except IOError:
@@ -87,6 +90,7 @@ class MKT:
       if self.testMode:
          print ">>> TEST MODE ENABLED <<<"
 
+      self.draftMode = args.draft 
 
 
       # Read in the ini file specified on the command line
@@ -134,7 +138,7 @@ class MKT:
    # writeTest
    ##########################################
    def writeTest( self, args, questions, version = None ):
-      # invert this so it makes it easy to use 
+      # invert this so it makes it easy to use
       answerKey = not args.noAnswerKey
 
 
@@ -142,7 +146,7 @@ class MKT:
       baseName = os.path.basename( fileName )
 
       if args.dest:
-         destDir = args.dest + "/" 
+         destDir = args.dest + "/"
       else:
          destDir = fileName + "/"
 
@@ -152,7 +156,7 @@ class MKT:
       except OSError as e:
          if e.errno == errno.EEXIST and os.path.isdir(destDir):
             pass
-         else: 
+         else:
             fatal("Can not create destination direction %s" % (destDir))
 
 
@@ -164,7 +168,7 @@ class MKT:
       outFilename = destDir + baseName + ".tex"
       answerFilename = destDir + baseName + ".key.tex"
 
-      # Check if the files exist 
+      # Check if the files exist
       if not args.force and os.path.exists( outFilename):
          fatal("%s: file already exists" % ( outFilename ))
       of = open(outFilename, 'w')
@@ -257,13 +261,17 @@ class MKT:
       if answerKey:
          print >> of, "\documentclass[10pt,answers,addpoints]{exam}\n"
       else:
-         print >> of, "\documentclass[10pt,addpoints]{exam}\n" 
+         print >> of, "\documentclass[10pt,addpoints]{exam}\n"
 
       print >> of, "\usepackage{amssymb}\n" \
                         "\usepackage{graphicx}\n" \
                         "\usepackage{listings}\n" \
                         "\usepackage{tabularx}\n" \
                         "\usepackage{color}\n\n"
+      if args.draft:
+          print >> of, "\usepackage{draftwatermark}\n"
+          print >> of, "\SetWatermarkText{DRAFT}\n"
+          print >> of, "\SetWatermarkScale{7}\n"
 
       print >> of, "\makeatletter"
       print >> of, "\ifcase \@ptsize \\relax % 10pt"
@@ -307,9 +315,10 @@ class MKT:
 
       print >> of, "\n"
 
-      print >> of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % ( self.config["school"], self.config["department"] )  
+      print >> of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % ( self.config["school"], self.config["department"] )
       print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.config["courseName"] )
-      print >> of, "\\textsc{\LARGE %s}\\\\[2cm]" % ( self.config["term"] )
+      print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % ( self.config["term"] )
+      print >> of, self.config["instructor"] 
       print >> of, "\\textsc{\Huge %s}" % ( self.config["test"] )
       if version:
          print >> of, "\\\\[1cm]\\textsc{\LARGE Version: %s}" % ( version )
@@ -319,9 +328,9 @@ class MKT:
       print >> of, "\n"
 
       if answerKey:
-         print >> of, "{\Large { Score: \makebox[1in]{\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]" 
+         print >> of, "{\Large { Score: \makebox[1in]{\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]"
       else:
-         print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]" 
+         print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]"
 
       print >> of, "\end{center}"
 
@@ -381,7 +390,7 @@ class MKT:
       # reuse the same code below
       if isinstance ( config, str ):
          config = [config]
-         
+
       for inc in config:
          self.indent+=1
          # If it's a directory, read all the files in the directory
@@ -410,7 +419,7 @@ class MKT:
       if c in [ "test", "instructor",  "courseName", "courseNumber", "term",
             "school", "department", "nameOnEveryPage", "defaultPoints",
             "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
-            "promptForLogin" ]: 
+            "promptForLogin" ]:
          if not  self.mainSettingsStored:
             self.mainSettingsStored = True
             self.config = config
@@ -508,12 +517,18 @@ class MKT:
                continue
             elif not isinstance (config[c], str ):
                self.indent+=1
-               qList += self.parseConfig( 'Section', "%s/%s" % (name, c), config[c], root=root )
+               try:
+                  qList += self.parseConfig( 'Section', "%s/%s" % (name, c), config[c], root=root )
+               except Exception as e:
+                  print(e)
+                  print("Section %s/%s" % (name, c))
+                  sys.exit(0)
+
                self.indent-=1
             else:
                fatal("Unknown token: %s" % c )
 
-      # This is needed to correctly fetch maxPoints and maxQuestions from the 
+      # This is needed to correctly fetch maxPoints and maxQuestions from the
       # "config" section of the ini file
       if "config" in config and "maxPoints" in config["config"]:
          maxPoints = (int)(config["config"]["maxPoints"])
@@ -542,7 +557,7 @@ class MKT:
                newList.append(p)
 
          sys.stdout.write("  "*self.indent)
-         print "%s: '%s': maxPoints set to %d" % ( descriptor, os.path.basename(name), maxPoints) 
+         print "%s: '%s': maxPoints set to %d" % ( descriptor, os.path.basename(name), maxPoints)
          sys.stdout.write("  "*self.indent)
          print "  old total: %d   old # of questions: %d" % ( sectionPoints, len(qList ))
          sys.stdout.write("  "*self.indent)
@@ -565,7 +580,7 @@ class MKT:
 
       # Cut the list down to get the maxPercent requested.  This should happen
       # after maxQuestions since it's possible maxQuestions was used to pick 1
-      # of 3 identical type questions.  
+      # of 3 identical type questions.
 
       if self.totalPoints and maxPercent: # if we didn't get through the first pass yet, this won't work
 
@@ -586,7 +601,7 @@ class MKT:
                   break
 
             sys.stdout.write("  "*self.indent)
-            print " %s: '%s': maxPercent set to %d%%" % ( descriptor, os.path.basename(name), maxPercent) 
+            print " %s: '%s': maxPercent set to %d%%" % ( descriptor, os.path.basename(name), maxPercent)
             sys.stdout.write("  "*self.indent)
             print "  old total: %d   old # of questions: %d" % ( sectionPoints, len(qList ))
             sys.stdout.write("  "*self.indent)
@@ -646,7 +661,7 @@ class MKT:
    def createTrueFalseQuestions( self, of, questions, bonus = None ):
       for m in self.shuffle( questions ):
          self.beginMinipage( of )
-         if bonus: 
+         if bonus:
             of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
          else:
             of.write("\\question[%d]\n" % int(m["points"]))
@@ -667,19 +682,19 @@ class MKT:
             else:
                correctAnswer = "False"
             of.write("%s\n" % (m["question"]))
-            of.write("\\setlength\\answerlinelength{1in}\n") 
+            of.write("\\setlength\\answerlinelength{1in}\n")
             of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
 
          of.write("\\medskip\n")
          self.endMinipage( of )
-   
+
    ###########################################
    # createMultipleChoiceQuestions
    ##########################################
    def createMultipleChoiceQuestions( self, of, questions, bonus = None ):
       for m in self.shuffle( questions ):
          self.beginMinipage( of )
-         if bonus: 
+         if bonus:
             of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
          else:
             of.write("\\question[%d]\n" % int(m["points"]))
@@ -717,9 +732,9 @@ class MKT:
                lineLength = self.config["defaultLineLength"]
 
             of.write("\\end{choices}\n")
-            
+
             # Answer lines for multiple choice questions are always 1in
-            of.write("\\setlength\\answerlinelength{1in}\n") 
+            of.write("\\setlength\\answerlinelength{1in}\n")
             of.write("\\answerline[%s]\n\n" % ( correctAnswer ))
          self.endMinipage( of )
 
@@ -730,12 +745,14 @@ class MKT:
       for m in self.shuffle( questions ):
          self.beginMinipage( of );
 
-         if bonus: 
+         of.write("\\vspace{.35cm}")
+         if bonus:
             of.write("\\bonusquestion[%d]\n" % (int(m["points"])))
          else:
             of.write("\\question[%d]\n" % int(m["points"]))
 
          of.write("%s\n" % (m["question"]))
+         of.write("\\vspace{.25cm}")
 
          # Write out the solution
          if "lineLength" in m:
@@ -743,7 +760,8 @@ class MKT:
          else:
             lineLength = self.config["defaultLineLength"]
          of.write("\\setlength\\answerlinelength{%s}\n" % ( lineLength ))
-         
+
+
 
          # Since "solutions" is more correct for a multiple answer
          # questions, also allow that
@@ -770,7 +788,7 @@ class MKT:
 
          self.endMinipage( of )
 
-      
+
 
    ###########################################
    # generateTest
@@ -815,11 +833,11 @@ class MKT:
          except KeyError:
             fatal("'type' not defined: %s" % ( q ))
 
-      # 
+      #
       # START: Short Answer Questions
       #
       if len(longAnswer) > 0:
-         # print out the short answer questions. 
+         # print out the short answer questions.
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Long Answers Questions}}"
          print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
@@ -872,12 +890,12 @@ class MKT:
             print >> of, "\\begin{questions}"
             beginQuestions = True
          print >> of, "\\begingradingrange{shortAnswer}"
-        
+
          self.createShortAnswerQuestions( of, shortAnswer )
 
          print >> of, "\\endgradingrange{shortanswer}\n\n\n"
 
-      # 
+      #
       # START: T/F questions
       #
       if len( tf ) > 0:
@@ -935,7 +953,7 @@ class MKT:
                letter += 1
 
             keys = self.shuffle(solutions.keys())
-               
+
             index = 0
             for k in keys:
                of.write("%s. %s &\n" % (chr(index+ord('A')), m["choices"][index] ))
@@ -944,7 +962,7 @@ class MKT:
                of.write("\\else\n")
                of.write("\\underline{\\hspace{1cm}}")
                of.write("\\fi\n")
-               of.write("& %s\n" % k ) 
+               of.write("& %s\n" % k )
                of.write("\\\\\n")
                index += 1
 
@@ -956,11 +974,11 @@ class MKT:
 
          print >> of, "\\endgradingrange{matching}\n\n\n"
 
-      # 
+      #
       # START: Multiple choice questions
       #
       if len(multipleChoice) > 0:
-         # Print multiple choice questions: 
+         # Print multiple choice questions:
          print >> of, "\\newpage"
          print >> of, "\\begin{center}"
          print >> of, "{\Large \\textbf{Multiple Choice Questions}}"
@@ -1022,15 +1040,16 @@ def main( argv ):
    parser.add_argument("configFile", help="Config file for this exam" )
    parser.add_argument("-f", "--force", help="Force overwriting of outfile, if it exists", action='store_true')
    parser.add_argument("-d", "--dest", help="Destination for output" )
+   parser.add_argument("-r", "--draft", help="Add a draft watermark", action='store_true')
    parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
    parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing", action='store_true')
    parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID" )
    parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam", type=int  )
    parser.add_argument("--version", action='version', version='%(prog)s 0.10')
-   
+
    mkt = MKT( parser.parse_args() )
-      
+
 
 if __name__ == '__main__':
    main( sys.argv );
