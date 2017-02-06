@@ -19,7 +19,7 @@ mkt supports the following types of questions:
 
 The example folder provides samples of how mkt can be used. To run mkt with
 these samples, run:
-   ./mkt examples/sample.ini 
+   ./mkt example/sample.ini 
 
 Optional arguments include:
 optional arguments:
