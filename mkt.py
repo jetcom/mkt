@@ -255,6 +255,7 @@ class MKT:
                      "\usepackage{graphicx}\n" \
                      "\usepackage{listings}\n" \
                      "\usepackage{tabularx}\n" \
+                     "\usepackage{mathtools}\n" \
                      "\usepackage{color}\n\n"
         if args.draft:
             print >> of, "\usepackage{draftwatermark}\n"
@@ -308,10 +309,10 @@ class MKT:
         print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["courseName"])
         print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["term"])
         print >> of, self.config["instructor"]
-        print >> of, "\\textsc{\Huge %s}" % (self.config["test"])
+        print >> of, "\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"])
         if version:
             print >> of, "\\\\[1cm]\\textsc{\LARGE Version: %s}" % (version)
-
+        print >> of, "\\textsc{%s}" % (self.config["note"])
         print >> of, "\\vfill"
 
         print >> of, "\n"
@@ -405,7 +406,7 @@ class MKT:
     # parseTestSettings
     ##########################################
     def parseTestSettings(self, c, config):
-        if c in ["test", "instructor", "courseName", "courseNumber", "term",
+        if c in ["test", "instructor", "courseName", "courseNumber", "term", "note",
                  "school", "department", "nameOnEveryPage", "defaultPoints",
                  "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
                  "promptForLogin"]:
