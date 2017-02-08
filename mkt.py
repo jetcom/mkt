@@ -168,7 +168,7 @@ class MKT:
             kf = open(answerFilename, 'w', encoding='utf-8')
 
         # Generate the test once
-        tempFile = tempfile.TemporaryFile(mode='w')
+        tempFile = tempfile.TemporaryFile(mode='w+')
         self.generateTest(tempFile, questions)
 
         self.writeHeader(of, '', args, version)
