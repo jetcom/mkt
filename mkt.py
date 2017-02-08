@@ -207,7 +207,7 @@ class MKT:
         oldpath = os.getcwd()
         newpath = os.path.dirname(outFile)
         os.chdir(newpath)
-        logFile = open("%s.log" % (os.path.basename(fileName)), "w")
+        logFile = open("%s.log" % (os.path.basename(fileName)), "wb+")
 
         if len(newpath) == 0:
             newpath = "."
@@ -215,7 +215,7 @@ class MKT:
         executable = ["pdflatex", "-halt-on-error", os.path.basename(outFile)]
         for i in range(0, 3):
             process = subprocess.Popen(executable, stdout=subprocess.PIPE)
-            for line in process.stdout:
+            for line in process.stdout.readlines():
                 logFile.write(line)
             if process.wait() != 0:
                 logFile.close()
