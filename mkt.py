@@ -63,7 +63,7 @@ class MKT:
             args.versions = None
 
         try:
-            with open(args.configFile):
+            with open(args.configFile, encoding='utf-8'):
                 pass
         except IOError:
             fatal("Could not open %s" % (args.configFile))
@@ -160,12 +160,12 @@ class MKT:
         # Check if the files exist
         if not args.force and os.path.exists(outFilename):
             fatal("%s: file already exists" % (outFilename))
-        of = open(outFilename, 'w')
+        of = open(outFilename, 'w', encoding='utf-8')
 
         if answerKey:
             if not args.force and os.path.exists(answerFilename):
                 fatal("%s: file already exists" % (answerFilename))
-            kf = open(answerFilename, 'w')
+            kf = open(answerFilename, 'w', encoding='utf-8')
 
         # Generate the test once
         tempFile = tempfile.TemporaryFile()
@@ -474,7 +474,7 @@ class MKT:
             # then get an md5 hash.  It's less to store and fairly quick to
             # compute
             s = "".join(config["question"].split())
-            m = hashlib.md5(s).hexdigest()
+            m = hashlib.md5(s.encode('utf-8')).hexdigest()
 
             if m in self.qHash:
                 print("\nFATAL ERROR!! Duplication questions detected!", file=sys.stderr)
