@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, sys, argparse, errno
 import tempfile
@@ -63,7 +63,7 @@ class MKT:
             args.versions = None
 
         try:
-            with open(args.configFile):
+            with open(args.configFile, encoding='utf-8'):
                 pass
         except IOError:
             fatal("Could not open %s" % (args.configFile))
@@ -83,18 +83,18 @@ class MKT:
         # Initialize RNG
         if not args.uuid:
             args.uuid = uuid.uuid1()
-            print "New UUID: %s" % args.uuid
+            print("New UUID: %s" % args.uuid)
         random.seed(args.uuid)
 
         self.testMode = args.test
 
         if self.testMode:
-            print ">>> TEST MODE ENABLED <<<"
+            print(">>> TEST MODE ENABLED <<<")
 
         self.draftMode = args.draft
 
         # Read in the ini file specified on the command line
-        print "Reading %s" % (args.configFile)
+        print("Reading %s" % (args.configFile))
 
         path = os.path.dirname(args.configFile)
 
@@ -109,7 +109,7 @@ class MKT:
                 self.totalPoints += int(q["points"])
             print("-------------------------------------------------------")
             print("Encounted maxPercent.. reparsing.")
-            print("Total points: %d" % (self.totalPoints))
+            print(("Total points: %d" % (self.totalPoints)))
             print("-------------------------------------------------------")
 
             # Reseed with the same UUID so we get the same questionsList
@@ -122,11 +122,11 @@ class MKT:
         else:
             self.writeTest(args, questions)
 
-        print ""
-        print "If you have the same config file and question set, you can regenerate"
-        print "this test with by specifing the following argument to mkt:"
-        print "\t-u %s" % args.uuid
-        print ""
+        print("")
+        print("If you have the same config file and question set, you can regenerate")
+        print("this test with by specifing the following argument to mkt:")
+        print("\t-u %s" % args.uuid)
+        print("")
 
     ##########################################
     # writeTest
@@ -144,7 +144,7 @@ class MKT:
             destDir = fileName + "/"
 
         try:
-            os.makedirs(destDir, 0700)
+            os.makedirs(destDir, 0o700)
         except OSError as e:
             if e.errno == errno.EEXIST and os.path.isdir(destDir):
                 pass
@@ -160,15 +160,15 @@ class MKT:
         # Check if the files exist
         if not args.force and os.path.exists(outFilename):
             fatal("%s: file already exists" % (outFilename))
-        of = open(outFilename, 'w')
+        of = open(outFilename, 'w', encoding='utf-8')
 
         if answerKey:
             if not args.force and os.path.exists(answerFilename):
                 fatal("%s: file already exists" % (answerFilename))
-            kf = open(answerFilename, 'w')
+            kf = open(answerFilename, 'w', encoding='utf-8')
 
         # Generate the test once
-        tempFile = tempfile.TemporaryFile()
+        tempFile = tempfile.TemporaryFile(mode='w+')
         self.generateTest(tempFile, questions)
 
         self.writeHeader(of, '', args, version)
@@ -178,7 +178,7 @@ class MKT:
         shutil.copyfileobj(tempFile, of)
 
         self.writeFooter(of)
-        print("\nTest file written: %s" % (outFilename))
+        print(("\nTest file written: %s" % (outFilename)))
 
         if answerKey:
             self.writeHeader(kf, 'answers,', args, version)
@@ -188,7 +188,7 @@ class MKT:
             shutil.copyfileobj(tempFile, kf)
 
             self.writeFooter(kf)
-            print("Answer key file written: %s" % (answerFilename))
+            print(("Answer key file written: %s" % (answerFilename)))
 
         of.close()
         kf.close()
@@ -207,7 +207,7 @@ class MKT:
         oldpath = os.getcwd()
         newpath = os.path.dirname(outFile)
         os.chdir(newpath)
-        logFile = open("%s.log" % (os.path.basename(fileName)), "w")
+        logFile = open("%s.log" % (os.path.basename(fileName)), "wb+")
 
         if len(newpath) == 0:
             newpath = "."
@@ -215,7 +215,7 @@ class MKT:
         executable = ["pdflatex", "-halt-on-error", os.path.basename(outFile)]
         for i in range(0, 3):
             process = subprocess.Popen(executable, stdout=subprocess.PIPE)
-            for line in process.stdout:
+            for line in process.stdout.readlines():
                 logFile.write(line)
             if process.wait() != 0:
                 logFile.close()
@@ -240,113 +240,113 @@ class MKT:
     # writeHeader
     ##########################################
     def writeHeader(self, of, answerKey, args, version):
-        print >> of, "% This document generated with mkt"
-        print >> of, "%%       uuid: %s" % args.uuid
-        print >> of, "%% configFile: %s" % args.configFile
+        print("% This document generated with mkt", file=of)
+        print("%%       uuid: %s" % args.uuid, file=of)
+        print("%% configFile: %s" % args.configFile, file=of)
         if version:
-            print >> of, "%%    version: %s" % version
+            print("%%    version: %s" % version, file=of)
 
         if answerKey:
-            print >> of, "\documentclass[10pt,answers,addpoints]{exam}\n"
+            print("\documentclass[10pt,answers,addpoints]{exam}\n", file=of)
         else:
-            print >> of, "\documentclass[10pt,addpoints]{exam}\n"
+            print("\documentclass[10pt,addpoints]{exam}\n", file=of)
 
-        print >> of, "\usepackage{amssymb}\n" \
-                     "\usepackage{graphicx}\n" \
-                     "\usepackage{listings}\n" \
-                     "\usepackage{tabularx}\n" \
-                     "\usepackage{mathtools}\n" \
-                     "\usepackage{color}\n\n"
+        print("\\usepackage{amssymb}\n" \
+                     "\\usepackage{graphicx}\n" \
+                     "\\usepackage{listings}\n" \
+                     "\\usepackage{tabularx}\n" \
+                     "\\usepackage{mathtools}\n" \
+                     "\\usepackage{color}\n\n", file=of)
         if args.draft:
-            print >> of, "\usepackage{draftwatermark}\n"
-            print >> of, "\SetWatermarkText{DRAFT}\n"
-            print >> of, "\SetWatermarkScale{7}\n"
+            print("\\usepackage{draftwatermark}\n", file=of)
+            print("\SetWatermarkText{DRAFT}\n", file=of)
+            print("\SetWatermarkScale{7}\n", file=of)
 
-        print >> of, "\makeatletter"
-        print >> of, "\ifcase \@ptsize \\relax % 10pt"
-        print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{4}{5}}% \\tiny: 5/6"
-        print >> of, "\or% 11pt"
-        print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7"
-        print >> of, "\or% 12pt"
-        print >> of, "\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7"
-        print >> of, "\\fi"
-        print >> of, "\makeatother"
-        print >> of, "\pagestyle{headandfoot}"
+        print("\makeatletter", file=of)
+        print("\ifcase \@ptsize \\relax % 10pt", file=of)
+        print("\\newcommand{\miniscule}{\@setfontsize\miniscule{4}{5}}% \\tiny: 5/6", file=of)
+        print("\or% 11pt", file=of)
+        print("\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7", file=of)
+        print("\or% 12pt", file=of)
+        print("\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7", file=of)
+        print("\\fi", file=of)
+        print("\makeatother", file=of)
+        print("\pagestyle{headandfoot}", file=of)
 
         if answerKey:
-            print >> of, "\\firstpageheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"])
-            print >> of, "\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"])
+            print("\\firstpageheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
+            print("\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
         else:
             if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
-                print >> of, "\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"])
-                print >> of, "\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"])
+                print("\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
+                print("\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
             else:
-                print >> of, "\\firstpageheader{%s} {} {}" % (self.config["test"])
-                print >> of, "\\runningheader{%s} {} {}" % (self.config["test"])
+                print("\\firstpageheader{%s} {} {}" % (self.config["test"]), file=of)
+                print("\\runningheader{%s} {} {}" % (self.config["test"]), file=of)
 
-        print >> of, "\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
-        self.config["courseNumber"])
-        print >> of, "\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
-        self.config["courseNumber"])
+        print("\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
+        self.config["courseNumber"]), file=of)
+        print("\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
+        self.config["courseNumber"]), file=of)
 
-        print >> of, "\n"
-        print >> of, "\\checkboxchar{$\\Box$}"
-        print >> of, "\\CorrectChoiceEmphasis{\color{red}}"
-        print >> of, "\\SolutionEmphasis{\color{red}}"
-        print >> of, "\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}"
-        print >> of, "\\bonuspointpoints{bonus point}{bonus points}"
+        print("\n", file=of)
+        print("\\checkboxchar{$\\Box$}", file=of)
+        print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
+        print("\\SolutionEmphasis{\color{red}}", file=of)
+        print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
+        print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
 
-        print >> of, "\n"
+        print("\n", file=of)
 
-        print >> of, "\\begin{document}"
-        print >> of, "\\begin{coverpages}"
-        print >> of, "\\begin{center}"
-        print >> of, "\\vspace*{1in}"
+        print("\\begin{document}", file=of)
+        print("\\begin{coverpages}", file=of)
+        print("\\begin{center}", file=of)
+        print("\\vspace*{1in}", file=of)
 
-        print >> of, "\n"
+        print("\n", file=of)
 
-        print >> of, "\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % (self.config["school"], self.config["department"])
-        print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["courseName"])
-        print >> of, "\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["term"])
-        print >> of, self.config["instructor"]
-        print >> of, "\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"])
+        print("\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % (self.config["school"], self.config["department"]), file=of)
+        print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["courseName"]), file=of)
+        print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["term"]), file=of)
+        print(self.config["instructor"], file=of)
+        print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
         if version:
-            print >> of, "\\\\[1cm]\\textsc{\LARGE Version: %s}" % (version)
-        print >> of, "\\textsc{%s}" % (self.config["note"])
-        print >> of, "\\vfill"
+            print("\\\\[1cm]\\textsc{\LARGE Version: %s}" % (version), file=of)
+        print("\\textsc{%s}" % (self.config["note"]), file=of)
+        print("\\vfill", file=of)
 
-        print >> of, "\n"
+        print("\n", file=of)
 
         if answerKey:
-            print >> of, "{\Large { Score: \makebox[1in]{\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]"
+            print("{\Large { Score: \makebox[1in]{\\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]", file=of)
         else:
-            print >> of, "{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]"
+            print("{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]", file=of)
 
-        print >> of, "\end{center}"
+        print("\end{center}", file=of)
 
         if answerKey:
-            print >> of, "\makebox[\\textwidth]{\\textcolor{red}{KEY}}"
+            print("\makebox[\\textwidth]{\\textcolor{red}{KEY}}", file=of)
         else:
             if "promptForLogin" in self.config and self.config["promptForLogin"].lower() == "true":
-                print >> of, "\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}"
-                print >> of, "\makebox[0.40\\textwidth]{DCE Login: \enspace\hrulefill}"
+                print("\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}", file=of)
+                print("\makebox[0.40\\textwidth]{DCE Login: \enspace\hrulefill}", file=of)
 
             else:
-                print >> of, "\makebox[\\textwidth]{Name: \enspace\hrulefill}"
+                print("\makebox[\\textwidth]{Name: \enspace\hrulefill}", file=of)
         if args.draft:
-            print >> of, "\covercfoot{ Exam ID: %s}" % args.uuid
+            print("\covercfoot{ Exam ID: %s}" % args.uuid, file=of)
         else:
-            print >> of, "\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid
-        print >> of, "\end{coverpages}"
+            print("\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid, file=of)
+        print("\end{coverpages}", file=of)
 
-        print >> of, "\n"
+        print("\n", file=of)
 
     ###########################################
     # writeFooter
     ##########################################
     def writeFooter(self, of):
-        print >> of, "\end{questions}"
-        print >> of, "\end{document}"
+        print("\end{questions}", file=of)
+        print("\end{document}", file=of)
 
     ###########################################
     # getQuestions
@@ -452,7 +452,7 @@ class MKT:
 
         # found a question. Add it!
         if "question" in config:
-            print "%s: %s - Adding question" % (descriptor, os.path.basename(name))
+            print("%s: %s - Adding question" % (descriptor, os.path.basename(name)))
 
             # If points is not set, set it here
             if not "points" in config:
@@ -474,13 +474,13 @@ class MKT:
             # then get an md5 hash.  It's less to store and fairly quick to
             # compute
             s = "".join(config["question"].split())
-            m = hashlib.md5(s).hexdigest()
+            m = hashlib.md5(s.encode('utf-8')).hexdigest()
 
             if m in self.qHash:
-                print >> sys.stderr, "\nFATAL ERROR!! Duplication questions detected!"
-                print >> sys.stderr, "   Question: \"%s\"" % config["question"]
-                print >> sys.stderr, "   Initially processed in '%s'" % (self.qHash[m])
-                print >> sys.stderr, "   Also processed in '%s'" % (name)
+                print("\nFATAL ERROR!! Duplication questions detected!", file=sys.stderr)
+                print("   Question: \"%s\"" % config["question"], file=sys.stderr)
+                print("   Initially processed in '%s'" % (self.qHash[m]), file=sys.stderr)
+                print("   Also processed in '%s'" % (name), file=sys.stderr)
                 sys.exit(2)
             else:
                 self.qHash[m] = name
@@ -489,7 +489,7 @@ class MKT:
                 qList.append(config)
 
         else:  # Not a question
-            print "%s: '%s' - Parsing" % (descriptor, os.path.basename(name))
+            print("%s: '%s' - Parsing" % (descriptor, os.path.basename(name)))
             # No questions at this level.  Need to recursive look for them
             for c in config:
                 if c.lower() == "maxquestions":
@@ -511,7 +511,7 @@ class MKT:
                         qList += self.parseConfig('Section', "%s/%s" % (name, c), config[c], root=root)
                     except Exception as e:
                         print(e)
-                        print("Section %s/%s" % (name, c))
+                        print(("Section %s/%s" % (name, c)))
                         sys.exit(0)
 
                     self.indent -= 1
@@ -546,11 +546,11 @@ class MKT:
                     newList.append(p)
 
             sys.stdout.write("  " * self.indent)
-            print "%s: '%s': maxPoints set to %d" % (descriptor, os.path.basename(name), maxPoints)
+            print("%s: '%s': maxPoints set to %d" % (descriptor, os.path.basename(name), maxPoints))
             sys.stdout.write("  " * self.indent)
-            print "  old total: %d   old # of questions: %d" % (sectionPoints, len(qList))
+            print("  old total: %d   old # of questions: %d" % (sectionPoints, len(qList)))
             sys.stdout.write("  " * self.indent)
-            print "  new total: %d   new # of questions: %d" % (newPoints, len(newList))
+            print("  new total: %d   new # of questions: %d" % (newPoints, len(newList)))
 
             qList = newList
             sectionPoints = newPoints
@@ -561,7 +561,7 @@ class MKT:
             qList = qList[:maxQuestions]
 
             sys.stdout.write("  " * self.indent)
-            print "%s: '%s': maxQuestions set to %d" % (descriptor, os.path.basename(name), maxQuestions)
+            print("%s: '%s': maxQuestions set to %d" % (descriptor, os.path.basename(name), maxQuestions))
 
         # Cut the list down to get the maxPercent requested.  This should happen
         # after maxQuestions since it's possible maxQuestions was used to pick 1
@@ -586,25 +586,25 @@ class MKT:
                         break
 
                 sys.stdout.write("  " * self.indent)
-                print " %s: '%s': maxPercent set to %d%%" % (descriptor, os.path.basename(name), maxPercent)
+                print(" %s: '%s': maxPercent set to %d%%" % (descriptor, os.path.basename(name), maxPercent))
                 sys.stdout.write("  " * self.indent)
-                print "  old total: %d   old # of questions: %d" % (sectionPoints, len(qList))
+                print("  old total: %d   old # of questions: %d" % (sectionPoints, len(qList)))
                 sys.stdout.write("  " * self.indent)
-                print "  new total: %d   new # of questions: %d" % (newPoints, len(newList))
+                print("  new total: %d   new # of questions: %d" % (newPoints, len(newList)))
                 sys.stdout.write("  " * self.indent)
-                print "  actual percentage: %d%%" % (newPoints * 100 / self.totalPoints)
+                print("  actual percentage: %d%%" % (newPoints * 100 / self.totalPoints))
 
                 qList = newList
                 sectionPoints = newPoints
             else:
                 sys.stdout.write("  " * self.indent)
-                print " !! %s: '%s': maxPercent set to %d" % (descriptor, os.path.basename(name), maxPercent)
+                print(" !! %s: '%s': maxPercent set to %d" % (descriptor, os.path.basename(name), maxPercent))
                 sys.stdout.write("  " * self.indent)
-                print " !!  We required at least %d points to meet this requirement, " % (percentPoints)
+                print(" !!  We required at least %d points to meet this requirement, " % (percentPoints))
                 sys.stdout.write("  " * self.indent)
-                print " !!  but only %d points were available." % (sectionPoints)
+                print(" !!  but only %d points were available." % (sectionPoints))
                 sys.stdout.write("  " * self.indent)
-                print " !!  actual percentage: %d%%" % (sectionPoints * 100 / self.totalPoints)
+                print(" !!  actual percentage: %d%%" % (sectionPoints * 100 / self.totalPoints))
 
         # if we didn't already show a summary
         #   AND
@@ -615,8 +615,8 @@ class MKT:
                                     descriptor == 'File'):
             sys.stdout.write("  " * self.indent)
 
-            print "%s: '%s' - Adding %d questions worth %d points" % (descriptor,
-                                                                      os.path.basename(name), len(qList), sectionPoints)
+            print("%s: '%s' - Adding %d questions worth %d points" % (descriptor,
+                                                                      os.path.basename(name), len(qList), sectionPoints))
 
         return qList
 
@@ -692,7 +692,7 @@ class MKT:
                 answers.update({v: "choice" for v in m["wrongAnswers"]})
             except KeyError:
                 fatal("'wrongAnswers' not defined for %s" % (m))
-            answers = self.shuffle(answers.items())
+            answers = self.shuffle(list(answers.items()))
 
             if self.config["useCheckboxes"].lower() == "true":
                 of.write("\\begin{checkboxes}\n")
@@ -755,7 +755,7 @@ class MKT:
 
             # If solution wasn't defined, error out
             if "solution" not in m:
-                fatal("No 'solution' found!\nQuestion: \"%s\"\nKeys found: %s" % (m["question"], (m.keys())))
+                fatal("No 'solution' found!\nQuestion: \"%s\"\nKeys found: %s" % (m["question"], (list(m.keys()))))
 
             # If we have more than one solution, print out each on it's own
             # answer line
@@ -815,16 +815,16 @@ class MKT:
         #
         if len(longAnswer) > 0:
             # print out the short answer questions.
-            print >> of, "\\begin{center}"
-            print >> of, "{\Large \\textbf{Long Answers Questions}}"
-            print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-            print >> of, "Answer the questions in the spaces provided on the question sheets."
-            print >> of, "If you run out of room for an answer, continue on the back of the page."
-            print >> of, "}}}"
-            print >> of, "\end{center}\n"
+            print("\\begin{center}", file=of)
+            print("{\Large \\textbf{Long Answers Questions}}", file=of)
+            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+            print("Answer the questions in the spaces provided on the question sheets.", file=of)
+            print("If you run out of room for an answer, continue on the back of the page.", file=of)
+            print("}}}", file=of)
+            print("\end{center}\n", file=of)
 
-            print >> of, "\\begin{questions}"
-            print >> of, "\\begingradingrange{longanswer}"
+            print("\\begin{questions}", file=of)
+            print("\\begingradingrange{longanswer}", file=of)
             beginQuestions = True
 
             for m in self.shuffle(longAnswer):
@@ -840,76 +840,76 @@ class MKT:
 
                 self.endMinipage(of)
 
-            print >> of, "\\endgradingrange{longanswer}\n\n\n"
+            print("\\endgradingrange{longanswer}\n\n\n", file=of)
 
         #
         # START: Short answer questions
         #
         if len(shortAnswer) > 0:
             if self.config["useCheckboxes"].lower() == "true":
-                print "#########################################################"
-                print "# Multiple choice checkboxes not recommended when using  "
-                print "# short answer questions.  Unset useCheckboxes in your "
-                print "# config file to remove this warning."
-                print "#########################################################"
-            print >> of, "\\newpage"
-            print >> of, "\\begin{center}"
-            print >> of, "{\Large \\textbf{Short Answer Questions}}"
-            print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-            print >> of, "Write the correct answer in the space provided next to the question."
-            print >> of, "Answers that are not legible or not made in the space provided will result in a 0 for that question."
-            print >> of, "}}}"
-            print >> of, "\end{center}\n"
+                print("#########################################################")
+                print("# Multiple choice checkboxes not recommended when using  ")
+                print("# short answer questions.  Unset useCheckboxes in your ")
+                print("# config file to remove this warning.")
+                print("#########################################################")
+            print("\\newpage", file=of)
+            print("\\begin{center}", file=of)
+            print("{\Large \\textbf{Short Answer Questions}}", file=of)
+            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+            print("Write the correct answer in the space provided next to the question.", file=of)
+            print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+            print("}}}", file=of)
+            print("\end{center}\n", file=of)
             if not beginQuestions:
-                print >> of, "\\begin{questions}"
+                print("\\begin{questions}", file=of)
                 beginQuestions = True
-            print >> of, "\\begingradingrange{shortAnswer}"
+            print("\\begingradingrange{shortAnswer}", file=of)
 
             self.createShortAnswerQuestions(of, shortAnswer)
 
-            print >> of, "\\endgradingrange{shortanswer}\n\n\n"
+            print("\\endgradingrange{shortanswer}\n\n\n", file=of)
 
         #
         # START: T/F questions
         #
         if len(tf) > 0:
-            print >> of, "\\newpage"
-            print >> of, "\\begin{center}"
-            print >> of, "{\Large \\textbf{True/False Questions}}"
-            print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+            print("\\newpage", file=of)
+            print("\\begin{center}", file=of)
+            print("{\Large \\textbf{True/False Questions}}", file=of)
+            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
-                print >> of, "Circle either 'True' or 'False' at the begging of the line. If you make an"
-                print >> of, "incorrect mark, erase your mark and clearly mark the correct answer."
-                print >> of, "If the intended mark is not clear, you will receive a 0 for that question"
+                print("Circle either 'True' or 'False' at the begging of the line. If you make an", file=of)
+                print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+                print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
             else:
-                print >> of, "Write 'True' or 'False' \\textit{clearly} in the space provided next to the question."
-                print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
+                print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
+                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
 
-            print >> of, "}}}"
-            print >> of, "\end{center}\n"
+            print("}}}", file=of)
+            print("\end{center}\n", file=of)
             if not beginQuestions:
-                print >> of, "\\begin{questions}"
+                print("\\begin{questions}", file=of)
                 beginQuestions = True
-            print >> of, "\\begingradingrange{TF}"
+            print("\\begingradingrange{TF}", file=of)
             self.createTrueFalseQuestions(of, tf)
-            print >> of, "\\endgradingrange{TF}"
+            print("\\endgradingrange{TF}", file=of)
 
         #
         # START: Matching questions
         #
         if len(matching) > 0:
-            print >> of, "\\newpage"
-            print >> of, "\\begin{center}"
-            print >> of, "{\Large \\textbf{Matching Questions}}"
-            print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
-            print >> of, "Match the selection on the left with the best answer on the right."
-            print >> of, "Answers that are not legible or not made in the space provided will result in a 0 for that question."
-            print >> of, "}}}"
-            print >> of, "\end{center}\n"
+            print("\\newpage", file=of)
+            print("\\begin{center}", file=of)
+            print("{\Large \\textbf{Matching Questions}}", file=of)
+            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+            print("Match the selection on the left with the best answer on the right.", file=of)
+            print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+            print("}}}", file=of)
+            print("\end{center}\n", file=of)
             if not beginQuestions:
-                print >> of, "\\begin{questions}"
+                print("\\begin{questions}", file=of)
                 beginQuestions = True
-            print >> of, "\\begingradingrange{matching}"
+            print("\\begingradingrange{matching}", file=of)
 
             for m in self.shuffle(matching):
                 self.beginMinipage(of)
@@ -925,7 +925,7 @@ class MKT:
                     solutions[s] = chr(letter + ord('A'))
                     letter += 1
 
-                keys = self.shuffle(solutions.keys())
+                keys = self.shuffle(list(solutions.keys()))
 
                 index = 0
                 for k in keys:
@@ -942,60 +942,60 @@ class MKT:
                 of.write("\\end{tabularx}\n")
                 self.endMinipage(of)
 
-            print >> of, "\\endgradingrange{matching}\n\n\n"
+            print("\\endgradingrange{matching}\n\n\n", file=of)
 
         #
         # START: Multiple choice questions
         #
         if len(multipleChoice) > 0:
             # Print multiple choice questions:
-            print >> of, "\\newpage"
-            print >> of, "\\begin{center}"
-            print >> of, "{\Large \\textbf{Multiple Choice Questions}}"
-            print >> of, "\\fbox{\\fbox{\\parbox{5.5in}{\centering"
+            print("\\newpage", file=of)
+            print("\\begin{center}", file=of)
+            print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
+            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
-                print >> of, "Mark the box the represents the \\textit{best} answer.  If you make an"
-                print >> of, "incorrect mark, erase your mark and clearly mark the correct answer."
-                print >> of, "If the intended mark is not clear, you will receive a 0 for that question"
+                print("Mark the box the represents the \\textit{best} answer.  If you make an", file=of)
+                print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+                print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
             else:
-                print >> of, "Write the \\textit{best} answer in the space provided next to the question."
-                print >> of, "Answer that are not legible or not made in the space provided will result in a 0 for that question."
+                print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
+                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
 
-            print >> of, "}}}"
-            print >> of, "\end{center}\n"
+            print("}}}", file=of)
+            print("\end{center}\n", file=of)
             if not beginQuestions:
-                print >> of, "\\begin{questions}"
+                print("\\begin{questions}", file=of)
                 beginQuestions = True
-            print >> of, "\\begingradingrange{multipleChoice}"
+            print("\\begingradingrange{multipleChoice}", file=of)
 
             #
             # START: Regular multiple choice questions
             #
             self.createMultipleChoiceQuestions(of, multipleChoice)
-            print >> of, "\\endgradingrange{multiplechoice}\n\n\n"
+            print("\\endgradingrange{multiplechoice}\n\n\n", file=of)
 
         #
         # START: Bonus questions
         #
         if len(multipleChoiceBonus) > 0 or len(shortAnswerBonus) > 0:
-            print >> of, "\\newpage"
-            print >> of, "\\begin{center}"
-            print >> of, "{\Large \\textbf{Bonus Questions}}"
-            print >> of, "\end{center}\n"
+            print("\\newpage", file=of)
+            print("\\begin{center}", file=of)
+            print("{\Large \\textbf{Bonus Questions}}", file=of)
+            print("\end{center}\n", file=of)
             if not beginQuestions:
-                print >> of, "\\begin{questions}"
+                print("\\begin{questions}", file=of)
                 beginQuestions = True
-            print >> of, "\\begingradingrange{bonus}"
+            print("\\begingradingrange{bonus}", file=of)
 
             self.createMultipleChoiceQuestions(of, multipleChoiceBonus, True)
             self.createShortAnswerQuestions(of, shortAnswerBonus, True)
 
-            print >> of, "\\endgradingrange{multiplechoice}\n\n\n"
+            print("\\endgradingrange{multiplechoice}\n\n\n", file=of)
 
 
 def fatal(str):
-    print >> sys.stderr, "\nFATAL ERROR!!"
-    print >> sys.stderr, str
+    print("\nFATAL ERROR!!", file=sys.stderr)
+    print(str, file=sys.stderr)
     sys.exit(2)
 
 
