@@ -256,6 +256,7 @@ class MKT:
                      "\\usepackage{listings}\n" \
                      "\\usepackage{tabularx}\n" \
                      "\\usepackage{mathtools}\n" \
+                     "\\usepackage{wasysym }\n"\
                      "\\usepackage{color}\n\n", file=of)
         if args.draft:
             print("\\usepackage{draftwatermark}\n", file=of)
@@ -290,7 +291,7 @@ class MKT:
         self.config["courseNumber"]), file=of)
 
         print("\n", file=of)
-        print("\\checkboxchar{$\\Box$}", file=of)
+        #print("\\checkboxchar{$\\Box$}", file=of)
         print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
         print("\\SolutionEmphasis{\color{red}}", file=of)
         print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
@@ -409,7 +410,7 @@ class MKT:
         if c in ["test", "instructor", "courseName", "courseNumber", "term", "note",
                  "school", "department", "nameOnEveryPage", "defaultPoints",
                  "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
-                 "promptForLogin"]:
+                 "promptForLogin", "useClassicTF"]:
             if not self.mainSettingsStored:
                 self.mainSettingsStored = True
                 self.config = config
@@ -417,6 +418,9 @@ class MKT:
                 # Set up some defaults of the keys aren't found
                 if "useCheckboxes" not in self.config:
                     self.config["useCheckboxes"] = "false"
+
+                if "useClassicTF" not in self.config:
+                    self.config["useClassicTF"] = "false"
 
                 if "defaultLineLength" not in self.config:
                     self.config["defaultLineLength"] = "1in"
@@ -649,6 +653,47 @@ class MKT:
                 of.write("\\question[%d]\n" % int(m["points"]))
 
             if self.config["useCheckboxes"].lower() == "true":
+                if False:
+                    of.write("%s\n" % (m["question"]))
+                    of.write("\n ")
+                    of.write("\ifprintanswers\n")
+                    if m["solution"].lower() == "true":
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\CIRCLE$ True} \n\n")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ False} ")
+                    else:
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ True} \n\n")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\CIRCLE$ False} ")
+
+                    of.write("\\else\n")
+                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ True} \n\n")
+                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ False} ")
+                    of.write("\\fi\n ")   
+                else:
+                    of.write("%s\n" % (m["question"]))
+                    of.write("\n ")
+                    of.write("\ifprintanswers\n")
+                    if m["solution"].lower() == "true":
+                        of.write("\\hfill\\textbf{$\CIRCLE$ True ")
+                        of.write("\hspace{2mm}$\ocircle$ False} ")
+                    else:
+                        of.write("\\hfill\\textbf{$\ocircle$ True ")
+                        of.write("\hspace{2mm}$\CIRCLE$ False} ")
+
+                    of.write("\\else\n")
+                    of.write("\\hfill\\textbf{$\ocircle$ True ")
+                    of.write("\hspace{2mm}$\ocircle$ False} ")
+                    of.write("\\fi\n ")  
+                    
+            
+            elif self.config["useClassicTF"].lower() == "true":
+                if m["solution"].lower() == "true":
+                    correctAnswer = "True"
+                else:
+                    correctAnswer = "False"
+                of.write("%s\n" % (m["question"]))
+                of.write("\\setlength\\answerlinelength{1in}\n")
+                of.write("\\answerline[%s]\n\n" % (correctAnswer))
+            else:
                 of.write("\ifprintanswers\n")
                 if m["solution"].lower() == "true":
                     of.write("\\textbf{[ \\textcolor{red}{True} / False ]} ")
@@ -658,14 +703,7 @@ class MKT:
                 of.write("\\textbf{[ True / False ]} ")
                 of.write("\\fi\n")
                 of.write("%s\n" % (m["question"]))
-            else:
-                if m["solution"].lower() == "true":
-                    correctAnswer = "True"
-                else:
-                    correctAnswer = "False"
-                of.write("%s\n" % (m["question"]))
-                of.write("\\setlength\\answerlinelength{1in}\n")
-                of.write("\\answerline[%s]\n\n" % (correctAnswer))
+               
 
             of.write("\\medskip\n")
             self.endMinipage(of)
@@ -878,12 +916,15 @@ class MKT:
             print("{\Large \\textbf{True/False Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
+                print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ True}).", file=of)
+                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+            elif self.config["useClassicTF"].lower() == "true":
+                print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
+                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+            else:
                 print("Circle either 'True' or 'False' at the begging of the line. If you make an", file=of)
                 print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
                 print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
-            else:
-                print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
-                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
 
             print("}}}", file=of)
             print("\end{center}\n", file=of)
@@ -954,8 +995,8 @@ class MKT:
             print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
-                print("Mark the box the represents the \\textit{best} answer.  If you make an", file=of)
-                print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+                print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ Answer}).", file=of)
+                print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
                 print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
             else:
                 print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
