@@ -857,7 +857,7 @@ class MKT:
             print("{\Large \\textbf{Long Answers Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             print("Answer the questions in the spaces provided on the question sheets.", file=of)
-            print("If you run out of room for an answer, continue on the back of the page.", file=of)
+            print("If you run out of room for an answer, continue on the back page.", file=of)
             print("}}}", file=of)
             print("\end{center}\n", file=of)
 
