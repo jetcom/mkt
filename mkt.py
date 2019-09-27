@@ -453,6 +453,13 @@ class MKT:
         maxPoints = None
         maxPercent = None
         showSummary = True
+        
+        #Scott ADDED
+        maxLongPoints = None
+        maxTFPoints = None
+        maxShortPoints = None
+        maxMCPoints = None
+        #Scott ADDED end
 
         # found a question. Add it!
         if "question" in config:
@@ -505,6 +512,14 @@ class MKT:
                 elif c.lower() == "maxpercent":
                     maxPercent = int(config[c])
                     self.needSecondPass = True
+                elif c.lower() == "maxlongpoints": #Scott ADDED
+                    maxLongPoints = int(config[c])
+                elif c.lower() == "maxtfpoints": #Scott ADDED
+                    maxTFPoints = int(config[c])
+                elif c.lower() == "maxmcpoints": #Scott ADDED
+                    maxMCPoints = int(config[c])
+                elif c.lower() == "maxshortpoints": #Scott ADDED
+                    maxShortPoints = int(config[c])
                 elif c == "include":
                     qList += self.processInclude(config["include"], root=root)
                 elif self.parseTestSettings(c, config):
@@ -526,38 +541,70 @@ class MKT:
         # "config" section of the ini file
         if "config" in config and "maxPoints" in config["config"]:
             maxPoints = (int)(config["config"]["maxPoints"])
+            print("Max points:", maxPoints)
         if "config" in config and "maxQuestions" in config["config"]:
             maxQuestions = (int)(config["config"]["maxQuestions"])
 
         if maxPoints and maxPercent:
             fatal("maxPoints and maxPercent cannot be specified for the same section!")
+            
+        #Scott ADDED
+        tempQList = []
+        altQList = []
+        currLongPoints = 0
+        currShortPoints = 0
+        currMCPoints = 0
+        currTFPoints = 0
+        
+        for q in qList:
+            if maxLongPoints and q['type'].lower() == "longanswer":
+                if int(q['points']) + currLongPoints <= maxLongPoints:
+                    tempQList.append(q)
+                    currLongPoints = currLongPoints + int(q['points'])
+            elif maxShortPoints and q['type'].lower() == "shortanswer":
+                if int(q['points']) + currShortPoints <= maxShortPoints:
+                    tempQList.append(q)
+                    currShortPoints = currShortPoints + int(q['points'])
+            elif maxTFPoints and q['type'].lower() == "tf":
+                if int(q['points']) + currTFPoints <= maxTFPoints:
+                    tempQList.append(q)
+                    currTFPoints = currTFPoints + int(q['points'])
+            elif maxMCPoints and q['type'].lower() == "multiplechoice":
+                if int(q['points']) + currMCPoints <= maxMCPoints:
+                    tempQList.append(q)
+                    currMCPoints = currMCPoints + int(q['points'])
+            else:
+                altQList.append(q)
+        qList = tempQList[:]
+        #Scott ADDED end
 
         # Cut the list down to get the max points requested
         sectionPoints = 0;
+        oldLen = len(qList)
         for p in qList:
             sectionPoints += int(p["points"])
+            
+        oldSectionPoints = sectionPoints
 
-        if maxPoints and sectionPoints > maxPoints:
+        if maxPoints and sectionPoints < maxPoints:
             showSummary = False
-            qList = self.shuffle(qList)
-            newList = []
+            altQList = self.shuffle(altQList)
 
-            newPoints = 0
-
-            for p in qList:
-                if newPoints + int(p["points"]) <= maxPoints:
-                    newPoints += int(p["points"])
-                    newList.append(p)
+            for p in altQList:
+                if sectionPoints + int(p["points"]) <= maxPoints:
+                    sectionPoints += int(p["points"])
+                    qList.append(p)
 
             sys.stdout.write("  " * self.indent)
             print("%s: '%s': maxPoints set to %d" % (descriptor, os.path.basename(name), maxPoints))
             sys.stdout.write("  " * self.indent)
-            print("  old total: %d   old # of questions: %d" % (sectionPoints, len(qList)))
+            print("  old total: %d   old # of questions: %d" % (oldSectionPoints, oldLen))
             sys.stdout.write("  " * self.indent)
-            print("  new total: %d   new # of questions: %d" % (newPoints, len(newList)))
-
-            qList = newList
-            sectionPoints = newPoints
+            print("  new total: %d   new # of questions: %d" % (sectionPoints, len(qList)))
+        elif maxPoints:
+            pass
+        else:
+            qList.extend(altQList)
 
         if maxQuestions and len(qList) > maxQuestions:
             showSummary = False
