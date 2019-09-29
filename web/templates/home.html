@@ -60,7 +60,8 @@
           
             }
             });
-     
+            $("#questions").html("")
+            $('#questionLabel').text("Select a question category from the left sidebar");
             var string = data.split(",");
             var array = string.filter(function(e){return e;});
             var select = $('#categorySelect');
@@ -97,9 +98,10 @@
             }
             });
             var questions = $.parseJSON(data)
+            $("#questions").html("")
             for (var key in questions) {
                 
-                title = key.replace(course.trim()+"/questionPool/"+fileName.trim()+"/", "")
+                title = key.replace(fileName.trim()+"/", "")
                 output = "<div id=''"+key+"'>"
                 output += title + " ("+questions[key].type+")"
                 output += "</div>"
