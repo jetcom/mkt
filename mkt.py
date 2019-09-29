@@ -99,28 +99,50 @@ class MKT:
         path = os.path.dirname(args.configFile)
 
         config = ConfigObj(args.configFile)
-        questions = self.parseConfig('File', args.configFile, config, root=path)
-
-        if self.needSecondPass:
-            self.currentPass = 2
-            self.qHash = {}
-            self.totalPoints = 0
-            for q in questions:
-                self.totalPoints += int(q["points"])
-            print("-------------------------------------------------------")
-            print("Encounted maxPercent.. reparsing.")
-            print(("Total points: %d" % (self.totalPoints)))
-            print("-------------------------------------------------------")
-
-            # Reseed with the same UUID so we get the same questionsList
-            random.seed(args.uuid)
+        
+        questions_list = {}
+        points = 0;
+        
+        while True:
+            questions = []
+            self.qHash = {}            
             questions = self.parseConfig('File', args.configFile, config, root=path)
+
+            if self.needSecondPass:
+                self.currentPass = 2
+                self.qHash = {}
+                self.totalPoints = 0
+                for q in questions:
+                    self.totalPoints += int(q["points"])
+                print("-------------------------------------------------------")
+                print("Encounted maxPercent.. reparsing.")
+                print(("Total points: %d" % (self.totalPoints)))
+                print("-------------------------------------------------------")
+
+                # Reseed with the same UUID so we get the same questionsList
+                random.seed(args.uuid)
+                questions = self.parseConfig('File', args.configFile, config, root=path)
+                
+            key = len(questions)
+            
+            if not key in questions_list:
+                questions_list[key] = [questions]
+            else:
+                questions_list[key].append(questions)
+                
+            if not args.versions:
+                points = len(questions)
+                break
+                
+            if len(questions_list[key]) >= int(args.versions):
+                points = len(questions)
+                break
 
         if args.versions:
             for v in range(0, int(args.versions)):
-                self.writeTest(args, questions, chr(v + ord('A')))
+                self.writeTest(args, questions_list[points][v], chr(v + ord('A')))
         else:
-            self.writeTest(args, questions)
+            self.writeTest(args, questions_list[points][0])
 
         print("")
         print("If you have the same config file and question set, you can regenerate")
@@ -312,7 +334,7 @@ class MKT:
         print(self.config["instructor"], file=of)
         print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
         if version:
-            print("\\\\[1cm]\\textsc{\LARGE Version: %s}" % (version), file=of)
+            print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
         print("\\textsc{%s}" % (self.config["note"]), file=of)
         print("\\vfill", file=of)
 
@@ -580,13 +602,22 @@ class MKT:
 
         # Cut the list down to get the max points requested
         sectionPoints = 0;
+        altPoints = 0
         oldLen = len(qList)
         for p in qList:
             sectionPoints += int(p["points"])
             
-        oldSectionPoints = sectionPoints
+        for p in altQList:
+            altPoints += int(p["points"])
+            
+        oldLen = len(qList) + len(altQList)
+        oldSectionPoints = sectionPoints + altPoints
+        
+        if maxPoints and oldSectionPoints < maxPoints:
+            qList.extend(altQList)
+            sectionPoints = oldSectionPoints
 
-        if maxPoints and sectionPoints < maxPoints:
+        elif maxPoints and sectionPoints < maxPoints:
             showSummary = False
             altQList = self.shuffle(altQList)
 
@@ -605,6 +636,7 @@ class MKT:
             pass
         else:
             qList.extend(altQList)
+            sectionPoints = sectionPoints + altPoints
 
         if maxQuestions and len(qList) > maxQuestions:
             showSummary = False
