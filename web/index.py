@@ -14,13 +14,14 @@ print(courses)
 app = Flask(__name__)
 
 @app.route('/')
+@app.route('/home')
 def home():
-    #name = request.args.get("name", "World")
-    #return f'Hello, {escape(name)}!'
-    
-    #obj, questions = mkt_reader_writer.load_questions_file("csci320 2191/questionPool/chapter1.txt")
-    #print(questions)
     return render_template('home.html', courses=courses)
+
+@app.route('/editor')
+def editor():
+
+    return render_template('editor.html', courses=courses)
 
 
 @app.route('/changeCourse', methods=['POST'])
