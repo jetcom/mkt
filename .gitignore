@@ -24,3 +24,4 @@ Icon\r
 .settings/launch.json
 .settings/settings.json
 .vscode/launch.json
+/venv/
