@@ -27,8 +27,6 @@ def editor():
 @app.route('/changeCourse', methods=['POST'])
 def changeCourse():
     course = request.form['selectedCourse']
-
-
     files = os.listdir(course+'/questionPool')
     return str(files).strip('[]')
     
@@ -37,10 +35,8 @@ def changeCourse():
 def getQuestions():
     course = request.form['course'].strip()
     fileName = request.form['fileName'].strip()
-
     obj, questions = mkt_reader_writer.load_questions_file(course+'/questionPool/'+fileName)
-    return json.dumps(questions)
+    return json.dumps(obj)
     
-
 if __name__ == '__main__':
     app.run(debug=True)
