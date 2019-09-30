@@ -1,5 +1,7 @@
 $('#courseSelect').change(function() {
 
+
+    $("#addQuestionButton").hide( );
     var optionSelected = $("select option:selected", this);
     var valueSelected = this.value;
     
@@ -19,6 +21,7 @@ $('#courseSelect').change(function() {
     });
     $("#questions").html("")
     $('#questionLabel').text("Select a question category from the left sidebar");
+   
     var string = data.split(",");
     var array = string.filter(function(e){return e;});
     var select = $('#categorySelect');
@@ -39,6 +42,9 @@ function fileClick(fileName) {
     course = $('#courseSelect').find(":selected").text()
     
     $('#questionLabel').text(fileName);
+    $('#addQuestionButton').show()
+
+
     w3_close()
     var data = "";
     $.ajax({
@@ -131,3 +137,6 @@ function accordion(id) {
         x.className = x.className.replace(" w3-show", "");
     }
 }
+
+
+$("#addQuestionButton").hide( );
