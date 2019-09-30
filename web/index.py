@@ -3,12 +3,10 @@ import mkt_reader_writer
 import os
 import json
 
-
-
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))]
-courses = get_immediate_subdirectories('./')
+courses = get_immediate_subdirectories('../questions/')
 print(courses)
 
 app = Flask(__name__)
@@ -27,7 +25,7 @@ def editor():
 @app.route('/changeCourse', methods=['POST'])
 def changeCourse():
     course = request.form['selectedCourse']
-    files = os.listdir(course+'/questionPool')
+    files = os.listdir("../questions/"+course+'/questionPool')
     return str(files).strip('[]')
     
 
@@ -35,7 +33,7 @@ def changeCourse():
 def getQuestions():
     course = request.form['course'].strip()
     fileName = request.form['fileName'].strip()
-    obj, questions = mkt_reader_writer.load_questions_file(course+'/questionPool/'+fileName)
+    obj, questions = mkt_reader_writer.load_questions_file("../questions/"+course+'/questionPool/'+fileName)
     return json.dumps(obj)
     
 if __name__ == '__main__':
