@@ -1,6 +1,7 @@
+var course=""
+var fileName = ""
+
 $('#courseSelect').change(function() {
-
-
     $("#addQuestionButton").hide( );
     var optionSelected = $("select option:selected", this);
     var valueSelected = this.value;
@@ -38,9 +39,9 @@ $('#courseSelect').change(function() {
 });
 
 
-function fileClick(fileName) {
+function fileClick(_fileName) {
     course = $('#courseSelect').find(":selected").text()
-    
+    fileName = _fileName
     $('#questionLabel').text(fileName);
     $('#addQuestionButton').show()
 
@@ -65,18 +66,23 @@ function fileClick(fileName) {
     $("#questions").html("")
     for (var title in questions) {
         question = questions[title]           
-        $("#questions").append(formatQuestion(null, title, question))
+        $("#questions").append(formatQuestion("", title, question))
     }
 
     
 }
 
 function formatQuestion(parent, title, question) {
-    output = '<button onclick="accordion(\''+parent+title+'\')" class="w3-btn w3-block w3-light-grey w3-left-align">'+title+'</button>'
-    output += "<div id=\'"+parent+title+"\' class='w3-container w3-hide'>"
+
+    output = '<div  class="w3-cell-row w3-block w3-light-grey ">'
+    output += '<div onclick="accordion(\''+parent+title+'\')" class="w3-cell w3-btn w3-block w3-light-grey w3-left-align">'+title+'</div>'
+    output += '<div onclick="alert(\'edit clicked\')" class="w3-btn w3-block w3-cell w3-right-align" >Edit</div>'
+    output += '</div>'
+    output += "<div id=\'"+parent+title+"\' class='w3-container w3-hide '>"
 
     if (question.type == null) 
     {
+        output += "Max Questions: " + question.maxQuestions + '<br/>'
         for (var subtitle in question) {
 
             subquestion = question[subtitle]
@@ -138,5 +144,29 @@ function accordion(id) {
     }
 }
 
+$('#newQuestion').submit(function(event){
+    // cancels the form submission
+    event.preventDefault();
+    formData = $("#newQuestion").serialize()
+    formData += "&filename="+fileName
+    formData += "&course="+course
+    console.log(formData)
+    $.ajax({
+        type:"POST",
+        url : "/addQuestion",
+        data : formData,
+        async: false,
+        success : function(response) {
+            document.getElementById('addQuestionModal').style.display='none'
+            fileClick(fileName)
+            $("#newQuestion")[0].reset()
+            return true;
+        },
+        error: function() {
+
+        }
+    });
+
+});
 
 $("#addQuestionButton").hide( );
