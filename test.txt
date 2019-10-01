@@ -1,0 +1,71 @@
+[File System]
+    type = LongAnswer
+    points = 100
+    question = What are 3 advantages of using a database system over a file system?
+    solution = "loose coupling between application and data.  Facilities provided for query and retrieval.  More efficient, consistency, and easier maintenance"
+
+[Conceptual Data Model]
+    maxQuestions = 1
+    [[1]]
+        type = LongAnswer
+        points = 3
+        question = What is the purpose of the conceptual data model.  Who does it benefit and what artifacts are created?
+        solution = The conceptual data model is used to share information between the business and development teams.  The represent the business needs are an ER diagram is usually produced.
+    [[2]]
+        type = shortAnswer
+        points = 3
+        question = "Ideally, what are the 3 data model types (layers)"
+        solutions = Internal, Logical, External
+
+[KPIs]
+    type = LongAnswer
+    points = 3
+    question = What are the three key performance indicators of a database?
+    solution = "Response time, throughput rate, space utilization"
+
+[Elements of a DB system]
+    type = multipleChoice
+    points = 2
+    question = Which is not an element of a database system
+    correctAnswer = Four Layer Model
+    wrongAnswers = Catalog, Users, Data Model
+
+[Data Independence]
+    type = multipleChoice
+    points = 2
+    question = What is the term used to describe when the physical model need not change when the logical model does?
+    correctAnswer = Data Independence
+    wrongAnswers = Model Independence, Physical Isolation, Logical Isolation
+
+[XML]
+    type = TF
+    question = XML is considered semi-structured data
+    solution = true
+
+
+[DDL]
+    type = shortAnswer
+    question = What DB language is used to create the structure of the database
+    solution = DDL
+
+[Catalog]
+    type = shortAnswer
+    question = What piece of your database (DBMS) holds the metadata for your system?
+    solution = Catalog
+
+[ACID]
+    type = shortAnswer
+    points = 4
+    question = What are the properties of an ACID database (just name them)
+    solutions = Atomic, Consistent, Isolation, Durable
+
+[Data Model vs Instance]
+    maxQuestions = 1
+    [[Model]]
+        type = TF
+        question = A snapshot of your data at a given time is a data model
+        solution = False
+    [[Instance]]
+        type = TF
+        question = A snapshot of your data at a given time is a data instance
+        solution = True
