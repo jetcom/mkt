@@ -1,8 +1,7 @@
 /questions/
 /app/
-__pycache__/configobj.cpython-35.pyc
-__pycache__/configobj.cpython-36.pyc
-__pycache__/six.cpython-37.pyc
+__pycache__
+web/__pycache__
 configobj-5.0.6/_version.py
 configobj-5.0.6/configobj.py
 configobj-5.0.6/PKG-INFO
