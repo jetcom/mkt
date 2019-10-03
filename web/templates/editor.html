@@ -1,28 +1,68 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<!-- modal -->
+<div class="modal fade" id="fileModal" tabindex="-1" role="dialog" aria-labelledby="fileModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div id="fileModalContent" class="modal-content dark">
+            <form id="fileSelect">
+                <div class="modal-header">
+                    <h5 class="modal-title">Choose Exam</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input type="file" class="form-control-file" id="exampleFormControlFile1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Select</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- end modal -->
+
+<div class="wrapper">
 <!-- sidebar -->
-<div class="w3-sidebar w3-bar-block w3-collapse w3-card w3-margin-top" style="width:250px;" id="mySidebar">
-    <button class="w3-bar-item w3-button w3-hide-large"
-            onclick="w3_close()">Close &times;
-    </button>
-    <select class=" w3-block w3-light-grey w3-medium" id="courseSelect">
+<nav id="sidebar">
+    <div class="sidebar-header">
+        <button id="uploadButton" class="w3-button" onclick="">
+            <i class="fa fa-upload"></i>
+        </button>
+        <button class="pull-right w3-button" id="sidebarCollapse" style="width: 50px;">
+            <i id="sidebarIcon" class="fa fa-angle-double-left" style="font-size: 20px;"></i>
+        </button>
+    </div>
+    <!-- <select class=" w3-block w3-light-grey w3-medium" id="courseSelect">
         {% for course in courses %}
         <option value={{course}}>{{course}}</option>
         {% endfor %}
-    </select>
-    <br/>
-    <div id="categorySelect"></div>
-    <br/>
-</div>
-<!--end sidebar -->
-
-<div class="w3-main" style="margin-left:250px">
-    <div class="w3-blue">
-        <button class="w3-button w3-blue w3-xlarge w3-hide-large" onclick="w3_open()">&#9776;</button>
-        <div class="w3-container">
-            <h1>Questions</h1>
+    </select> -->
+    <!-- <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Add Question
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            {% for course in courses %}
+            <a class="dropdown-item" href="#">{{course}}</a>
+            {% endfor %}
         </div>
+    </div>
+    <br/>
+
+    <div id="categorySelect"></div>
+    <br/> -->
+</nav>
+<!-- end sidebar -->
+
+<!-- content -->
+<div id="content">
+    <div class="w3-container">
+        <h1>Questions</h1>
     </div>
     <div class="w3-container ">
         <div class="w3-cell-row">
@@ -36,11 +76,13 @@
         </div>
         <div id=questions></div>
     </div>
+</div>
+<!-- end content -->
 
 </div>
 
 <!-- The Modal -->
-<div id="addQuestionModal" class="w3-modal">
+<!-- <div id="addQuestionModal" class="w3-modal">
     <div class="w3-modal-content">
             <form id="newQuestion" class="w3-container" method="post" >
             <span onclick="document.getElementById('addQuestionModal').style.display='none'"
@@ -69,9 +111,71 @@
             </div>
             </form>
     </div>
-</div>
+</div> -->
 
 
+<style>
+    .wrapper {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        align-items: stretch;
+    }
+
+    #sidebar {
+        width: 250px;
+        position: absolute;
+        height: calc(100% - 50px);
+        top: 25;
+        left: 0;
+        z-index: 999;
+        transition: all 0.3s;
+        border-right: 1px solid #D0D3D4;
+    }
+
+    #sidebar.active {
+        margin-left: -200px;
+    }
+
+    #content {
+        margin-left: 250px;
+        width: 100%;
+        transition: all 0.3s;
+    }
+
+    #content.active {
+        margin-left: 50px;
+    }
+
+    #fileModalContent.dark {
+        background-color: #111;
+        color: white;
+    }
+
+    #fileModalContent.dark .close{
+        color: white;
+    }
+
+    .close {
+        text-shadow: none;
+    }
+
+</style>
 
 <script src="/static/js/main.js"></script>
+<script>
+    $('#sidebarCollapse').on('click', function() {
+        $('#sidebar').toggleClass('active');
+        $('#content').toggleClass('active');
+        if ($('#sidebar').hasClass('active')) {
+            $('#sidebarIcon').removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
+        } else {
+            $('#sidebarIcon').removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
+        }
+    });
+
+    $("#uploadButton").on('click', function() {
+        $('#fileModal').modal('show');
+    });
+</script>
 {% endblock content %}
