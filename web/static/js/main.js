@@ -1,42 +1,42 @@
 var course=""
 var fileName = ""
 
-$('#courseSelect').change(function() {
-    $("#addQuestionButton").hide( );
-    var optionSelected = $("select option:selected", this);
-    var valueSelected = this.value;
+// $('#courseSelect').change(function() {
+//     $("#addQuestionButton").hide( );
+//     var optionSelected = $("select option:selected", this);
+//     var valueSelected = this.value;
     
-    var data = "";
-    $.ajax({
-        type:"POST",
-        url : "/changeCourse",
-        data : {"selectedCourse": valueSelected},
-        async: false,
-        success : function(response) {
-            data = response;
-            return true;
-    },
-    error: function() {
+//     var data = "";
+//     $.ajax({
+//         type:"POST",
+//         url : "/changeCourse",
+//         data : {"selectedCourse": valueSelected},
+//         async: false,
+//         success : function(response) {
+//             data = response;
+//             return true;
+//     },
+//     error: function() {
   
-    }
-    });
-    $("#questions").html("")
-    $('#questionLabel').text("Select a question category from the left sidebar");
+//     }
+//     });
+//     $("#questions").html("")
+//     $('#questionLabel').text("Select a question category from the left sidebar");
    
-    var string = data.split(",");
-    var array = string.filter(function(e){return e;});
-    var select = $('#categorySelect');
-    select.empty();
+//     var string = data.split(",");
+//     var array = string.filter(function(e){return e;});
+//     var select = $('#categorySelect');
+//     select.empty();
  
-    $.each(array, function(index, value) { 
-        value = value.trim();
-        value = value.substr(0,value.length - 1)
-        value = value.substr(1, value.length)
-        select.append(
-        $('<div class="w3-bar-item w3-button" onClick="fileClick(\''+value+'\')" id="'+value+'"></div>').html(value)
-    );
-    });
-});
+//     $.each(array, function(index, value) { 
+//         value = value.trim();
+//         value = value.substr(0,value.length - 1)
+//         value = value.substr(1, value.length)
+//         select.append(
+//         $('<div class="w3-bar-item w3-button" onClick="fileClick(\''+value+'\')" id="'+value+'"></div>').html(value)
+//     );
+//     });
+// });
 
 
 function fileClick(_fileName) {
@@ -127,46 +127,66 @@ function formatQuestion(parent, title, question) {
     return output
 }
 
-function w3_open() {
-    document.getElementById("mySidebar").style.display = "block";
-}
+// $('#newQuestion').submit(function(event){
+//     // cancels the form submission
+//     event.preventDefault();
+//     formData = $("#newQuestion").serialize()
+//     formData += "&filename="+fileName
+//     formData += "&course="+course
+//     console.log(formData)
+//     $.ajax({
+//         type:"POST",
+//         url : "/addQuestion",
+//         data : formData,
+//         async: false,
+//         success : function(response) {
+//             document.getElementById('addQuestionModal').style.display='none'
+//             fileClick(fileName)
+//             $("#newQuestion")[0].reset()
+//             return true;
+//         },
+//         error: function() {
 
-function w3_close() {
-    document.getElementById("mySidebar").style.display = "none";
-}
+//         }
+//     });
 
-function accordion(id) {
-    var x = document.getElementById(id);
-    if (x.className.indexOf("w3-show") == -1) {
-        x.className += " w3-show";
-    } else { 
-        x.className = x.className.replace(" w3-show", "");
-    }
-}
+// });
 
-$('#newQuestion').submit(function(event){
-    // cancels the form submission
+$('#fileSelect').submit(function(event) {
     event.preventDefault();
-    formData = $("#newQuestion").serialize()
-    formData += "&filename="+fileName
-    formData += "&course="+course
-    console.log(formData)
+
+    var file = $('#file')[0].files[0];
+    var formData = new FormData();
+    formData.append('file', file);   
+
     $.ajax({
-        type:"POST",
-        url : "/addQuestion",
+        type: "POST",
+        url : "/uploadQuestions",
         data : formData,
-        async: false,
+        processData: false,
+        contentType: false,
         success : function(response) {
-            document.getElementById('addQuestionModal').style.display='none'
-            fileClick(fileName)
-            $("#newQuestion")[0].reset()
-            return true;
+            console.log(response)
+            $('#fileModal').modal('hide');
         },
         error: function() {
-
+            console.log('error')
         }
-    });
-
+    })
 });
 
-$("#addQuestionButton").hide( );
+$('#saveButton').on('click', function(){
+    // $.ajax({
+    //     type: "",
+    //     url : "",
+    //     data : ,
+    //     processData: false,
+    //     contentType: false,
+    //     success : function(response) {
+
+    //     },
+    //     error: function() {
+           
+    //     }
+    // })
+});

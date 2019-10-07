@@ -45,6 +45,9 @@ def update_question(question, key, value):
 def save_changes(f_name, obj):
     obj.write(open(f_name, "wb"))
 
+def read_question_file(file):
+    return 'Hello World'
+
 if __name__ == "__main__":
     if not os._exists("../questions/"):
         root_path = "./questions/"

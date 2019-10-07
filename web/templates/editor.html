@@ -14,7 +14,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <input type="file" class="form-control-file" id="exampleFormControlFile1">
+                        <input id="file" name="file" type="file" class="form-control-file" >
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -28,15 +28,21 @@
 
 <div class="wrapper">
 <!-- sidebar -->
+<div class="sidebar-header vbox" style="width: 50px;">
+    <button id="sidebarCollapse" class="w3-button" >
+        <i id="sidebarIcon" class="fa fa-angle-double-left" style="font-size: 20px;"></i>
+    </button>
+    <button id="saveButton" class="w3-button">
+        <i class="fa fa-save"></i>
+    </button>
+    <button id="uploadButton" class="w3-button">
+        <i class="fa fa-upload"></i>
+    </button>
+    <button id="addQuestionButton" class="w3-button">
+        <i class="fa fa-plus"></i>
+    </button>
+</div>
 <nav id="sidebar">
-    <div class="sidebar-header">
-        <button id="uploadButton" class="w3-button" onclick="">
-            <i class="fa fa-upload"></i>
-        </button>
-        <button class="pull-right w3-button" id="sidebarCollapse" style="width: 50px;">
-            <i id="sidebarIcon" class="fa fa-angle-double-left" style="font-size: 20px;"></i>
-        </button>
-    </div>
     <!-- <select class=" w3-block w3-light-grey w3-medium" id="courseSelect">
         {% for course in courses %}
         <option value={{course}}>{{course}}</option>
@@ -69,10 +75,10 @@
             <div class="w3-cell">
                 <h3 id=questionLabel>Select a question category from the left sidebar</h3>
             </div>
-            <div class="w3-cell w3-right-align" id="addQuestionButton">
+            <!-- <div class="w3-cell w3-right-align" id="addQuestionButton">
                 <button onclick="document.getElementById('addQuestionModal').style.display='block'">Add Question
                 </button>
-            </div>
+            </div> -->
         </div>
         <div id=questions></div>
     </div>
@@ -122,23 +128,44 @@
         align-items: stretch;
     }
 
+    .vbox {
+        display: -webkit-flex;
+        display: -ms-flexbox;
+        display: flex;
+    
+        /*Align children vetically*/
+        -webkit-flex-direction: column;
+        -ms-flex-direction: column;
+        flex-direction: column;
+    
+        -webkit-align-content: flex-start;
+        -ms-flex-line-pack: start;
+        align-content: flex-start;
+    }
+
     #sidebar {
-        width: 250px;
+        width: 300px;
         position: absolute;
         height: calc(100% - 50px);
         top: 25;
-        left: 0;
-        z-index: 999;
+        left: 50;
         transition: all 0.3s;
         border-right: 1px solid #D0D3D4;
     }
 
     #sidebar.active {
-        margin-left: -200px;
+        margin-left: -250px;
+    }
+
+    .sidebar-header {
+        position: absolute;
+        z-index: 999;
+        border-right: 1px solid #D0D3D4;
+        height: calc(100% - 50px);
     }
 
     #content {
-        margin-left: 250px;
+        margin-left: 300px;
         width: 100%;
         transition: all 0.3s;
     }

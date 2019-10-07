@@ -30,6 +30,7 @@ def getQuestions():
     obj, questions = mkt_reader_writer.load_questions_file(course, fileName)
     return json.dumps(obj)
 
+
 @app.route('/addQuestion', methods=['POST'])
 def addQuestion():
     #course = request.form['course'].strip()
@@ -38,6 +39,11 @@ def addQuestion():
     #obj, questions = mkt_reader_writer.load_questions_file("../questions/"+course+'/questionPool/'+fileName)
     return json.dumps(request.form)
 
+
+@app.route('/uploadQuestions', methods=['POST'])
+def uploadQuestions():
+    questionFile = request.files['file']
+    return mkt_reader_writer.read_question_file(questionFile)
 
 if __name__ == '__main__':
     app.run(debug=True)
