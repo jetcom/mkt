@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MKTest</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">   
     <style>
         #body {
             transition: all 1s;
@@ -24,10 +27,11 @@
         #header > * {
             height: 50px;
         }
+
+        i {
+            font-size: 24px !important;
+        }
     </style>
-    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="static/js/jquery-3.4.1.min.js"></script>
 </head>
 <body id="body" class="dark">
@@ -35,7 +39,9 @@
         <span class="w3-bar-item  w3-xlarge" style="color: #F76902"><img height=26 src="static/images/mkt.png"/> MKTest </span>
         <button onclick="location.href='/home'" class="w3-bar-item w3-button">Test Generator</button>
         <button onclick="location.href='/editor'" class="w3-bar-item w3-button">Question Editor</button>
-        <button onclick="location.href='#'" class="w3-bar-item w3-button w3-right">Profile</button>
+        <button onclick="location.href='#'" class="w3-bar-item w3-button w3-right">
+            <i id="profileIcon" class="fa fa-user"></i>
+        </button>
         <button id="toggleDarkMode" class="w3-bar-item w3-button w3-right">
             <i id="darkModeIcon" class="fa fa-sun-o"></i>
         </button>

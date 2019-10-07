@@ -27,64 +27,63 @@
 <!-- end modal -->
 
 <div class="wrapper">
-<!-- sidebar -->
-<div class="sidebar-header vbox" style="width: 50px;">
-    <button id="sidebarCollapse" class="w3-button" >
-        <i id="sidebarIcon" class="fa fa-angle-double-left" style="font-size: 20px;"></i>
-    </button>
-    <button id="saveButton" class="w3-button">
-        <i class="fa fa-save"></i>
-    </button>
-    <button id="uploadButton" class="w3-button">
-        <i class="fa fa-upload"></i>
-    </button>
-    <button id="addQuestionButton" class="w3-button">
-        <i class="fa fa-plus"></i>
-    </button>
-</div>
-<nav id="sidebar">
-    <!-- <select class=" w3-block w3-light-grey w3-medium" id="courseSelect">
-        {% for course in courses %}
-        <option value={{course}}>{{course}}</option>
-        {% endfor %}
-    </select> -->
-    <!-- <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Add Question
+    <!-- sidebar -->
+    <div id="toolbox" class="vbox" style="width: 50px;">
+        <button id="explorerCollapse" class="w3-button" >
+            <i id="collapseIcon" class="fa fa-angle-double-left"></i>
         </button>
-        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <button id="saveButton" class="w3-button">
+            <i class="fa fa-save"></i>
+        </button>
+        <button id="uploadButton" class="w3-button">
+            <i class="fa fa-upload"></i>
+        </button>
+        <button id="addQuestionButton" class="w3-button">
+            <i class="fa fa-plus"></i>
+        </button>
+    </div>
+    <nav id="explorer">
+        <!-- <select class=" w3-block w3-light-grey w3-medium" id="courseSelect">
             {% for course in courses %}
-            <a class="dropdown-item" href="#">{{course}}</a>
+            <option value={{course}}>{{course}}</option>
             {% endfor %}
-        </div>
-    </div>
-    <br/>
-
-    <div id="categorySelect"></div>
-    <br/> -->
-</nav>
-<!-- end sidebar -->
-
-<!-- content -->
-<div id="content">
-    <div class="w3-container">
-        <h1>Questions</h1>
-    </div>
-    <div class="w3-container ">
-        <div class="w3-cell-row">
-            <div class="w3-cell">
-                <h3 id=questionLabel>Select a question category from the left sidebar</h3>
+        </select> -->
+        <!-- <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Add Question
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                {% for course in courses %}
+                <a class="dropdown-item" href="#">{{course}}</a>
+                {% endfor %}
             </div>
-            <!-- <div class="w3-cell w3-right-align" id="addQuestionButton">
-                <button onclick="document.getElementById('addQuestionModal').style.display='block'">Add Question
-                </button>
-            </div> -->
         </div>
-        <div id=questions></div>
-    </div>
-</div>
-<!-- end content -->
+        <br/>
 
+        <div id="categorySelect"></div>
+        <br/> -->
+    </nav>
+    <!-- end sidebar -->
+
+    <!-- editor -->
+    <div id="editor">
+        <div class="w3-container">
+            <h1>Questions</h1>
+        </div>
+        <div class="w3-container ">
+            <div class="w3-cell-row">
+                <div class="w3-cell">
+                    <h3 id=questionLabel>Select a question category from the left sidebar</h3>
+                </div>
+                <!-- <div class="w3-cell w3-right-align" id="addQuestionButton">
+                    <button onclick="document.getElementById('addQuestionModal').style.display='block'">Add Question
+                    </button>
+                </div> -->
+            </div>
+            <div id=questions></div>
+        </div>
+    </div>
+    <!-- end content -->
 </div>
 
 <!-- The Modal -->
@@ -143,7 +142,7 @@
         align-content: flex-start;
     }
 
-    #sidebar {
+    #explorer {
         width: 300px;
         position: absolute;
         height: calc(100% - 50px);
@@ -153,24 +152,28 @@
         border-right: 1px solid #D0D3D4;
     }
 
-    #sidebar.active {
+    #explorer.active {
         margin-left: -250px;
     }
 
-    .sidebar-header {
+    #toolbox {
         position: absolute;
         z-index: 999;
         border-right: 1px solid #D0D3D4;
         height: calc(100% - 50px);
     }
 
-    #content {
+    #toolbox > * {
+        height: 65px;
+    }
+
+    #editor {
         margin-left: 300px;
         width: 100%;
         transition: all 0.3s;
     }
 
-    #content.active {
+    #editor.active {
         margin-left: 50px;
     }
 
@@ -191,13 +194,13 @@
 
 <script src="/static/js/main.js"></script>
 <script>
-    $('#sidebarCollapse').on('click', function() {
-        $('#sidebar').toggleClass('active');
-        $('#content').toggleClass('active');
-        if ($('#sidebar').hasClass('active')) {
-            $('#sidebarIcon').removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
+    $('#explorerCollapse').on('click', function() {
+        $('#explorer').toggleClass('active');
+        $('#editor').toggleClass('active');
+        if ($('#explorer').hasClass('active')) {
+            $('#collapseIcon').removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
         } else {
-            $('#sidebarIcon').removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
+            $('#collapseIcon').removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
         }
     });
 
