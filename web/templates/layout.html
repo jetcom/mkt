@@ -13,9 +13,9 @@
             transition: all 1s;
         }
 
-        #body.dark {
-            color: white;
-            background-color: #111;
+        .dark {
+            color: white !important;
+            background-color: #111 !important;
         }
 
         #header {
@@ -53,6 +53,7 @@
         $('#toggleDarkMode').on('click', function() {
             $('#body').toggleClass('dark');
             $('#fileModalContent').toggleClass('dark');
+            $('#toolbox').toggleClass('dark');
             if ($('#body').hasClass('dark')) {
                 $('#darkModeIcon').removeClass("fa fa-moon-o").addClass("fa fa-sun-o");
             } else {

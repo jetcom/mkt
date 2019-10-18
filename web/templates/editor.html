@@ -28,7 +28,7 @@
 
 <div class="wrapper">
     <!-- sidebar -->
-    <div id="toolbox" class="vbox">
+    <div id="toolbox" class="vbox dark">
         <button id="explorerCollapse" class="w3-button" >
             <i id="collapseIcon" class="fa fa-angle-double-left"></i>
         </button>
@@ -42,45 +42,54 @@
             <i class="fa fa-plus"></i>
         </button>
     </div>
-    <nav id="explorer">
-        <!-- <select class=" w3-block w3-light-grey w3-medium" id="courseSelect">
-            {% for course in courses %}
-            <option value={{course}}>{{course}}</option>
-            {% endfor %}
-        </select> -->
-        <!-- <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Add Question
-            </button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                {% for course in courses %}
-                <a class="dropdown-item" href="#">{{course}}</a>
-                {% endfor %}
-            </div>
-        </div>
-        <br/>
 
-        <div id="categorySelect"></div>
-        <br/> -->
-    </nav>
+    <div id="explorer-container">
+        <nav id="explorer" class="pull-right">
+            <div id="explorer-header">
+                <select class="" id="courseSelect">
+                    <option selected disabled>Select Course</option>
+                    {% for course in courses %}
+                    <option value={{course}}>{{course}}</option>
+                    {% endfor %}
+                </select>
+                >
+                <select class="" id="examSelect">
+                    <option selected disabled>Select Exam</option>
+                    {% for course in courses %}
+                    <option value={{course}}>{{course}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- 
+            <br/>
+
+            <div id="categorySelect"></div>
+            <br/> -->
+        </nav>
+    </div>
     <!-- end sidebar -->
 
     <!-- editor -->
     <div id="editor">
-        <div class="w3-container">
-            <h1>Questions</h1>
+        <div id="select-prompt">
+            <h3>Please select a course and exam</h3>
         </div>
-        <div class="w3-container ">
-            <div class="w3-cell-row">
-                <div class="w3-cell">
-                    <h3 id=questionLabel>Select a question category from the left sidebar</h3>
-                </div>
-                <!-- <div class="w3-cell w3-right-align" id="addQuestionButton">
-                    <button onclick="document.getElementById('addQuestionModal').style.display='block'">Add Question
-                    </button>
-                </div> -->
+        <div class="editor-content">
+            <div class="w3-container">
+                <h1>Questions</h1>
             </div>
-            <div id=questions></div>
+            <div class="w3-container ">
+                <div class="w3-cell-row">
+                    <div class="w3-cell">
+                        <h3 id=questionLabel>Select a question category from the left sidebar</h3>
+                    </div>
+                    <!-- <div class="w3-cell w3-right-align" id="addQuestionButton">
+                        <button onclick="document.getElementById('addQuestionModal').style.display='block'">Add Question
+                        </button>
+                    </div> -->
+                </div>
+                <div id=questions></div>
+            </div>
         </div>
     </div>
     <!-- end content -->
@@ -142,7 +151,7 @@
         align-content: flex-start;
     }
 
-    #explorer {
+    #explorer-container {
         width: 400px;
         position: absolute;
         height: calc(100% - 50px);
@@ -152,9 +161,25 @@
         border-right: 1px solid #D0D3D4;
     }
 
-    #explorer.active {
+    #explorer-container.active {
         margin-left: -350px;
     }
+
+    #explorer-container.active > * {
+        margin-left: -350px;
+    }
+
+    #explorer {
+        width: 350px;
+    }
+
+    #explorer-header {
+        width: 350px;
+        text-align: center;
+        padding: 5px;
+        border-bottom: 1px solid #D0D3D4;
+    }
+
 
     #toolbox {
         position: absolute;
@@ -162,6 +187,8 @@
         z-index: 999;
         border-right: 1px solid #D0D3D4;
         height: calc(100% - 50px);
+        background: white;
+        transition: all 1s;
     }
 
     #toolbox > * {
@@ -178,11 +205,6 @@
         margin-left: 50px;
     }
 
-    #fileModalContent.dark {
-        background-color: #111;
-        color: white;
-    }
-
     #fileModalContent.dark .close{
         color: white;
     }
@@ -195,16 +217,41 @@
 
 <script src="/static/js/main.js"></script>
 <script>
+    // This script is for UI focus scripts.
+    // For logic focused scripts please use static/js/main.js
+
+    // on load determine what should be shown in editor
+    if ($('select#courseSelect').val() === null || $('select#examSelect').val() === null) {
+        $('.editor-content').hide();
+        $('#select-prompt').show();
+    } else {
+        $('.editor-content').show();
+        $('#select-prompt').hide();
+    }
+
+    // on select change determine if questions should be displayed
+    $('#courseSelect, #examSelect').on('change', function() {
+        if ($('select#courseSelect').val() === null || $('select#examSelect').val() === null) {
+            $('.editor-content').hide();
+            $('#select-prompt').show();
+        } else {
+            $('.editor-content').show();
+            $('#select-prompt').hide();
+        }
+    });
+
+    // toggle necessary objects for collapse/uncollapse
     $('#explorerCollapse').on('click', function() {
-        $('#explorer').toggleClass('active');
+        $('#explorer-container').toggleClass('active');
         $('#editor').toggleClass('active');
-        if ($('#explorer').hasClass('active')) {
+        if ($('#explorer-container').hasClass('active')) {
             $('#collapseIcon').removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
         } else {
             $('#collapseIcon').removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
         }
     });
 
+    // display the modal for file uploads
     $("#uploadButton").on('click', function() {
         $('#fileModal').modal('show');
     });
