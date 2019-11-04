@@ -1,43 +1,200 @@
-var course=""
-var fileName = ""
 
-// $('#courseSelect').change(function() {
-//     $("#addQuestionButton").hide( );
-//     var optionSelected = $("select option:selected", this);
-//     var valueSelected = this.value;
-    
-//     var data = "";
-//     $.ajax({
-//         type:"POST",
-//         url : "/changeCourse",
-//         data : {"selectedCourse": valueSelected},
-//         async: false,
-//         success : function(response) {
-//             data = response;
-//             return true;
-//     },
-//     error: function() {
-  
+$('#courseSelect').change(function() {
+    $('#examSelect').find('option').not(':first').remove();
+    $('#examSelect').val($("#examSelect option:first").val());
+
+    $.ajax({
+        type: "POST",
+        url: "/changeCourse",
+        data: {"selectedCourse": this.value},
+        async: false,
+        success : function(response) {
+            if (response){
+                renderOptions($('#examSelect'), response)
+            }
+            return true;
+        }
+    });
+});
+
+$('#examSelect').change(function() {
+    $('#explorer-body').empty();
+
+    if (this.value) {
+        var course = $('#courseSelect').val();
+
+        $.ajax({
+            type: "POST",
+            url: "/changeExam",
+            data: {
+                "selectedExam": this.value,
+                "selectedCourse": course,
+            },
+            async: false,
+            success : function(response) {
+                if (response) {
+                    var arr = response.split(",");
+                    arr.forEach(function(val, idx) {
+                        val = val.trim();
+                        renderQuestionsPath(val);
+                        loadQuestions(course, val);
+                    });
+                }
+                return true;
+            }
+        });
+    }
+});
+
+$('#addCourseSelect').change(function() {
+    $('#addExamSelect').empty();
+    $.ajax({
+        type: "POST",
+        url: "/changeCourse",
+        data: {"selectedCourse": this.value},
+        async: false,
+        success : function(response) {
+            if (response){
+                renderOptions($('#addExamSelect'), response)
+            }
+            return true;
+        }
+    });
+});
+
+// This may not be needed
+// $('#addExamSelect').change(function() {
+//     $('#addPathSelect').find('option').not(':first').remove();
+//     $('#addPathSelect').val($("#examSelect option:first").val());
+
+//     if (this.value) {
+//         var course = $('#addCourseSelect').val();
+
+//         $.ajax({
+//             type: "POST",
+//             url: "/changeExam",
+//             data: {
+//                 "selectedExam": this.value,
+//                 "selectedCourse": course,
+//             },
+//             async: false,
+//             success : function(response) {
+//                 if (response) {
+//                     renderOptions($('#addPathSelect'), response)
+//                 }
+//                 return true;
+//             }
+//         });
 //     }
-//     });
-//     $("#questions").html("")
-//     $('#questionLabel').text("Select a question category from the left sidebar");
-   
-//     var string = data.split(",");
-//     var array = string.filter(function(e){return e;});
-//     var select = $('#categorySelect');
-//     select.empty();
- 
-//     $.each(array, function(index, value) { 
-//         value = value.trim();
-//         value = value.substr(0,value.length - 1)
-//         value = value.substr(1, value.length)
-//         select.append(
-//         $('<div class="w3-bar-item w3-button" onClick="fileClick(\''+value+'\')" id="'+value+'"></div>').html(value)
-//     );
-//     });
 // });
 
+$('#addItemSelect').change(function() {
+    $('#addPathSelect').empty()
+    
+    var course = $('#addCourseSelect').val();
+    var url = ""
+    var data = {}
+
+    if (this.value == 'file' || this.value == 'folder') {
+        url = "/getFolders"
+        data = { "course": course }
+    } else {
+        url = "/changeExam"
+        data = {
+            "selectedExam": this.value,
+            "selectedCourse": course,
+        }
+    }
+
+    $.ajax({
+        type: "POST",
+        url: url,
+        data: data,
+        async: false,
+        success : function(response) {
+            if (response) {
+                renderOptions($('#addPathSelect'), response)
+            }
+            return true;
+        }
+    });
+});
+
+function renderOptions(target, response) {
+    var arr = response.split(",");
+    $.each(arr, function(idx, val) {
+        val = val.trim();
+        target.append(`<option value=${val}>${val}</option>`);
+    });
+}
+
+function renderQuestionsPath(questions_path) {
+    const path = questions_path.split('/');
+    function element(item) { 
+        return (`
+            <ul id=${item}>
+                <button id="${item}-button" value=${item} onclick="toggleFolder(this)" class="explorer-item-btn">
+                    <i class="fa fa-folder-open explorer-icon" /> 
+                    ${item}
+                </button>
+            </ul>
+        `); 
+    };
+
+    path.forEach(function(item, idx) {
+        target = $(`#${item}`);
+        if (target.length != 0) {
+            return;
+        } else {
+            if (idx == 0)  {
+                target = $('#explorer-body');
+            } else {
+                target = $(`#${path[idx-1]}`)
+            }
+        }       
+        target.append(element(item));
+    });
+}
+
+function loadQuestions(course, questions_file) {
+    $.ajax({
+        type: "POST",
+        url: "/getQuestions",
+        data: {
+            "course": course,
+            "file": questions_file,
+        },
+        async: false,
+        success : function(response) {
+            const obj = JSON.parse(response);
+            const path = questions_file.split('/');
+            const id = path[path.length - 1];
+            const target = $(`#${id}`);
+            const buttons = Object.entries(obj).map(([name, question]) => {
+                const button = $(`
+                    <button class="explorer-item-btn">
+                        <i class="fa fa-question-circle explorer-icon" /> ${name}
+                    </button>
+                `).wrap(`<li key=${name} class="question"></li>`).closest('li');
+                button.click(() => {loadQuestion(path.splice(-1,1).join('/'), name, question)});
+                return button
+            });
+            target.append(buttons);
+        }
+    });
+}
+
+function loadQuestion(path, name, question) {
+    $('#question-prompt').hide();
+    $('#question-name').text(`Question: ${name}`);
+
+    const target = $('#question-container');
+
+    // TODO
+    // const questionHTML = formatQuestion(path, question);
+    // target.empty();
+    // target.append(questionHTML);
+}
 
 function fileClick(_fileName) {
     course = $('#courseSelect').find(":selected").text()
@@ -72,26 +229,27 @@ function fileClick(_fileName) {
     
 }
 
-function formatQuestion(parent, title, question) {
+// TODO fix
+function formatQuestion(path, question) {
 
-    output = '<div  class="w3-cell-row w3-block w3-light-grey ">'
-    output += '<div onclick="accordion(\''+parent+title+'\')" class="w3-cell w3-btn w3-block w3-light-grey w3-left-align">'+title+'</div>'
+    output = '<div>'
+    output += '<div onclick="accordion(\''+path+'\')" class="w3-cell w3-btn w3-block w3-light-grey w3-left-align">'+path+'</div>'
     output += '<div onclick="alert(\'edit clicked\')" class="w3-btn w3-block w3-cell w3-right-align" >Edit</div>'
     output += '</div>'
-    output += "<div id=\'"+parent+title+"\' class='w3-container w3-hide '>"
+    output += "<div id=\'"+path+"\' class='w3-container w3-hide '>"
 
-    if (question.type == null) 
-    {
-        output += "Max Questions: " + question.maxQuestions + '<br/>'
-        for (var subtitle in question) {
+    // if (question.type == null) 
+    // {
+    //     output += "Max Questions: " + question.maxQuestions + '<br/>'
+    //     for (var subtitle in question) {
 
-            subquestion = question[subtitle]
-             if (typeof subquestion === 'object') {
-                output += formatQuestion(title, subtitle, subquestion)
-            }
+    //         subquestion = question[subtitle]
+    //          if (typeof subquestion === 'object') {
+    //             output += formatQuestion(title, subtitle, subquestion)
+    //         }
            
-    }
-    } else {
+    // }
+    // } else {
         output += "Type: " + question.type + "<br/>"
         if (question.points) {
             output += "Points: " + question.points + "<br/>"
@@ -122,37 +280,34 @@ function formatQuestion(parent, title, question) {
                 break
         }
 
-    }
+    // }
     output += "</div>"
     return output
 }
 
-// $('#newQuestion').submit(function(event){
-//     // cancels the form submission
-//     event.preventDefault();
-//     formData = $("#newQuestion").serialize()
-//     formData += "&filename="+fileName
-//     formData += "&course="+course
-//     console.log(formData)
-//     $.ajax({
-//         type:"POST",
-//         url : "/addQuestion",
-//         data : formData,
-//         async: false,
-//         success : function(response) {
-//             document.getElementById('addQuestionModal').style.display='none'
-//             fileClick(fileName)
-//             $("#newQuestion")[0].reset()
-//             return true;
-//         },
-//         error: function() {
+$('#addForm').submit(function(event){
+    // cancels the form submission
+    event.preventDefault();
+    $('#addError').attr('hidden', 'hidden');
 
-//         }
-//     });
+    formData = $("#addForm").serializeArray();
+    $.ajax({
+        type:"POST",
+        url : "/addItem",
+        data : formData,
+        async: false,
+        success : function(response) {
+            $('#addModal').modal('hide');
+            $('#addForm').trigger('reset');
+            // refresh explorer
+        },
+        error: function() {
+            $('#addError').removeAttr('hidden');
+        }
+    });
+});
 
-// });
-
-$('#fileSelect').submit(function(event) {
+$('#fileSelectForm').submit(function(event) {
     event.preventDefault();
 
     var file = $('#file')[0].files[0];

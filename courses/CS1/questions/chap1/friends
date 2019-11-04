@@ -1,0 +1,7 @@
+[friends]
+type=multipleChoice
+question=When is it ok to use friends functions in a class definition?
+correctAnswer=Never
+wrongAnswers=wrong,not right,other,still wrong
+
+

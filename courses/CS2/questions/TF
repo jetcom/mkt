@@ -1,0 +1,19 @@
+[Sun]
+points=1
+type=TF
+question="The sun appears bigger in the sky because it is closer than the moon."
+solution=False
+
+[Dogs]
+points=1
+type=TF
+question="Dogs are better than cats in every way."
+solution=True
+
+[Woodchuck]
+points=1
+type=TF
+question="A woodchuck CAN chuck wood."
+solution=True
+
+
