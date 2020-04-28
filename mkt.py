@@ -124,21 +124,27 @@ class MKT:
                 # Reseed with the same UUID so we get the same questionsList
                 random.seed(args.uuid)
                 questions = self.parseConfig('File', args.configFile, config, root=path)
-                
-            key = len(questions)
-            
+
+            key = 0
+            for q in questions:
+                key += int(q["points"])    
+
+            print("*************************************")
+            print(key)
+            print("*************************************")  
             if not key in questions_list:
                 questions_list[key] = [questions]
             else:
                 questions_list[key].append(questions)
                 
             if not args.versions:
-                points = len(questions)
+                points = key
                 break
                 
             if len(questions_list[key]) >= int(args.versions):
-                points = len(questions)
+                points = key
                 break
+
 
         if args.versions:
             for v in range(0, int(args.versions)):
@@ -585,7 +591,7 @@ class MKT:
         currShortPoints = 0
         currMCPoints = 0
         currTFPoints = 0
-        
+        qList = self.shuffle(qList)
         for q in qList:
             if maxLongPoints and q['type'].lower() == "longanswer":
                 if int(q['points']) + currLongPoints <= maxLongPoints:
