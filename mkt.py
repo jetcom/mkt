@@ -99,6 +99,7 @@ class MKT:
         path = os.path.dirname(args.configFile)
 
         config = ConfigObj(args.configFile)
+
         
         questions_list = {}
         points = 0;
@@ -106,6 +107,7 @@ class MKT:
         while True:
             questions = []
             self.qHash = {}            
+
             questions = self.parseConfig('File', args.configFile, config, root=path)
 
             if self.needSecondPass:
@@ -284,7 +286,9 @@ class MKT:
                      "\\usepackage{listings}\n" \
                      "\\usepackage{tabularx}\n" \
                      "\\usepackage{mathtools}\n" \
+
                      "\\usepackage{wasysym }\n"\
+
                      "\\usepackage{color}\n\n", file=of)
         if args.draft:
             print("\\usepackage{draftwatermark}\n", file=of)
@@ -319,7 +323,9 @@ class MKT:
         self.config["courseNumber"]), file=of)
 
         print("\n", file=of)
+
         #print("\\checkboxchar{$\\Box$}", file=of)
+
         print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
         print("\\SolutionEmphasis{\color{red}}", file=of)
         print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
@@ -340,7 +346,9 @@ class MKT:
         print(self.config["instructor"], file=of)
         print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
         if version:
+
             print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
+
         print("\\textsc{%s}" % (self.config["note"]), file=of)
         print("\\vfill", file=of)
 
@@ -635,6 +643,7 @@ class MKT:
             sys.stdout.write("  " * self.indent)
             print("%s: '%s': maxPoints set to %d" % (descriptor, os.path.basename(name), maxPoints))
             sys.stdout.write("  " * self.indent)
+
             print("  old total: %d   old # of questions: %d" % (oldSectionPoints, oldLen))
             sys.stdout.write("  " * self.indent)
             print("  new total: %d   new # of questions: %d" % (sectionPoints, len(qList)))
@@ -942,7 +951,9 @@ class MKT:
             print("{\Large \\textbf{Long Answers Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             print("Answer the questions in the spaces provided on the question sheets.", file=of)
+
             print("If you run out of room for an answer, continue on the back page.", file=of)
+
             print("}}}", file=of)
             print("\end{center}\n", file=of)
 
@@ -1001,6 +1012,7 @@ class MKT:
             print("{\Large \\textbf{True/False Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
+
                 print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ True}).", file=of)
                 print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
             elif self.config["useClassicTF"].lower() == "true":
@@ -1010,6 +1022,7 @@ class MKT:
                 print("Circle either 'True' or 'False' at the begging of the line. If you make an", file=of)
                 print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
                 print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
+
 
             print("}}}", file=of)
             print("\end{center}\n", file=of)
@@ -1080,8 +1093,10 @@ class MKT:
             print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
+
                 print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ Answer}).", file=of)
                 print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+
                 print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
             else:
                 print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
