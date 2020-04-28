@@ -1,0 +1,379 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- modal -->
+<div class="modal fade" id="fileModal" tabindex="-1" role="dialog" aria-labelledby="fileModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div id="fileModalContent" class="modal-content dark">
+            <form id="fileSelectForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Choose Exam</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input id="file" name="file" type="file" class="form-control-file">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Select</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div id="addModalContent" class="modal-content dark">
+                <form id="addForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Item</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            Course: 
+                            <select name="course" id="addCourseSelect">
+                                {% for course in courses %}
+                                <option value={{course}}>{{course}}</option>
+                                {% endfor %}
+                            </select>
+                            Exam: 
+                            <select name="exam" id="addExamSelect"></select>
+                            Item:
+                            <select name="item" id="addItemSelect">
+                                <option value="folder">Section</option>
+                                <option value="file">Category</option>
+                                <option value="question">Question</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            Path: 
+                            <select name="path" id="addPathSelect">
+                            </select>    
+                        </div>
+                        <div class="form-group" style="margin: 15px 0;">
+                            Name: <input name="name" /> 
+                        </div>
+                        <div class="form-group" id="addQuestionInfo">
+                            Type:
+                            <select name="type" disabled>
+                                <option value="tf">True/False</option>
+                                <option value="shortAnswer">Short Answer</option>
+                                <option value="longAnswer">Long Answer</option>
+                                <option value="multipleChoice">Multiple Choice</option>
+                                <option value="matching">Matching</option>
+                            </select>
+                            Points: <input name="points" type="number" disabled/>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="pull-left">
+                            <p id="addError" hidden>Item already exists, please try a different name.</p>
+                        </div>
+                        <button id="addSubmit" type="submit" class="btn btn-primary" disabled>Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+</div>
+<!-- end modal -->
+
+<div class="wrapper">
+    <!-- sidebar -->
+    <div id="toolbox" class="vbox dark">
+        <button id="explorerCollapse" class="w3-button">
+            <i id="collapseIcon" class="fa fa-angle-double-left"></i>
+        </button>
+        <button id="saveButton" class="w3-button">
+            <i class="fa fa-save"></i>
+        </button>
+        <button id="uploadButton" class="w3-button">
+            <i class="fa fa-upload"></i>
+        </button>
+        <button id="addItemButton" class="w3-button">
+            <i class="fa fa-plus"></i>
+        </button>
+    </div>
+
+    <div id="explorer-container">
+        <nav id="explorer" class="pull-right">
+            <div id="explorer-header">
+                <select class="" id="courseSelect">
+                    <option selected disabled>Select Course</option>
+                    {% for course in courses %}
+                    <option value={{course}}>{{course}}</option>
+                    {% endfor %}
+                </select>
+                >
+                <select class="" id="examSelect">
+                    <option selected disabled class="examOption">Select Exam</option>
+                </select>
+            </div>
+            <div id="explorer-body">
+            </div>
+        </nav>
+    </div>
+    <!-- end sidebar -->
+
+    <!-- editor -->
+    <div id="editor">
+        <div id="select-prompt">
+            <h3>Please select a course and exam</h3>
+        </div>
+        <div class="editor-content">
+            <div class="w3-container">
+                <h1 id="question-name">Question</h1>
+            </div>
+            <div class="w3-container ">
+                <h3 id=question-prompt>Select a question from the left sidebar</h3>
+                <!-- <div class="w3-cell w3-right-align" id="addQuestionButton">
+                    <button onclick="document.getElementById('addQuestionModal').style.display='block'">Add Question
+                    </button>
+                </div> -->
+                <div id=question-container></div>
+            </div>
+        </div>
+    </div>
+    <!-- end content -->
+</div>
+
+<!-- The Modal -->
+<!-- <div id="addQuestionModal" class="w3-modal">
+    <div class="w3-modal-content">
+            <form id="newQuestion" class="w3-container" method="post" >
+            <span onclick="document.getElementById('addQuestionModal').style.display='none'"
+                  class="w3-button w3-display-topright">&times;</span>
+            <div class="w3-section ">
+                <label><b>Question Title: </b></label>
+                <input class="w3-input w3-margin-bottom" type="text" placeholder="Enter Title" name="title" required>
+                <label><b>Question Type: </b></label>
+                <select class="w3-select w3-margin-bottom " required>
+                    <option value="" disabled selected>Select Question Type</option>
+                    <option value=tf>True/False</option>
+                    <option value=shortAnswer>Short Answer</option>
+                    <option value=longAnswer>Long Answer</option>
+                    <option value=multipleChoice>Multiple Choice</option>
+                    <option value=matching>Matching</option>
+                </select>
+                <label><b>Points </b></label>
+                <input class="w3-input w3-margin-bottom" type="text" placeholder="Leave blank to use default for type"
+                       name="points" />
+                <label><b>Question </b></label>
+                <input class="w3-input w3-margin-bottom" type="text" placeholder="Enter Question text" name="question"
+                       required/>
+
+
+                <button class="w3-button w3-block w3-green w3-section w3-padding" type="submit">Save</button>
+            </div>
+            </form>
+    </div>
+</div> -->
+
+
+<style>
+    .wrapper {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        align-items: stretch;
+    }
+
+    .vbox {
+        display: -webkit-flex;
+        display: -ms-flexbox;
+        display: flex;
+
+        /*Align children vetically*/
+        -webkit-flex-direction: column;
+        -ms-flex-direction: column;
+        flex-direction: column;
+
+        -webkit-align-content: flex-start;
+        -ms-flex-line-pack: start;
+        align-content: flex-start;
+    }
+
+    .modal-dialog {
+        max-width: 750px;
+    }
+
+    #explorer-container {
+        width: 400px;
+        position: absolute;
+        height: calc(100% - 50px);
+        top: 25;
+        left: 50;
+        transition: all 0.3s;
+        border-right: 1px solid #D0D3D4;
+    }
+
+    #explorer-container.active {
+        margin-left: -350px;
+    }
+
+    #explorer-container.active>* {
+        margin-left: -350px;
+    }
+
+    #explorer {
+        width: 350px;
+    }
+
+    #explorer-header {
+        width: 350px;
+        text-align: center;
+        padding: 5px;
+        border-bottom: 1px solid #D0D3D4;
+    }
+
+    #explorer-body ul {
+        padding-left: 15px;
+        margin: 0;
+    }
+
+    #explorer-body>ul {
+        padding-left: 0;
+    }
+
+    #explorer-body li {
+        list-style-type: none;
+        padding-left: 20px;
+    }
+
+    .explorer-item-btn {
+        border: none;
+        background: inherit;
+        color: inherit;
+    }
+
+    .explorer-icon {
+        font-size: 14px !important;
+    }
+
+    #toolbox {
+        position: absolute;
+        width: 50px;
+        z-index: 999;
+        border-right: 1px solid #D0D3D4;
+        height: calc(100% - 50px);
+        background: white;
+        transition: all 1s;
+    }
+
+    #toolbox>* {
+        height: 65px;
+    }
+
+    #editor {
+        margin-left: 400px;
+        width: 100%;
+        transition: all 0.3s;
+    }
+
+    #editor.active {
+        margin-left: 50px;
+    }
+
+    #fileModalContent.dark .close {
+        color: white;
+    }
+
+    .close {
+        text-shadow: none;
+    }
+</style>
+
+<script src="/static/js/main.js"></script>
+<script>
+    // This script is for UI focus scripts.
+    // For logic focused scripts please use static/js/main.js
+
+    // on load determine what should be shown in editor
+    if ($('select#courseSelect').val() === null || $('select#examSelect').val() === null) {
+        $('.editor-content').hide();
+        $('#select-prompt').show();
+    } else {
+        $('.editor-content').show();
+        $('#select-prompt').hide();
+    }
+
+    // on select change determine if questions should be displayed
+    $('#courseSelect, #examSelect').on('change', function () {
+        if ($('select#courseSelect').val() === null || $('select#examSelect').val() === null) {
+            $('.editor-content').hide();
+            $('#select-prompt').show();
+        } else {
+            $('.editor-content').show();
+            $('#select-prompt').hide();
+        }
+    });
+
+    // toggle necessary objects for collapse/uncollapse
+    $('#explorerCollapse').on('click', function () {
+        $('#explorer-container').toggleClass('active');
+        $('#editor').toggleClass('active');
+        if ($('#explorer-container').hasClass('active')) {
+            $('#collapseIcon').removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
+        } else {
+            $('#collapseIcon').removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
+        }
+    });
+
+    // display the modal for file uploads
+    $("#uploadButton").on('click', function () {
+        $('#fileModal').modal('show');
+    });
+
+    $("#addItemButton").on('click', function () {
+        $('#addModal').modal('show');
+    });
+
+    $('select#addItemSelect').on('change', function () {
+        if ($('select#addItemSelect').val() === 'question') {
+            $('#addQuestionInfo').show();
+            $('#addQuestionInfo *').removeAttr('disabled');
+        } else {
+            $('#addQuestionInfo').hide();
+            $('#addQuestionInfo *').attr('disabled', true);
+        }
+    });
+    $('select#addItemSelect').trigger('change');
+    $('select#addCourseSelect').trigger('change');
+
+    $('#addForm').on('change', function () {
+        var empty = false;
+        $('#addForm input').each(function() {
+            if (!$(this).parent().is(":hidden") && $(this).val() == '') {
+                empty = true;
+            }
+        });
+
+        if (empty) {
+            $('#addSubmit').attr('disabled', 'disabled');
+        } else {
+            $('#addSubmit').removeAttr('disabled');
+        }
+    });
+
+    
+    function toggleFolder(folder) {
+        const icon = $(folder.children[0]);
+        const isOpen = icon.hasClass("fa-folder-open");
+        const children = $(`#${folder.value}`).children();
+
+        if (isOpen) {
+            icon.removeClass("fa-folder-open").addClass("fa-folder");
+            children.not(":first-child").hide();
+        } else {
+            icon.removeClass("fa-folder").addClass("fa-folder-open");
+            children.not(":first-child").show();
+        }
+    }
+</script>
+{% endblock content %}

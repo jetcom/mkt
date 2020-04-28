@@ -1,0 +1,17 @@
+[waitTime]
+maxQuestions=1
+
+   [[1]]
+   type=longAnswer
+   points=8
+   solutionSpace=0in
+   question="Question 1"
+   solution="Solution 1"
+
+
+   [[2]]
+   type=longAnswer
+   points=8
+   solutionSpace=0in
+   question="Question 2"
+   solution="Solution 2"

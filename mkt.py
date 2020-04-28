@@ -99,28 +99,52 @@ class MKT:
         path = os.path.dirname(args.configFile)
 
         config = ConfigObj(args.configFile)
-        questions = self.parseConfig('File', args.configFile, config, root=path)
 
-        if self.needSecondPass:
-            self.currentPass = 2
-            self.qHash = {}
-            self.totalPoints = 0
-            for q in questions:
-                self.totalPoints += int(q["points"])
-            print("-------------------------------------------------------")
-            print("Encounted maxPercent.. reparsing.")
-            print(("Total points: %d" % (self.totalPoints)))
-            print("-------------------------------------------------------")
+        
+        questions_list = {}
+        points = 0;
+        
+        while True:
+            questions = []
+            self.qHash = {}            
 
-            # Reseed with the same UUID so we get the same questionsList
-            random.seed(args.uuid)
             questions = self.parseConfig('File', args.configFile, config, root=path)
+
+            if self.needSecondPass:
+                self.currentPass = 2
+                self.qHash = {}
+                self.totalPoints = 0
+                for q in questions:
+                    self.totalPoints += int(q["points"])
+                print("-------------------------------------------------------")
+                print("Encounted maxPercent.. reparsing.")
+                print(("Total points: %d" % (self.totalPoints)))
+                print("-------------------------------------------------------")
+
+                # Reseed with the same UUID so we get the same questionsList
+                random.seed(args.uuid)
+                questions = self.parseConfig('File', args.configFile, config, root=path)
+                
+            key = len(questions)
+            
+            if not key in questions_list:
+                questions_list[key] = [questions]
+            else:
+                questions_list[key].append(questions)
+                
+            if not args.versions:
+                points = len(questions)
+                break
+                
+            if len(questions_list[key]) >= int(args.versions):
+                points = len(questions)
+                break
 
         if args.versions:
             for v in range(0, int(args.versions)):
-                self.writeTest(args, questions, chr(v + ord('A')))
+                self.writeTest(args, questions_list[points][v], chr(v + ord('A')))
         else:
-            self.writeTest(args, questions)
+            self.writeTest(args, questions_list[points][0])
 
         print("")
         print("If you have the same config file and question set, you can regenerate")
@@ -256,6 +280,9 @@ class MKT:
                      "\\usepackage{listings}\n" \
                      "\\usepackage{tabularx}\n" \
                      "\\usepackage{mathtools}\n" \
+
+                     "\\usepackage{wasysym }\n"\
+
                      "\\usepackage{color}\n\n", file=of)
         if args.draft:
             print("\\usepackage{draftwatermark}\n", file=of)
@@ -290,7 +317,9 @@ class MKT:
         self.config["courseNumber"]), file=of)
 
         print("\n", file=of)
-        print("\\checkboxchar{$\\Box$}", file=of)
+
+        #print("\\checkboxchar{$\\Box$}", file=of)
+
         print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
         print("\\SolutionEmphasis{\color{red}}", file=of)
         print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
@@ -311,7 +340,9 @@ class MKT:
         print(self.config["instructor"], file=of)
         print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
         if version:
-            print("\\\\[1cm]\\textsc{\LARGE Version: %s}" % (version), file=of)
+
+            print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
+
         print("\\textsc{%s}" % (self.config["note"]), file=of)
         print("\\vfill", file=of)
 
@@ -409,7 +440,7 @@ class MKT:
         if c in ["test", "instructor", "courseName", "courseNumber", "term", "note",
                  "school", "department", "nameOnEveryPage", "defaultPoints",
                  "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
-                 "promptForLogin"]:
+                 "promptForLogin", "useClassicTF"]:
             if not self.mainSettingsStored:
                 self.mainSettingsStored = True
                 self.config = config
@@ -417,6 +448,9 @@ class MKT:
                 # Set up some defaults of the keys aren't found
                 if "useCheckboxes" not in self.config:
                     self.config["useCheckboxes"] = "false"
+
+                if "useClassicTF" not in self.config:
+                    self.config["useClassicTF"] = "false"
 
                 if "defaultLineLength" not in self.config:
                     self.config["defaultLineLength"] = "1in"
@@ -449,6 +483,13 @@ class MKT:
         maxPoints = None
         maxPercent = None
         showSummary = True
+        
+        #Scott ADDED
+        maxLongPoints = None
+        maxTFPoints = None
+        maxShortPoints = None
+        maxMCPoints = None
+        #Scott ADDED end
 
         # found a question. Add it!
         if "question" in config:
@@ -501,6 +542,14 @@ class MKT:
                 elif c.lower() == "maxpercent":
                     maxPercent = int(config[c])
                     self.needSecondPass = True
+                elif c.lower() == "maxlongpoints": #Scott ADDED
+                    maxLongPoints = int(config[c])
+                elif c.lower() == "maxtfpoints": #Scott ADDED
+                    maxTFPoints = int(config[c])
+                elif c.lower() == "maxmcpoints": #Scott ADDED
+                    maxMCPoints = int(config[c])
+                elif c.lower() == "maxshortpoints": #Scott ADDED
+                    maxShortPoints = int(config[c])
                 elif c == "include":
                     qList += self.processInclude(config["include"], root=root)
                 elif self.parseTestSettings(c, config):
@@ -522,38 +571,81 @@ class MKT:
         # "config" section of the ini file
         if "config" in config and "maxPoints" in config["config"]:
             maxPoints = (int)(config["config"]["maxPoints"])
+            print("Max points:", maxPoints)
         if "config" in config and "maxQuestions" in config["config"]:
             maxQuestions = (int)(config["config"]["maxQuestions"])
 
         if maxPoints and maxPercent:
             fatal("maxPoints and maxPercent cannot be specified for the same section!")
+            
+        #Scott ADDED
+        tempQList = []
+        altQList = []
+        currLongPoints = 0
+        currShortPoints = 0
+        currMCPoints = 0
+        currTFPoints = 0
+        
+        for q in qList:
+            if maxLongPoints and q['type'].lower() == "longanswer":
+                if int(q['points']) + currLongPoints <= maxLongPoints:
+                    tempQList.append(q)
+                    currLongPoints = currLongPoints + int(q['points'])
+            elif maxShortPoints and q['type'].lower() == "shortanswer":
+                if int(q['points']) + currShortPoints <= maxShortPoints:
+                    tempQList.append(q)
+                    currShortPoints = currShortPoints + int(q['points'])
+            elif maxTFPoints and q['type'].lower() == "tf":
+                if int(q['points']) + currTFPoints <= maxTFPoints:
+                    tempQList.append(q)
+                    currTFPoints = currTFPoints + int(q['points'])
+            elif maxMCPoints and q['type'].lower() == "multiplechoice":
+                if int(q['points']) + currMCPoints <= maxMCPoints:
+                    tempQList.append(q)
+                    currMCPoints = currMCPoints + int(q['points'])
+            else:
+                altQList.append(q)
+        qList = tempQList[:]
+        #Scott ADDED end
 
         # Cut the list down to get the max points requested
         sectionPoints = 0;
+        altPoints = 0
+        oldLen = len(qList)
         for p in qList:
             sectionPoints += int(p["points"])
+            
+        for p in altQList:
+            altPoints += int(p["points"])
+            
+        oldLen = len(qList) + len(altQList)
+        oldSectionPoints = sectionPoints + altPoints
+        
+        if maxPoints and oldSectionPoints < maxPoints:
+            qList.extend(altQList)
+            sectionPoints = oldSectionPoints
 
-        if maxPoints and sectionPoints > maxPoints:
+        elif maxPoints and sectionPoints < maxPoints:
             showSummary = False
-            qList = self.shuffle(qList)
-            newList = []
+            altQList = self.shuffle(altQList)
 
-            newPoints = 0
-
-            for p in qList:
-                if newPoints + int(p["points"]) <= maxPoints:
-                    newPoints += int(p["points"])
-                    newList.append(p)
+            for p in altQList:
+                if sectionPoints + int(p["points"]) <= maxPoints:
+                    sectionPoints += int(p["points"])
+                    qList.append(p)
 
             sys.stdout.write("  " * self.indent)
             print("%s: '%s': maxPoints set to %d" % (descriptor, os.path.basename(name), maxPoints))
             sys.stdout.write("  " * self.indent)
-            print("  old total: %d   old # of questions: %d" % (sectionPoints, len(qList)))
-            sys.stdout.write("  " * self.indent)
-            print("  new total: %d   new # of questions: %d" % (newPoints, len(newList)))
 
-            qList = newList
-            sectionPoints = newPoints
+            print("  old total: %d   old # of questions: %d" % (oldSectionPoints, oldLen))
+            sys.stdout.write("  " * self.indent)
+            print("  new total: %d   new # of questions: %d" % (sectionPoints, len(qList)))
+        elif maxPoints:
+            pass
+        else:
+            qList.extend(altQList)
+            sectionPoints = sectionPoints + altPoints
 
         if maxQuestions and len(qList) > maxQuestions:
             showSummary = False
@@ -649,6 +741,47 @@ class MKT:
                 of.write("\\question[%d]\n" % int(m["points"]))
 
             if self.config["useCheckboxes"].lower() == "true":
+                if False:
+                    of.write("%s\n" % (m["question"]))
+                    of.write("\n ")
+                    of.write("\ifprintanswers\n")
+                    if m["solution"].lower() == "true":
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\CIRCLE$ True} \n\n")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ False} ")
+                    else:
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ True} \n\n")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\CIRCLE$ False} ")
+
+                    of.write("\\else\n")
+                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ True} \n\n")
+                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ False} ")
+                    of.write("\\fi\n ")   
+                else:
+                    of.write("%s\n" % (m["question"]))
+                    of.write("\n ")
+                    of.write("\ifprintanswers\n")
+                    if m["solution"].lower() == "true":
+                        of.write("\\hfill\\textbf{$\CIRCLE$ True ")
+                        of.write("\hspace{2mm}$\ocircle$ False} ")
+                    else:
+                        of.write("\\hfill\\textbf{$\ocircle$ True ")
+                        of.write("\hspace{2mm}$\CIRCLE$ False} ")
+
+                    of.write("\\else\n")
+                    of.write("\\hfill\\textbf{$\ocircle$ True ")
+                    of.write("\hspace{2mm}$\ocircle$ False} ")
+                    of.write("\\fi\n ")  
+                    
+            
+            elif self.config["useClassicTF"].lower() == "true":
+                if m["solution"].lower() == "true":
+                    correctAnswer = "True"
+                else:
+                    correctAnswer = "False"
+                of.write("%s\n" % (m["question"]))
+                of.write("\\setlength\\answerlinelength{1in}\n")
+                of.write("\\answerline[%s]\n\n" % (correctAnswer))
+            else:
                 of.write("\ifprintanswers\n")
                 if m["solution"].lower() == "true":
                     of.write("\\textbf{[ \\textcolor{red}{True} / False ]} ")
@@ -658,14 +791,7 @@ class MKT:
                 of.write("\\textbf{[ True / False ]} ")
                 of.write("\\fi\n")
                 of.write("%s\n" % (m["question"]))
-            else:
-                if m["solution"].lower() == "true":
-                    correctAnswer = "True"
-                else:
-                    correctAnswer = "False"
-                of.write("%s\n" % (m["question"]))
-                of.write("\\setlength\\answerlinelength{1in}\n")
-                of.write("\\answerline[%s]\n\n" % (correctAnswer))
+               
 
             of.write("\\medskip\n")
             self.endMinipage(of)
@@ -819,7 +945,9 @@ class MKT:
             print("{\Large \\textbf{Long Answers Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             print("Answer the questions in the spaces provided on the question sheets.", file=of)
-            print("If you run out of room for an answer, continue on the back of the page.", file=of)
+
+            print("If you run out of room for an answer, continue on the back page.", file=of)
+
             print("}}}", file=of)
             print("\end{center}\n", file=of)
 
@@ -878,12 +1006,17 @@ class MKT:
             print("{\Large \\textbf{True/False Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
+
+                print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ True}).", file=of)
+                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+            elif self.config["useClassicTF"].lower() == "true":
+                print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
+                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+            else:
                 print("Circle either 'True' or 'False' at the begging of the line. If you make an", file=of)
                 print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
                 print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
-            else:
-                print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
-                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+
 
             print("}}}", file=of)
             print("\end{center}\n", file=of)
@@ -954,8 +1087,10 @@ class MKT:
             print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
             print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
             if self.config["useCheckboxes"].lower() == "true":
-                print("Mark the box the represents the \\textit{best} answer.  If you make an", file=of)
-                print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+
+                print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ Answer}).", file=of)
+                print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+
                 print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
             else:
                 print("Write the \\textit{best} answer in the space provided next to the question.", file=of)

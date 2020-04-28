@@ -1,0 +1,21 @@
+maxQuestions=3
+
+[timbuktu]
+bonus=true
+type=multipleChoice
+question=The city of Tumbuktu is in what country?
+correctAnswer=Mali
+wrongAnswers=France,Mauitania,Morocco,There is no such city
+
+[library]
+bonus=true
+type=multipleChoice
+question=A library gained fame by moving which celebrity's book from non-fiction to fiction in 2012?
+correctAnswer=Lance Armstrong
+wrongAnswers=Crocodile Dundee, Rupert Murdoch, Beyonce, Mitt Romney
+
+[42]
+bonus=true
+type=shortAnswer
+question="What is the answer to life, the universe and everything?"
+solution=42

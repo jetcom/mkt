@@ -1,0 +1,30 @@
+[swallow]
+type=shortAnswer
+lineLength=3in
+question="What... is the air-speed velocity of an unladen swallow?"
+solution="What do you mean? An African or European swallow?"
+
+[42]
+type=shortAnswer
+question="What is the answer to life, the universe, and everything?"
+solution="42"
+
+[sun]
+type=shortAnswer
+question="How long does it take for light to travel from the Sun to the Earth?"
+solution="8 minutes"
+
+[apollo]
+type=shortAnswer
+question="In what year did Apollo 11 go to the moon?"
+solution="1969"
+
+[Cretaceous]
+type=shortAnswer
+question="When did the Cretaceous peroid end?"
+solution="66 million years ago"
+
+[AgeToDrink]
+type=shortAnswer
+question="How old do you have to be to drink (legally) in the US?  In Canada?"
+solutions="21","18"

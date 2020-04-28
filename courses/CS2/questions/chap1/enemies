@@ -1,0 +1,43 @@
+maxQuestions=4
+
+#[enemies]
+#type=multipleChoice
+#question=When is it ok to use friends functions in a class definition?
+#correctAnswer=Never
+#wrongAnswers=wrong,not right,other,still wrong
+
+[enemies1]
+type=multipleChoice
+question=When is it ok to use enemy functions in a class definition?
+correctAnswer=always
+wrongAnswers=sometimes, on occasion, when you feel like it, when the moon is full
+
+[ifstream]
+type=multipleChoice
+question=What class would you use to read data from a file?
+correctAnswer=ifstream
+wrongAnswers=ostream, istream, ofstream, ffstream
+
+[ofstream]
+type=multipleChoice
+question=What class would you use to write data to a file?
+correctAnswer=ofstream
+wrongAnswers=ostream, istream, ifstream, ffstream
+
+[istream]
+type=multipleChoice
+question=What class would you use to read data from stdin?
+correctAnswer=istream
+wrongAnswers=ostream, ifstream, ofstream, ffstream
+
+[ostream]
+type=multipleChoice
+question=What class would you use to write data from stdout?
+correctAnswer=ostream
+wrongAnswers=istream, ifstream, ofstream, ffstream
+
+[stderr]
+type=multipleChoice
+question=What class would you use to write data from stderr?
+correctAnswer=ostream
+wrongAnswers=istream, ifstream, ofstream, ffstream

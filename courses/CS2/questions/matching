@@ -1,0 +1,6 @@
+[capitals]
+question="Match the captical city to the state"
+points=8
+type=matching
+choices="Harrisburg", "Albany", "Boston", "Trenton"
+solutions="Pennsylvania", "New York", "Massachusetts", "New Jersey"

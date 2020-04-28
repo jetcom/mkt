@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>MKTest</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">   
+    <style>
+        #body {
+            transition: all 1s;
+        }
+
+        .dark {
+            color: white !important;
+            background-color: #111 !important;
+        }
+
+        #header {
+            height: 50px;
+            border-bottom: 1px solid #D0D3D4;
+            font-weight: bold;
+        }
+
+        #header > * {
+            height: 50px;
+        }
+
+        i {
+            font-size: 24px !important;
+        }
+
+        .pull-left {
+            float: left;
+        }
+
+        .pull-right {
+            float: right;
+        }
+    </style>
+    <script src="static/js/jquery-3.4.1.min.js"></script>
+</head>
+<body id="body" class="dark">
+    <div id="header" class="w3-bar" >
+        <span class="w3-bar-item  w3-xlarge" style="color: #F76902"><img height=26 src="static/images/mkt.png"/> MKTest </span>
+        <button onclick="location.href='/home'" class="w3-bar-item w3-button">Test Generator</button>
+        <button onclick="location.href='/editor'" class="w3-bar-item w3-button">Question Editor</button>
+        <button onclick="location.href='#'" class="w3-bar-item w3-button w3-right">
+            <i id="profileIcon" class="fa fa-user"></i>
+        </button>
+        <button id="toggleDarkMode" class="w3-bar-item w3-button w3-right">
+            <i id="darkModeIcon" class="fa fa-sun-o"></i>
+        </button>
+    </div>
+
+    {% block content %}{% endblock %}
+
+    <script>
+        $('#toggleDarkMode').on('click', function() {
+            $('#body').toggleClass('dark');
+            $('#fileModalContent').toggleClass('dark');
+            $('#toolbox').toggleClass('dark');
+            if ($('#body').hasClass('dark')) {
+                $('#darkModeIcon').removeClass("fa fa-moon-o").addClass("fa fa-sun-o");
+            } else {
+                $('#darkModeIcon').removeClass("fa fa-sun-o").addClass("fa fa-moon-o");
+            }
+        });
+    </script>
+
+    <!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</body>
+</html>
