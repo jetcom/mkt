@@ -593,6 +593,10 @@ class MKT:
         currTFPoints = 0
         qList = self.shuffle(qList)
         for q in qList:
+            if ("required" in q and (q["required"].lower() == "true")):
+                qList.remove(q)
+                qList.insert(0, q)
+        for q in qList:
             if maxLongPoints and q['type'].lower() == "longanswer":
                 if int(q['points']) + currLongPoints <= maxLongPoints:
                     tempQList.append(q)
@@ -615,7 +619,7 @@ class MKT:
         #Scott ADDED end
 
         # Cut the list down to get the max points requested
-        sectionPoints = 0;
+        sectionPoints = 0
         altPoints = 0
         oldLen = len(qList)
         for p in qList:
