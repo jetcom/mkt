@@ -30,6 +30,9 @@ class MKT:
     # Enable test mode
     testMode = False
 
+    # quiz mode has no cover page
+    quiz = False
+
     # Enable draft mode
     draftMode = False
 
@@ -92,6 +95,8 @@ class MKT:
             print(">>> TEST MODE ENABLED <<<")
 
         self.draftMode = args.draft
+
+        self.quiz = args.quiz
 
         # Read in the ini file specified on the command line
         print("Reading %s" % (args.configFile))
@@ -306,77 +311,92 @@ class MKT:
         print("\makeatother", file=of)
         print("\pagestyle{headandfoot}", file=of)
 
-        if answerKey:
-            print("\\firstpageheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
-            print("\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
-        else:
-            if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
-                print("\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
-                print("\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
+        if self.quiz:
+            print("\\firstpageheader{ Name: \makebox[5in]{\hrulefill}} {} {%s}" % (self.config["test"]), file=of)
+            print("\\runningheader{} {} {%s}" % (self.config["test"]), file=of)
+            if answerKey:
+                print("\\firstpageheader{Name: \\textcolor{red}{KEY} } {} {%s}" % (self.config["test"]), file=of)
+                print("\\runningheader{} { \\textcolor{red}{KEY} } {%s}" % (self.config["test"]), file=of) 
+
+        else: 
+            if answerKey:
+                print("\\firstpageheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
+                print("\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
             else:
-                print("\\firstpageheader{%s} {} {}" % (self.config["test"]), file=of)
-                print("\\runningheader{%s} {} {}" % (self.config["test"]), file=of)
+                if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
+                    print("\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
+                    print("\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
+                else:
+                    print("\\firstpageheader{%s} {} {}" % (self.config["test"]), file=of)
+                    print("\\runningheader{%s} {} {}" % (self.config["test"]), file=of)
 
         print("\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
         self.config["courseNumber"]), file=of)
         print("\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
         self.config["courseNumber"]), file=of)
 
-        print("\n", file=of)
-
-        #print("\\checkboxchar{$\\Box$}", file=of)
-
         print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
         print("\\SolutionEmphasis{\color{red}}", file=of)
         print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
         print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
+        if not self.quiz:
+            print("\n", file=of)
 
-        print("\n", file=of)
+            #print("\\checkboxchar{$\\Box$}", file=of)
 
-        print("\\begin{document}", file=of)
-        print("\\begin{coverpages}", file=of)
-        print("\\begin{center}", file=of)
-        print("\\vspace*{1in}", file=of)
+            print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
+            print("\\SolutionEmphasis{\color{red}}", file=of)
+            print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
+            print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
 
-        print("\n", file=of)
+            print("\n", file=of)
 
-        print("\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % (self.config["school"], self.config["department"]), file=of)
-        print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["courseName"]), file=of)
-        print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["term"]), file=of)
-        print(self.config["instructor"], file=of)
-        print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
-        if version:
+            print("\\begin{document}", file=of)
+            print("\\begin{coverpages}", file=of)
+            print("\\begin{center}", file=of)
+            print("\\vspace*{1in}", file=of)
 
-            print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
+            print("\n", file=of)
 
-        print("\\textsc{%s}" % (self.config["note"]), file=of)
-        print("\\vfill", file=of)
+            print("\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % (self.config["school"], self.config["department"]), file=of)
+            print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["courseName"]), file=of)
+            print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["term"]), file=of)
+            print(self.config["instructor"], file=of)
+            print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
+            if version:
 
-        print("\n", file=of)
+                print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
 
-        if answerKey:
-            print("{\Large { Score: \makebox[1in]{\\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]", file=of)
-        else:
-            print("{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]", file=of)
+            print("\\textsc{%s}" % (self.config["note"]), file=of)
+            print("\\vfill", file=of)
 
-        print("\end{center}", file=of)
+            print("\n", file=of)
 
-        if answerKey:
-            print("\makebox[\\textwidth]{\\textcolor{red}{KEY}}", file=of)
-        else:
-            if "promptForLogin" in self.config and self.config["promptForLogin"].lower() == "true":
-                print("\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}", file=of)
-                print("\makebox[0.40\\textwidth]{DCE Login: \enspace\hrulefill}", file=of)
-
+            if answerKey:
+                print("{\Large { Score: \makebox[1in]{\\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]", file=of)
             else:
-                print("\makebox[\\textwidth]{Name: \enspace\hrulefill}", file=of)
-        if args.draft:
-            print("\covercfoot{ Exam ID: %s}" % args.uuid, file=of)
-        else:
-            print("\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid, file=of)
-        print("\end{coverpages}", file=of)
+                print("{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]", file=of)
 
-        print("\n", file=of)
+            print("\end{center}", file=of)
+
+            if answerKey:
+                print("\makebox[\\textwidth]{\\textcolor{red}{KEY}}", file=of)
+            else:
+                if "promptForLogin" in self.config and self.config["promptForLogin"].lower() == "true":
+                    print("\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}", file=of)
+                    print("\makebox[0.40\\textwidth]{DCE Login: \enspace\hrulefill}", file=of)
+
+                else:
+                    print("\makebox[\\textwidth]{Name: \enspace\hrulefill}", file=of)
+            if args.draft:
+                print("\covercfoot{ Exam ID: %s}" % args.uuid, file=of)
+            else:
+                print("\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid, file=of)
+            print("\end{coverpages}", file=of)
+
+            print("\n", file=of)
+        else:
+            print("\\begin{document}", file=of)
 
     ###########################################
     # writeFooter
@@ -593,6 +613,7 @@ class MKT:
         currTFPoints = 0
         qList = self.shuffle(qList)
         for q in qList:
+            # If the question is required, move it to the front of the list
             if ("required" in q and (q["required"].lower() == "true")):
                 qList.remove(q)
                 qList.insert(0, q)
@@ -950,16 +971,17 @@ class MKT:
         # START: Short Answer Questions
         #
         if len(longAnswer) > 0:
-            # print out the short answer questions.
-            print("\\begin{center}", file=of)
-            print("{\Large \\textbf{Long Answers Questions}}", file=of)
-            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
-            print("Answer the questions in the spaces provided on the question sheets.", file=of)
+            if not self.quiz:
+            # print out the long answer questions.
+                print("\\begin{center}", file=of)
+                print("{\Large \\textbf{Long Answers Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("Answer the questions in the spaces provided on the question sheets.", file=of)
 
-            print("If you run out of room for an answer, continue on the back page.", file=of)
+                print("If you run out of room for an answer, continue on the back page.", file=of)
 
-            print("}}}", file=of)
-            print("\end{center}\n", file=of)
+                print("}}}", file=of)
+                print("\end{center}\n", file=of)
 
             print("\\begin{questions}", file=of)
             print("\\begingradingrange{longanswer}", file=of)
@@ -984,20 +1006,21 @@ class MKT:
         # START: Short answer questions
         #
         if len(shortAnswer) > 0:
-            if self.config["useCheckboxes"].lower() == "true":
-                print("#########################################################")
-                print("# Multiple choice checkboxes not recommended when using  ")
-                print("# short answer questions.  Unset useCheckboxes in your ")
-                print("# config file to remove this warning.")
-                print("#########################################################")
-            print("\\newpage", file=of)
-            print("\\begin{center}", file=of)
-            print("{\Large \\textbf{Short Answer Questions}}", file=of)
-            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
-            print("Write the correct answer in the space provided next to the question.", file=of)
-            print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
-            print("}}}", file=of)
-            print("\end{center}\n", file=of)
+            if not self.quiz:
+                if self.config["useCheckboxes"].lower() == "true":
+                    print("#########################################################")
+                    print("# Multiple choice checkboxes not recommended when using  ")
+                    print("# short answer questions.  Unset useCheckboxes in your ")
+                    print("# config file to remove this warning.")
+                    print("#########################################################")
+                print("\\newpage", file=of)
+                print("\\begin{center}", file=of)
+                print("{\Large \\textbf{Short Answer Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("Write the correct answer in the space provided next to the question.", file=of)
+                print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+                print("}}}", file=of)
+                print("\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1011,25 +1034,26 @@ class MKT:
         # START: T/F questions
         #
         if len(tf) > 0:
-            print("\\newpage", file=of)
-            print("\\begin{center}", file=of)
-            print("{\Large \\textbf{True/False Questions}}", file=of)
-            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
-            if self.config["useCheckboxes"].lower() == "true":
+            if not self.quiz:
+                print("\\newpage", file=of)
+                print("\\begin{center}", file=of)
+                print("{\Large \\textbf{True/False Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                if self.config["useCheckboxes"].lower() == "true":
 
-                print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ True}).", file=of)
-                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
-            elif self.config["useClassicTF"].lower() == "true":
-                print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
-                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
-            else:
-                print("Circle either 'True' or 'False' at the begging of the line. If you make an", file=of)
-                print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
-                print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
+                    print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ True}).", file=of)
+                    print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+                elif self.config["useClassicTF"].lower() == "true":
+                    print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
+                    print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+                else:
+                    print("Circle either 'True' or 'False' at the begging of the line. If you make an", file=of)
+                    print("incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+                    print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
 
 
-            print("}}}", file=of)
-            print("\end{center}\n", file=of)
+                print("}}}", file=of)
+                print("\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1041,14 +1065,15 @@ class MKT:
         # START: Matching questions
         #
         if len(matching) > 0:
-            print("\\newpage", file=of)
-            print("\\begin{center}", file=of)
-            print("{\Large \\textbf{Matching Questions}}", file=of)
-            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
-            print("Match the selection on the left with the best answer on the right.", file=of)
-            print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
-            print("}}}", file=of)
-            print("\end{center}\n", file=of)
+            if not self.quiz:
+                print("\\newpage", file=of)
+                print("\\begin{center}", file=of)
+                print("{\Large \\textbf{Matching Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("Match the selection on the left with the best answer on the right.", file=of)
+                print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+                print("}}}", file=of)
+                print("\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1091,23 +1116,24 @@ class MKT:
         # START: Multiple choice questions
         #
         if len(multipleChoice) > 0:
+            if not self.quiz:
             # Print multiple choice questions:
-            print("\\newpage", file=of)
-            print("\\begin{center}", file=of)
-            print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
-            print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
-            if self.config["useCheckboxes"].lower() == "true":
+                print("\\newpage", file=of)
+                print("\\begin{center}", file=of)
+                print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                if self.config["useCheckboxes"].lower() == "true":
 
-                print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ Answer}).", file=of)
-                print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+                    print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ Answer}).", file=of)
+                    print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
 
-                print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
-            else:
-                print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
-                print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+                    print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
+                else:
+                    print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
+                    print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
 
-            print("}}}", file=of)
-            print("\end{center}\n", file=of)
+                print("}}}", file=of)
+                print("\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1154,7 +1180,8 @@ def main(argv):
     parser.add_argument("-d", "--dest", help="Destination for output")
     parser.add_argument("-r", "--draft", help="Add a draft watermark", action='store_true')
     parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
-    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true");
+    parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true")
+    parser.add_argument("-q", "--quiz", help="Creates a pdf without a title page (quiz mode)", action="store_true")
     parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing",
                         action='store_true')
     parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID")
