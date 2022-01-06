@@ -852,12 +852,24 @@ class MKT:
             answers = self.shuffle(list(answers.items()))
 
             if self.config["useCheckboxes"].lower() == "true":
-                of.write("\\begin{checkboxes}\n")
+                if self.quiz:
+                    of.write("\\\\ \\begin{oneparchoices}\n")
+
+                else:
+                    of.write("\\begin{checkboxes}\n")
+
                 for a, b in answers:
                     of.write("\\%s %s\n" % (b, a))
-                of.write("\\end{checkboxes}\n\n\n")
+
+                if self.quiz:
+                    of.write("\\end{oneparchoices}\n")
+                else:
+                    of.write("\\end{checkboxes}\n\n\n")
             else:
-                of.write("\\begin{choices}\n")
+                if self.quiz:
+                    of.write("\\begin{oneparchoices}\n")
+                else:
+                    of.write("\\begin{choices}\n")
                 currentAnswer = 'A'
                 for a, b in answers:
                     of.write("\\%s %s\n" % ("choice", a))
@@ -870,7 +882,10 @@ class MKT:
                 else:
                     lineLength = self.config["defaultLineLength"]
 
-                of.write("\\end{choices}\n")
+                if self.quiz:
+                    of.write("\\end{oneparchoices}\n")
+                else:
+                    of.write("\\end{choices}\n")
 
                 # Answer lines for multiple choice questions are always 1in
                 of.write("\\setlength\\answerlinelength{1in}\n")
