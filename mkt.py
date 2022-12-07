@@ -528,7 +528,7 @@ class MKT:
                 print("%s: %s - Adding question" % (descriptor, os.path.basename(name)))
 
                 # If points is not set, set it here
-                if not "points" in config:
+                if not "points" in config and config["type"].lower() != "multipart":
                     config["points"] = self.defaultPoints
 
                 # If it's a long answer question, make sure there is a solution
@@ -536,13 +536,30 @@ class MKT:
                 if "type" not in config:
                     fatal("'type' not defined for question")
 
-                if config["type"].lower() == "longanswer" and not "solutionSpace" in config:
+                if (config["type"].lower() == "longanswer") and not "solutionSpace" in config:
                     if self.defaultSolutionSpace:
                         config["solutionSpace"] = self.defaultSolutionSpace
                     else:
                         fatal(
                             "'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
+               
+                if config["type"].lower() == "multipart":
+                    if "points" in config:
+                        fatal("Multipart questions must have points set in sub questions only")
 
+                    mppoints = 0    
+                    for k in config.keys():
+                        if k not in ['type', 'points', 'question', 'solutionSpace', 'key']:
+                            mppoints += int(config[k]['points'])
+                            if not "solutionSpace" in config[k]:
+                                if self.defaultSolutionSpace:
+                                    config[k]["solutionSpace"] = self.defaultSolutionSpace
+                                else:
+                                    fatal("'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")  
+                    config["points"] = mppoints
+    
+
+            
                 # Check for dupes.  Strip out all whitespace in the string and
                 # then get an md5 hash.  It's less to store and fairly quick to
                 # compute
@@ -560,7 +577,8 @@ class MKT:
                     # Append the question to the question List
                     config["key"] = name
                     qList.append(config)
-
+         
+                
         else:  # Not a question
             print("%s: '%s' - Parsing" % (descriptor, os.path.basename(name)))
             # No questions at this level.  Need to recursive look for them
@@ -591,6 +609,7 @@ class MKT:
                     try:
                         qList += self.parseConfig('Section', "%s/%s" % (name, c), config[c], root=root)
                     except Exception as e:
+                        print("Error: ")
                         print(e)
                         print(("Section %s/%s" % (name, c)))
                         sys.exit(0)
@@ -624,6 +643,14 @@ class MKT:
                 qList.remove(q)
                 qList.insert(0, q)
         for q in qList:
+            if maxLongPoints and q['type'].lower() == "multipart":
+                mppoints = 0
+                for k in q.keys():
+                    if k not in ['type', 'points', 'question', 'solutionSpace', 'key']:
+                        mppoints += int(q[k]["points"])    
+                if mppoints + currLongPoints <= maxLongPoints:
+                    tempQList.append(q)
+                    currLongPoints = currLongPoints + mppoints
             if maxLongPoints and q['type'].lower() == "longanswer":
                 if int(q['points']) + currLongPoints <= maxLongPoints:
                     tempQList.append(q)
@@ -649,6 +676,7 @@ class MKT:
         sectionPoints = 0
         altPoints = 0
         oldLen = len(qList)
+
         for p in qList:
             sectionPoints += int(p["points"])
             
@@ -975,6 +1003,8 @@ class MKT:
 
                 elif q["type"].lower() == "longanswer":
                     longAnswer.append(q)
+                elif q["type"].lower() == "multipart":
+                    longAnswer.append(q)
                 elif q["type"].lower() == "multiplechoice":
                     multipleChoice.append(q)
                 elif q["type"].lower() == "shortanswer":
@@ -1010,14 +1040,29 @@ class MKT:
 
             for m in self.shuffle(longAnswer):
                 self.beginMinipage(of);
+                if m["type"].lower() == "multipart":
+      
+                    of.write("\\question %s\n" % (m["question"]))
+                    of.write("\\begin{parts}")
+                   
+                    for k in m.keys():
+                     
+                        if k not in ['type', 'points', 'question', 'solutionSpace', 'key']:
+                            # assume it's a subpart of multipart
+                            of.write("\\part [%d]\n" % int(m[k]["points"]))
+                            of.write("%s\n" % (m[k]["question"]))
+                            of.write("\\begin{solutionbox}{%s}\n" % (m[k]["solutionSpace"]))
+                            of.write("%s\n" % (m[k]["solution"]))
+                            of.write("\\end{solutionbox}\n")
+                    of.write("\\end{parts}")
+                else:
+                    of.write("\\question[%d]\n" % int(m["points"]))
+                    of.write("%s\n" % (m["question"]))
 
-                of.write("\\question[%d]\n" % int(m["points"]))
-                of.write("%s\n" % (m["question"]))
-
-                # Write out the solution
-                of.write("\\begin{solutionbox}{%s}\n" % (m["solutionSpace"]))
-                of.write("%s\n" % (m["solution"]))
-                of.write("\\end{solutionbox}\n")
+                    # Write out the solution
+                    of.write("\\begin{solutionbox}{%s}\n" % (m["solutionSpace"]))
+                    of.write("%s\n" % (m["solution"]))
+                    of.write("\\end{solutionbox}\n")
 
                 self.endMinipage(of)
 
