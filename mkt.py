@@ -348,7 +348,8 @@ class MKT:
             print("\\SolutionEmphasis{\color{red}}", file=of)
             print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
             print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
-
+            print("\colorsolutionboxes", file=of)        
+            print("\definecolor{SolutionBoxColor}{gray}{1.0}", file=of)
             print("\n", file=of)
 
             print("\\begin{document}", file=of)
@@ -519,41 +520,44 @@ class MKT:
 
         # found a question. Add it!
         if "question" in config:
-            print("%s: %s - Adding question" % (descriptor, os.path.basename(name)))
-
-            # If points is not set, set it here
-            if not "points" in config:
-                config["points"] = self.defaultPoints
-
-            # If it's a long answer question, make sure there is a solution
-            # space defined
-            if "type" not in config:
-                fatal("'type' not defined for question")
-
-            if config["type"].lower() == "longanswer" and not "solutionSpace" in config:
-                if self.defaultSolutionSpace:
-                    config["solutionSpace"] = self.defaultSolutionSpace
-                else:
-                    fatal(
-                        "'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
-
-            # Check for dupes.  Strip out all whitespace in the string and
-            # then get an md5 hash.  It's less to store and fairly quick to
-            # compute
-            s = "".join(config["question"].split())
-            m = hashlib.md5(s.encode('utf-8')).hexdigest()
-
-            if m in self.qHash:
-                print("\nFATAL ERROR!! Duplication questions detected!", file=sys.stderr)
-                print("   Question: \"%s\"" % config["question"], file=sys.stderr)
-                print("   Initially processed in '%s'" % (self.qHash[m]), file=sys.stderr)
-                print("   Also processed in '%s'" % (name), file=sys.stderr)
-                sys.exit(2)
+            if (("skipForQuiz" in config) and (self.quiz)):
+                print("%s: %s - Skipping question for quiz mode" % (descriptor, os.path.basename(name)))
             else:
-                self.qHash[m] = name
-                # Append the question to the question List
-                config["key"] = name
-                qList.append(config)
+                print("%s: %s - Adding question" % (descriptor, os.path.basename(name)))
+
+                # If points is not set, set it here
+                if not "points" in config:
+                    config["points"] = self.defaultPoints
+
+                # If it's a long answer question, make sure there is a solution
+                # space defined
+                if "type" not in config:
+                    fatal("'type' not defined for question")
+
+                if config["type"].lower() == "longanswer" and not "solutionSpace" in config:
+                    if self.defaultSolutionSpace:
+                        config["solutionSpace"] = self.defaultSolutionSpace
+                    else:
+                        fatal(
+                            "'solutionSpace' and 'defaultSolutionSpace' cannot both be undefined for short answer questions")
+
+                # Check for dupes.  Strip out all whitespace in the string and
+                # then get an md5 hash.  It's less to store and fairly quick to
+                # compute
+                s = "".join(config["question"].split())
+                m = hashlib.md5(s.encode('utf-8')).hexdigest()
+
+                if m in self.qHash:
+                    print("\nFATAL ERROR!! Duplication questions detected!", file=sys.stderr)
+                    print("   Question: \"%s\"" % config["question"], file=sys.stderr)
+                    print("   Initially processed in '%s'" % (self.qHash[m]), file=sys.stderr)
+                    print("   Also processed in '%s'" % (name), file=sys.stderr)
+                    sys.exit(2)
+                else:
+                    self.qHash[m] = name
+                    # Append the question to the question List
+                    config["key"] = name
+                    qList.append(config)
 
         else:  # Not a question
             print("%s: '%s' - Parsing" % (descriptor, os.path.basename(name)))
@@ -983,7 +987,7 @@ class MKT:
                 fatal("'type' not defined: %s" % (q))
 
         #
-        # START: Short Answer Questions
+        # START: Long Answer Questions
         #
         if len(longAnswer) > 0:
             if not self.quiz:
@@ -1009,9 +1013,9 @@ class MKT:
                 of.write("%s\n" % (m["question"]))
 
                 # Write out the solution
-                of.write("\\begin{solution}[%s]\n" % (m["solutionSpace"]))
+                of.write("\\begin{solutionbox}{%s}\n" % (m["solutionSpace"]))
                 of.write("%s\n" % (m["solution"]))
-                of.write("\\end{solution}\n")
+                of.write("\\end{solutionbox}\n")
 
                 self.endMinipage(of)
 
