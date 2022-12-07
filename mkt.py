@@ -83,11 +83,12 @@ class MKT:
         # keyfile points
         kf = None
 
+
         # Initialize RNG
         if not args.uuid:
             args.uuid = uuid.uuid1()
             print("New UUID: %s" % args.uuid)
-        random.seed(args.uuid)
+        random.seed(str(args.uuid))
 
         self.testMode = args.test
 
