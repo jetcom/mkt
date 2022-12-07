@@ -90,6 +90,7 @@ class MKT:
             print("New UUID: %s" % args.uuid)
         random.seed(str(args.uuid))
 
+
         self.testMode = args.test
 
         if self.testMode:
@@ -128,7 +129,7 @@ class MKT:
                 print("-------------------------------------------------------")
 
                 # Reseed with the same UUID so we get the same questionsList
-                random.seed(args.uuid)
+                random.seed(str(args.uuid))
                 questions = self.parseConfig('File', args.configFile, config, root=path)
 
             key = 0
