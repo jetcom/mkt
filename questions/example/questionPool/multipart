@@ -1,6 +1,7 @@
 [earth]
 type=multiPart
 question="What if there were no air?"
+showPoints=true
 [[balloon]]
    question="Describe the effect on the balloon industry"
    points=5

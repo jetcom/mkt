@@ -44,6 +44,8 @@ class MKT:
     needSecondPass = False
     currentPass = 1
 
+    multipartSkipKeys = ['type', 'points', 'showPoints', 'question', 'solutionSpace', 'key']
+
     # hash used for duplicate question detection. Since we want to keep track
     # of ALL questions, regardless of whether we use it in a test or not, we
     # can make it a member variable
@@ -545,11 +547,11 @@ class MKT:
                
                 if config["type"].lower() == "multipart":
                     if "points" in config:
-                        fatal("Multipart questions must have points set in sub questions only")
+                        fatal("Multipart questions must have points set in sub parts")
 
                     mppoints = 0    
                     for k in config.keys():
-                        if k not in ['type', 'points', 'question', 'solutionSpace', 'key']:
+                        if k not in self.multipartSkipKeys:
                             mppoints += int(config[k]['points'])
                             if not "solutionSpace" in config[k]:
                                 if self.defaultSolutionSpace:
@@ -644,13 +646,9 @@ class MKT:
                 qList.insert(0, q)
         for q in qList:
             if maxLongPoints and q['type'].lower() == "multipart":
-                mppoints = 0
-                for k in q.keys():
-                    if k not in ['type', 'points', 'question', 'solutionSpace', 'key']:
-                        mppoints += int(q[k]["points"])    
-                if mppoints + currLongPoints <= maxLongPoints:
+                if int(q['points']) + currLongPoints <= maxLongPoints:
                     tempQList.append(q)
-                    currLongPoints = currLongPoints + mppoints
+                    currLongPoints = currLongPoints + int(q['points'])
             if maxLongPoints and q['type'].lower() == "longanswer":
                 if int(q['points']) + currLongPoints <= maxLongPoints:
                     tempQList.append(q)
@@ -1041,13 +1039,14 @@ class MKT:
             for m in self.shuffle(longAnswer):
                 self.beginMinipage(of);
                 if m["type"].lower() == "multipart":
-      
-                    of.write("\\question %s\n" % (m["question"]))
+                    if "showPoints" in m and m["showPoints"].lower() == 'true':
+                        of.write("\\question (%s points) %s\n" % (m["points"], m["question"]))
+                    else:
+                        of.write("\\question %s\n" % (m["question"]))
                     of.write("\\begin{parts}")
                    
                     for k in m.keys():
-                     
-                        if k not in ['type', 'points', 'question', 'solutionSpace', 'key']:
+                        if k not in self.multipartSkipKeys:
                             # assume it's a subpart of multipart
                             of.write("\\part [%d]\n" % int(m[k]["points"]))
                             of.write("%s\n" % (m[k]["question"]))
