@@ -1251,7 +1251,7 @@ def main(argv):
                         action='store_true')
     parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID")
     parser.add_argument("-v", "--versions", help="Generate mulitple versions of this exam", type=int)
-    parser.add_argument("--version", action='version', version='%(prog)s 0.10')
+    parser.add_argument("--version", action='version', version='%(prog)s 0.50')
 
     mkt = MKT(parser.parse_args())
 
