@@ -33,6 +33,9 @@ class MKT:
     # quiz mode has no cover page
     quiz = False
 
+    # add an ID to the test 
+    id = False
+
     # Enable draft mode
     draftMode = False
 
@@ -99,8 +102,10 @@ class MKT:
             print(">>> TEST MODE ENABLED <<<")
 
         self.draftMode = args.draft
+     
 
-        self.quiz = args.quiz
+
+
 
         # Read in the ini file specified on the command line
         print("Reading %s" % (args.configFile))
@@ -109,9 +114,14 @@ class MKT:
 
         config = ConfigObj(args.configFile)
 
+        if "quiz" in config and config["quiz"].lower() == "true": 
+            self.quiz = True
+
+        if "includeID" in config and config["includeID"].lower() == "true": 
+            self.id = True
         
         questions_list = {}
-        points = 0;
+        points = 0
         
         while True:
             questions = []
@@ -316,8 +326,12 @@ class MKT:
         print("\pagestyle{headandfoot}", file=of)
 
         if self.quiz:
-            print("\\firstpageheader{ Name: \makebox[5in]{\hrulefill}} {} {%s}" % (self.config["test"]), file=of)
-            print("\\runningheader{} {} {%s}" % (self.config["test"]), file=of)
+            if self.id:
+                print("\\firstpageheader{ Name: \makebox[3in]{\hrulefill}} {\hspace{3in}ID: \makebox[1.5in]{\hrulefill}} {%s}" % (self.config["test"]), file=of)
+                print("\\runningheader{} {} {%s}" % (self.config["test"]), file=of)
+            else:
+                print("\\firstpageheader{ Name: \makebox[5in]{\hrulefill}} {} {%s}" % (self.config["test"]), file=of)
+                print("\\runningheader{} {} {%s}" % (self.config["test"]), file=of)
             if answerKey:
                 print("\\firstpageheader{Name: \\textcolor{red}{KEY} } {} {%s}" % (self.config["test"]), file=of)
                 print("\\runningheader{} { \\textcolor{red}{KEY} } {%s}" % (self.config["test"]), file=of) 
@@ -328,8 +342,8 @@ class MKT:
                 print("\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
             else:
                 if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
-                    print("\\firstpageheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
-                    print("\\runningheader{%s} {} { Name: \makebox[2in]{\hrulefill}}" % (self.config["test"]), file=of)
+                    print("\\firstpageheader{%s} {} { Name: \makebox[3.5in]{\hrulefill}}" % (self.config["test"]), file=of)
+                    print("\\runningheader{%s} {} { Name: \makebox[3.5in]{\hrulefill}}" % (self.config["test"]), file=of)
                 else:
                     print("\\firstpageheader{%s} {} {}" % (self.config["test"]), file=of)
                     print("\\runningheader{%s} {} {}" % (self.config["test"]), file=of)
@@ -339,10 +353,14 @@ class MKT:
         print("\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
         self.config["courseNumber"]), file=of)
 
-        print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
+        #print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
+        print("\\checkedchar{\\textcolor{red}{$\CIRCLE$}}", file=of)
         print("\\SolutionEmphasis{\color{red}}", file=of)
         print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
         print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
+        print("\\colorsolutionboxes", file=of)
+        print("\\definecolor{SolutionBoxColor}{gray}{1.0}", file=of)
+
         if not self.quiz:
             print("\n", file=of)
 
@@ -372,7 +390,7 @@ class MKT:
 
                 print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
 
-            print("\\textsc{%s}" % (self.config["note"]), file=of)
+            print("%s" % (self.config["note"]), file=of)
             print("\\vfill", file=of)
 
             print("\n", file=of)
@@ -387,9 +405,9 @@ class MKT:
             if answerKey:
                 print("\makebox[\\textwidth]{\\textcolor{red}{KEY}}", file=of)
             else:
-                if "promptForLogin" in self.config and self.config["promptForLogin"].lower() == "true":
+                if "includeID" in self.config and self.config["includeID"].lower() == "true":
                     print("\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}", file=of)
-                    print("\makebox[0.40\\textwidth]{DCE Login: \enspace\hrulefill}", file=of)
+                    print("\makebox[0.40\\textwidth]{ID: \enspace\hrulefill}", file=of)
 
                 else:
                     print("\makebox[\\textwidth]{Name: \enspace\hrulefill}", file=of)
@@ -402,6 +420,8 @@ class MKT:
             print("\n", file=of)
         else:
             print("\\begin{document}", file=of)
+            if (self.config["note"]) != "":
+                print("%s" % (self.config["note"]), file=of)  
 
     ###########################################
     # writeFooter
@@ -471,7 +491,7 @@ class MKT:
         if c in ["test", "instructor", "courseName", "courseNumber", "term", "note",
                  "school", "department", "nameOnEveryPage", "defaultPoints",
                  "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
-                 "promptForLogin", "useClassicTF"]:
+                 "includeID", "useClassicTF", "quiz"]:
             if not self.mainSettingsStored:
                 self.mainSettingsStored = True
                 self.config = config
@@ -824,11 +844,11 @@ class MKT:
                     of.write("\n ")
                     of.write("\ifprintanswers\n")
                     if m["solution"].lower() == "true":
-                        of.write("\\hfill\\textbf{$\CIRCLE$ True ")
+                        of.write("\\hfill\\textbf{\\textcolor{red}{$\CIRCLE$} True ")
                         of.write("\hspace{2mm}$\ocircle$ False} ")
                     else:
                         of.write("\\hfill\\textbf{$\ocircle$ True ")
-                        of.write("\hspace{2mm}$\CIRCLE$ False} ")
+                        of.write("\hspace{2mm}\\textcolor{red}{$\CIRCLE$} False} ")
 
                     of.write("\\else\n")
                     of.write("\\hfill\\textbf{$\ocircle$ True ")
@@ -885,16 +905,25 @@ class MKT:
 
             if self.config["useCheckboxes"].lower() == "true":
                 if self.quiz:
-                    of.write("\\\\ \\begin{oneparchoices}\n")
+                    of.write("\\\\ \\begin{oneparcheckboxes}\n")
 
                 else:
                     of.write("\\begin{checkboxes}\n")
-
+                count=0
+                align = "\\makebox[5cm][l]{"
+                lineBreakOnEach = False
                 for a, b in answers:
-                    of.write("\\%s %s\n" % (b, a))
+                    if len(a) > 15:
+                        lineBreakOnEach = True
+       
+                for a, b in answers:
+                    count+=1
+                    of.write("\\%s %s %s}\n" % (b, align, a))
+                    if (count % 2==0 or lineBreakOnEach) and not count == len(answers):
+                        of.write("\\\\")
 
                 if self.quiz:
-                    of.write("\\end{oneparchoices}\n")
+                    of.write("\\end{oneparcheckboxes}\n")
                 else:
                     of.write("\\end{checkboxes}\n\n\n")
             else:
@@ -964,10 +993,10 @@ class MKT:
             # If we have more than one solution, print out each on it's own
             # answer line
             if isinstance(m["solution"], str):
-                of.write("\\answerline[%s]\n" % m["solution"])
+                of.write("\\answerline[\\textcolor{red}{%s}]\n" % m["solution"])
             else:
                 for s in m["solution"]:
-                    of.write("\\answerline[%s]\n" % s)
+                    of.write("\\answerline[\\textcolor{red}{%s}]\n" % s)
 
             self.endMinipage(of)
 
@@ -1246,7 +1275,6 @@ def main(argv):
     parser.add_argument("-r", "--draft", help="Add a draft watermark", action='store_true')
     parser.add_argument("-n", "--noAnswerKey", help="do NOT generate corresponding answer key", action='store_true')
     parser.add_argument("-p", "--pdf", help="Generate pdf for test and key files", action="store_true")
-    parser.add_argument("-q", "--quiz", help="Creates a pdf without a title page (quiz mode)", action="store_true")
     parser.add_argument("-t", "--test", help="Ignore limits on number of points and questions. Useful for testing",
                         action='store_true')
     parser.add_argument("-u", "--uuid", help="Generate a test with the specific UUID")
