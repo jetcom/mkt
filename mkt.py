@@ -296,9 +296,9 @@ class MKT:
             print("%%    version: %s" % version, file=of)
 
         if answerKey:
-            print("\documentclass[10pt,answers,addpoints]{exam}\n", file=of)
+            print("\\documentclass[10pt,answers,addpoints]{exam}\n", file=of)
         else:
-            print("\documentclass[10pt,addpoints]{exam}\n", file=of)
+            print("\\documentclass[10pt,addpoints]{exam}\n", file=of)
 
         print("\\usepackage{amssymb}\n" \
                      "\\usepackage{graphicx}\n" \
@@ -311,26 +311,26 @@ class MKT:
                      "\\usepackage{color}\n\n", file=of)
         if args.draft:
             print("\\usepackage{draftwatermark}\n", file=of)
-            print("\SetWatermarkText{DRAFT}\n", file=of)
-            print("\SetWatermarkScale{7}\n", file=of)
+            print("\\SetWatermarkText{DRAFT}\n", file=of)
+            print("\\SetWatermarkScale{7}\n", file=of)
 
-        print("\makeatletter", file=of)
-        print("\ifcase \@ptsize \\relax % 10pt", file=of)
-        print("\\newcommand{\miniscule}{\@setfontsize\miniscule{4}{5}}% \\tiny: 5/6", file=of)
-        print("\or% 11pt", file=of)
-        print("\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7", file=of)
-        print("\or% 12pt", file=of)
-        print("\\newcommand{\miniscule}{\@setfontsize\miniscule{5}{6}}% \\tiny: 6/7", file=of)
+        print("\\makeatletter", file=of)
+        print("\\ifcase \\@ptsize \\relax % 10pt", file=of)
+        print("\\newcommand{\\miniscule}{\\@setfontsize\\miniscule{4}{5}}% \\tiny: 5/6", file=of)
+        print("\\or% 11pt", file=of)
+        print("\\newcommand{\\miniscule}{\\@setfontsize\\miniscule{5}{6}}% \\tiny: 6/7", file=of)
+        print("\\or% 12pt", file=of)
+        print("\\newcommand{\\miniscule}{\\@setfontsize\\miniscule{5}{6}}% \\tiny: 6/7", file=of)
         print("\\fi", file=of)
-        print("\makeatother", file=of)
-        print("\pagestyle{headandfoot}", file=of)
+        print("\\makeatother", file=of)
+        print("\\pagestyle{headandfoot}", file=of)
 
         if self.quiz:
             if self.id:
-                print("\\firstpageheader{ Name: \makebox[3in]{\hrulefill}} {\hspace{3in}ID: \makebox[1.5in]{\hrulefill}} {%s}" % (self.config["test"]), file=of)
+                print("\\firstpageheader{ Name: \\makebox[3in]{\\hrulefill}} {\\hspace{3in}ID: \\makebox[1.5in]{\\hrulefill}} {%s}" % (self.config["test"]), file=of)
                 print("\\runningheader{} {} {%s}" % (self.config["test"]), file=of)
             else:
-                print("\\firstpageheader{ Name: \makebox[5in]{\hrulefill}} {} {%s}" % (self.config["test"]), file=of)
+                print("\\firstpageheader{ Name: \\makebox[5in]{\\hrulefill}} {} {%s}" % (self.config["test"]), file=of)
                 print("\\runningheader{} {} {%s}" % (self.config["test"]), file=of)
             if answerKey:
                 print("\\firstpageheader{Name: \\textcolor{red}{KEY} } {} {%s}" % (self.config["test"]), file=of)
@@ -342,21 +342,21 @@ class MKT:
                 print("\\runningheader{%s} {} { \\textcolor{red}{KEY} }" % (self.config["test"]), file=of)
             else:
                 if "nameOnEveryPage" in self.config and self.config["nameOnEveryPage"].lower() == "true":
-                    print("\\firstpageheader{%s} {} { Name: \makebox[3.5in]{\hrulefill}}" % (self.config["test"]), file=of)
-                    print("\\runningheader{%s} {} { Name: \makebox[3.5in]{\hrulefill}}" % (self.config["test"]), file=of)
+                    print("\\firstpageheader{%s} {} { Name: \\makebox[3.5in]{\\hrulefill}}" % (self.config["test"]), file=of)
+                    print("\\runningheader{%s} {} { Name: \\makebox[3.5in]{\\hrulefill}}" % (self.config["test"]), file=of)
                 else:
                     print("\\firstpageheader{%s} {} {}" % (self.config["test"]), file=of)
                     print("\\runningheader{%s} {} {}" % (self.config["test"]), file=of)
 
-        print("\\firstpagefooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
+        print("\\firstpagefooter{%s} {Page \\thepage\\ of \\numpages} {\\makebox[.5in]{\\hrulefill}/\\pointsonpage{\\thepage}}" % (
         self.config["courseNumber"]), file=of)
-        print("\\runningfooter{%s} {Page \\thepage\ of \\numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\\thepage}}" % (
+        print("\\runningfooter{%s} {Page \\thepage\\ of \\numpages} {\\makebox[.5in]{\\hrulefill}/\\pointsonpage{\\thepage}}" % (
         self.config["courseNumber"]), file=of)
 
         #print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
-        print("\\checkedchar{\\textcolor{red}{$\CIRCLE$}}", file=of)
-        print("\\SolutionEmphasis{\color{red}}", file=of)
-        print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
+        print("\\checkedchar{\\textcolor{red}{$\\CIRCLE$}}", file=of)
+        print("\\SolutionEmphasis{\\color{red}}", file=of)
+        print("\\renewcommand{\\questionshook}{\\setlength{\\itemsep}{.35in}}", file=of)
         print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
         print("\\colorsolutionboxes", file=of)
         print("\\definecolor{SolutionBoxColor}{gray}{1.0}", file=of)
@@ -366,12 +366,12 @@ class MKT:
 
             #print("\\checkboxchar{$\\Box$}", file=of)
 
-            print("\\CorrectChoiceEmphasis{\color{red}}", file=of)
-            print("\\SolutionEmphasis{\color{red}}", file=of)
-            print("\\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}", file=of)
+            print("\\CorrectChoiceEmphasis{\\color{red}}", file=of)
+            print("\\SolutionEmphasis{\\color{red}}", file=of)
+            print("\\renewcommand{\\questionshook}{\\setlength{\\itemsep}{.35in}}", file=of)
             print("\\bonuspointpoints{bonus point}{bonus points}", file=of)
-            print("\colorsolutionboxes", file=of)        
-            print("\definecolor{SolutionBoxColor}{gray}{1.0}", file=of)
+            print("\\colorsolutionboxes", file=of)        
+            print("\\definecolor{SolutionBoxColor}{gray}{1.0}", file=of)
             print("\n", file=of)
 
             print("\\begin{document}", file=of)
@@ -381,14 +381,14 @@ class MKT:
 
             print("\n", file=of)
 
-            print("\\textsc{\LARGE %s \\\\%s }\\\\[1.5cm]" % (self.config["school"], self.config["department"]), file=of)
-            print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["courseName"]), file=of)
-            print("\\textsc{\LARGE %s}\\\\[1cm]" % (self.config["term"]), file=of)
+            print("\\textsc{\\LARGE %s \\\\%s }\\\\[1.5cm]" % (self.config["school"], self.config["department"]), file=of)
+            print("\\textsc{\\LARGE %s}\\\\[1cm]" % (self.config["courseName"]), file=of)
+            print("\\textsc{\\LARGE %s}\\\\[1cm]" % (self.config["term"]), file=of)
             print(self.config["instructor"], file=of)
-            print("\\textsc{\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
+            print("\\textsc{\\Huge %s}\\\\[1cm]" % (self.config["test"]), file=of)
             if version:
 
-                print("\\textsc{\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
+                print("\\textsc{\\LARGE Version: %s}\\\\[1cm]" % (version), file=of)
 
             print("%s" % (self.config["note"]), file=of)
             print("\\vfill", file=of)
@@ -396,26 +396,26 @@ class MKT:
             print("\n", file=of)
 
             if answerKey:
-                print("{\Large { Score: \makebox[1in]{\\underline{\hspace{5mm}\\textcolor{red}{KEY} \hspace{5mm}}} / \\numpoints }} \\\\[4cm]", file=of)
+                print("{\\Large { Score: \\makebox[1in]{\\underline{\\hspace{5mm}\\textcolor{red}{KEY} \\hspace{5mm}}} / \\numpoints }} \\\\[4cm]", file=of)
             else:
-                print("{\Large { Score: \makebox[1in]{\hrulefill} / \\numpoints }} \\\\[4cm]", file=of)
+                print("{\\Large { Score: \\makebox[1in]{\\hrulefill} / \\numpoints }} \\\\[4cm]", file=of)
 
-            print("\end{center}", file=of)
+            print("\\end{center}", file=of)
 
             if answerKey:
-                print("\makebox[\\textwidth]{\\textcolor{red}{KEY}}", file=of)
+                print("\\makebox[\\textwidth]{\\textcolor{red}{KEY}}", file=of)
             else:
                 if "includeID" in self.config and self.config["includeID"].lower() == "true":
-                    print("\makebox[0.60\\textwidth]{Name: \enspace\hrulefill}", file=of)
-                    print("\makebox[0.40\\textwidth]{ID: \enspace\hrulefill}", file=of)
+                    print("\\makebox[0.60\\textwidth]{Name: \\enspace\\hrulefill}", file=of)
+                    print("\\makebox[0.40\\textwidth]{ID: \\enspace\\hrulefill}", file=of)
 
                 else:
-                    print("\makebox[\\textwidth]{Name: \enspace\hrulefill}", file=of)
+                    print("\\makebox[\\textwidth]{Name: \\enspace\\hrulefill}", file=of)
             if args.draft:
-                print("\covercfoot{ Exam ID: %s}" % args.uuid, file=of)
+                print("\\covercfoot{ Exam ID: %s}" % args.uuid, file=of)
             else:
-                print("\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid, file=of)
-            print("\end{coverpages}", file=of)
+                print("\\covercfoot{\\miniscule{ Exam ID: %s}}" % args.uuid, file=of)
+            print("\\end{coverpages}", file=of)
 
             print("\n", file=of)
         else:
@@ -427,8 +427,8 @@ class MKT:
     # writeFooter
     ##########################################
     def writeFooter(self, of):
-        print("\end{questions}", file=of)
-        print("\end{document}", file=of)
+        print("\\end{questions}", file=of)
+        print("\\end{document}", file=of)
 
     ###########################################
     # getQuestions
@@ -827,32 +827,32 @@ class MKT:
                 if False:
                     of.write("%s\n" % (m["question"]))
                     of.write("\n ")
-                    of.write("\ifprintanswers\n")
+                    of.write("\\ifprintanswers\n")
                     if m["solution"].lower() == "true":
-                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\CIRCLE$ True} \n\n")
-                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ False} ")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\\CIRCLE$ True} \n\n")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\\ocircle$ False} ")
                     else:
-                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ True} \n\n")
-                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\CIRCLE$ False} ")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\\ocircle$ True} \n\n")
+                        of.write("\\hspace{0.9\\textwidth}\\textbf{$\\CIRCLE$ False} ")
 
                     of.write("\\else\n")
-                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ True} \n\n")
-                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\ocircle$ False} ")
+                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\\ocircle$ True} \n\n")
+                    of.write("\\hspace{0.9\\textwidth}\\textbf{$\\ocircle$ False} ")
                     of.write("\\fi\n ")   
                 else:
                     of.write("%s\n" % (m["question"]))
                     of.write("\n ")
-                    of.write("\ifprintanswers\n")
+                    of.write("\\ifprintanswers\n")
                     if m["solution"].lower() == "true":
-                        of.write("\\hfill\\textbf{\\textcolor{red}{$\CIRCLE$} True ")
-                        of.write("\hspace{2mm}$\ocircle$ False} ")
+                        of.write("\\hfill\\textbf{\\textcolor{red}{$\\CIRCLE$} True ")
+                        of.write("\\hspace{2mm}$\\ocircle$ False} ")
                     else:
-                        of.write("\\hfill\\textbf{$\ocircle$ True ")
-                        of.write("\hspace{2mm}\\textcolor{red}{$\CIRCLE$} False} ")
+                        of.write("\\hfill\\textbf{$\\ocircle$ True ")
+                        of.write("\\hspace{2mm}\\textcolor{red}{$\\CIRCLE$} False} ")
 
                     of.write("\\else\n")
-                    of.write("\\hfill\\textbf{$\ocircle$ True ")
-                    of.write("\hspace{2mm}$\ocircle$ False} ")
+                    of.write("\\hfill\\textbf{$\\ocircle$ True ")
+                    of.write("\\hspace{2mm}$\\ocircle$ False} ")
                     of.write("\\fi\n ")  
                     
             
@@ -865,7 +865,7 @@ class MKT:
                 of.write("\\setlength\\answerlinelength{1in}\n")
                 of.write("\\answerline[%s]\n\n" % (correctAnswer))
             else:
-                of.write("\ifprintanswers\n")
+                of.write("\\ifprintanswers\n")
                 if m["solution"].lower() == "true":
                     of.write("\\textbf{[ \\textcolor{red}{True} / False ]} ")
                 else:
@@ -1052,14 +1052,14 @@ class MKT:
             if not self.quiz:
             # print out the long answer questions.
                 print("\\begin{center}", file=of)
-                print("{\Large \\textbf{Long Answers Questions}}", file=of)
-                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("{\\Large \\textbf{Long Answers Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
                 print("Answer the questions in the spaces provided on the question sheets.", file=of)
 
                 print("If you run out of room for an answer, continue on the back page.", file=of)
 
                 print("}}}", file=of)
-                print("\end{center}\n", file=of)
+                print("\\end{center}\n", file=of)
 
             print("\\begin{questions}", file=of)
             print("\\begingradingrange{longanswer}", file=of)
@@ -1109,12 +1109,12 @@ class MKT:
                     print("#########################################################")
                 print("\\newpage", file=of)
                 print("\\begin{center}", file=of)
-                print("{\Large \\textbf{Short Answer Questions}}", file=of)
-                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("{\\Large \\textbf{Short Answer Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
                 print("Write the correct answer in the space provided next to the question.", file=of)
                 print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
                 print("}}}", file=of)
-                print("\end{center}\n", file=of)
+                print("\\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1131,11 +1131,11 @@ class MKT:
             if not self.quiz:
                 print("\\newpage", file=of)
                 print("\\begin{center}", file=of)
-                print("{\Large \\textbf{True/False Questions}}", file=of)
-                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("{\\Large \\textbf{True/False Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
                 if self.config["useCheckboxes"].lower() == "true":
 
-                    print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ True}).", file=of)
+                    print("In the circle to the left of the word 'True' or 'False', fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\\CIRCLE$ True}).", file=of)
                     print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
                 elif self.config["useClassicTF"].lower() == "true":
                     print("Write 'True' or 'False' \\textit{clearly} in the space provided next to the question.", file=of)
@@ -1147,7 +1147,7 @@ class MKT:
 
 
                 print("}}}", file=of)
-                print("\end{center}\n", file=of)
+                print("\\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1162,12 +1162,12 @@ class MKT:
             if not self.quiz:
                 print("\\newpage", file=of)
                 print("\\begin{center}", file=of)
-                print("{\Large \\textbf{Matching Questions}}", file=of)
-                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("{\\Large \\textbf{Matching Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
                 print("Match the selection on the left with the best answer on the right.", file=of)
                 print("Answers that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
                 print("}}}", file=of)
-                print("\end{center}\n", file=of)
+                print("\\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1192,7 +1192,7 @@ class MKT:
                 index = 0
                 for k in keys:
                     of.write("%s. %s &\n" % (chr(index + ord('A')), m["choices"][index]))
-                    of.write("\ifprintanswers\n")
+                    of.write("\\ifprintanswers\n")
                     of.write("\\underline{\\hspace{.25cm}\\textcolor{red}{%s}\\hspace{.25cm}}\n" % (solutions[k]))
                     of.write("\\else\n")
                     of.write("\\underline{\\hspace{1cm}}")
@@ -1214,11 +1214,11 @@ class MKT:
             # Print multiple choice questions:
                 print("\\newpage", file=of)
                 print("\\begin{center}", file=of)
-                print("{\Large \\textbf{Multiple Choice Questions}}", file=of)
-                print("\\fbox{\\fbox{\\parbox{5.5in}{\centering", file=of)
+                print("{\\Large \\textbf{Multiple Choice Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
                 if self.config["useCheckboxes"].lower() == "true":
 
-                    print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\CIRCLE$ Answer}).", file=of)
+                    print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\\CIRCLE$ Answer}).", file=of)
                     print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
 
                     print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
@@ -1227,7 +1227,7 @@ class MKT:
                     print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
 
                 print("}}}", file=of)
-                print("\end{center}\n", file=of)
+                print("\\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
@@ -1245,8 +1245,8 @@ class MKT:
         if len(multipleChoiceBonus) > 0 or len(shortAnswerBonus) > 0:
             print("\\newpage", file=of)
             print("\\begin{center}", file=of)
-            print("{\Large \\textbf{Bonus Questions}}", file=of)
-            print("\end{center}\n", file=of)
+            print("{\\Large \\textbf{Bonus Questions}}", file=of)
+            print("\\end{center}\n", file=of)
             if not beginQuestions:
                 print("\\begin{questions}", file=of)
                 beginQuestions = True
