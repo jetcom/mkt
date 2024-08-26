@@ -1,6 +1,6 @@
 % This document generated with mkt
-%       uuid: 1618b76c-ee27-11e6-a4c2-b4ae2bdf1f98
-% configFile: example/sample.ini
+%       uuid: cbe73d1a-768f-11ed-996a-acde48001122
+% configFile: questions/example/sample.ini
 \documentclass[10pt,addpoints]{exam}
 
 \usepackage{amssymb}
@@ -8,6 +8,7 @@
 \usepackage{listings}
 \usepackage{tabularx}
 \usepackage{mathtools}
+\usepackage{wasysym }
 \usepackage{color}
 
 
@@ -25,13 +26,18 @@
 \runningheader{Midterm} {} {}
 \firstpagefooter{4003.703.01} {Page \thepage\ of \numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\thepage}}
 \runningfooter{4003.703.01} {Page \thepage\ of \numpages} {\makebox[.5in]{\hrulefill}/\pointsonpage{\thepage}}
-
-
-\checkboxchar{$\Box$}
 \CorrectChoiceEmphasis{\color{red}}
 \SolutionEmphasis{\color{red}}
 \renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}
 \bonuspointpoints{bonus point}{bonus points}
+
+
+\CorrectChoiceEmphasis{\color{red}}
+\SolutionEmphasis{\color{red}}
+\renewcommand{\questionshook}{\setlength{\itemsep}{.35in}}
+\bonuspointpoints{bonus point}{bonus points}
+\colorsolutionboxes
+\definecolor{SolutionBoxColor}{gray}{1.0}
 
 
 \begin{document}
@@ -53,7 +59,7 @@ Travis E. Brown
 \end{center}
 \makebox[0.60\textwidth]{Name: \enspace\hrulefill}
 \makebox[0.40\textwidth]{DCE Login: \enspace\hrulefill}
-\covercfoot{\miniscule{ Exam ID: 1618b76c-ee27-11e6-a4c2-b4ae2bdf1f98}}
+\covercfoot{\miniscule{ Exam ID: cbe73d1a-768f-11ed-996a-acde48001122}}
 \end{coverpages}
 
 
@@ -61,12 +67,21 @@ Travis E. Brown
 {\Large \textbf{Long Answers Questions}}
 \fbox{\fbox{\parbox{5.5in}{\centering
 Answer the questions in the spaces provided on the question sheets.
-If you run out of room for an answer, continue on the back of the page.
+If you run out of room for an answer, continue on the back page.
 }}}
 \end{center}
 
 \begin{questions}
 \begingradingrange{longanswer}
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[8]
+Question 2
+\begin{solutionbox}{0in}
+Solution 2
+\end{solutionbox}
+\end{minipage}
+
+
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \question[10]
 
@@ -74,14 +89,85 @@ If you had to maintain an unsorted collection of data, and you had to insert
 and remove elements from the middle of the collection, what container would
 you chose, and why?
 
-\begin{solution}[3in]
+\begin{solutionbox}{3in}
 
 A list would be the container of choice because it efficiently adds elements
 to the middle of the list. This works because a list actually implements a
 doubly linked list and no data has to be shifted in order to add elements to
 the middle
 
-\end{solution}
+\end{solutionbox}
+\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question (10 points) What if there were no air?
+\begin{parts}\part [5]
+Describe the effect on the balloon industry
+\begin{solutionbox}{0.5in}
+It would be very bad
+\end{solutionbox}
+\part [5]
+Describe the effect on the aircraft industry
+\begin{solutionbox}{0.5in}
+We would all have to take trains
+\end{solutionbox}
+\end{parts}\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[10]
+
+Foooo
+
+\begin{solutionbox}{3in}
+
+bar
+\end{solutionbox}
+\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[14]
+
+Complete the following truth table
+\begin{center}
+\begin{tabular}{ | c | c | c | c | c | c | c | c | c |}
+\hline
+
+\verb#P#&\verb#Q#&\verb#P&&Q#&\verb#P||Q#&\verb#!P#&
+\verb#!(P&&Q)#&\verb#!P||!Q#&\verb#!(P||Q)#&\verb#!P&&Q# \\ \hline
+T&T& & & & & & &  \\ \hline
+T&F& & & & & & &  \\ \hline
+T&T& & & & & & &  \\ \hline
+F&F& & & & & & &  \\ \hline
+\end{tabular}
+\end{center}
+
+\begin{solutionbox}{0in}
+
+\begin{center}
+\begin{tabular}{ | c | c | c | c | c | c | c | c | c |}
+\hline
+\verb#P#&\verb#Q#&\verb#P&&Q#&\verb#P||Q#&\verb#!P#&
+\verb#!(P&&Q)#&\verb#!P||!Q#&\verb#!(P||Q)#&\verb#!P&&Q# \\ \hline
+T&T&T&T&F&F&F&F&F \\ \hline
+T&F&F&T&F&T&T&F&F \\ \hline
+T&T&F&T&T&T&T&F&F \\ \hline
+F&F&F&F&T&T&T&T&T \\ \hline
+\end{tabular}
+\end{center}
+
+\end{solutionbox}
+\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[20]
+delete
+\begin{solutionbox}{3in}
+do I have to
+\end{solutionbox}
 \end{minipage}
 
 
@@ -101,8 +187,16 @@ Answers that are not legible or not made in the space provided will result in a 
 \begingradingrange{shortAnswer}
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \vspace{.35cm}\question[2]
+When did the Cretaceous peroid end?
+\vspace{.25cm}\setlength\answerlinelength{3in}
+\answerline[66 million years ago]
+\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\vspace{.35cm}\question[2]
 What is the answer to life, the universe, and everything?
-\vspace{.25cm}\setlength\answerlinelength{1in}
+\vspace{.25cm}\setlength\answerlinelength{3in}
 \answerline[42]
 \end{minipage}
 
@@ -110,16 +204,8 @@ What is the answer to life, the universe, and everything?
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \vspace{.35cm}\question[2]
 In what year did Apollo 11 go to the moon?
-\vspace{.25cm}\setlength\answerlinelength{1in}
+\vspace{.25cm}\setlength\answerlinelength{3in}
 \answerline[1969]
-\end{minipage}
-
-
-\par\vspace{0.100000in}\begin{minipage}{\linewidth}
-\vspace{.35cm}\question[2]
-How long does it take for light to travel from the Sun to the Earth?
-\vspace{.25cm}\setlength\answerlinelength{1in}
-\answerline[8 minutes]
 \end{minipage}
 
 
@@ -133,8 +219,16 @@ What... is the air-speed velocity of an unladen swallow?
 
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \vspace{.35cm}\question[2]
+How long does it take for light to travel from the Sun to the Earth?
+\vspace{.25cm}\setlength\answerlinelength{3in}
+\answerline[8 minutes]
+\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\vspace{.35cm}\question[2]
 How old do you have to be to drink (legally) in the US?  In Canada?
-\vspace{.25cm}\setlength\answerlinelength{1in}
+\vspace{.25cm}\setlength\answerlinelength{3in}
 \answerline[21]
 \answerline[18]
 \end{minipage}
@@ -148,33 +242,96 @@ How old do you have to be to drink (legally) in the US?  In Canada?
 \begin{center}
 {\Large \textbf{True/False Questions}}
 \fbox{\fbox{\parbox{5.5in}{\centering
-Write 'True' or 'False' \textit{clearly} in the space provided next to the question.
-Answer that are not legible or not made in the space provided will result in a 0 for that question.
+Circle either 'True' or 'False' at the begging of the line. If you make an
+incorrect mark, erase your mark and clearly mark the correct answer.
+If the intended mark is not clear, you will receive a 0 for that question
 }}}
 \end{center}
 
 \begingradingrange{TF}
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \question[1]
-The sun appears bigger in the sky because it is closer than the moon.
-\setlength\answerlinelength{1in}
-\answerline[False]
-
+\ifprintanswers
+\textbf{[ \textcolor{red}{True} / False ]} \else
+\textbf{[ True / False ]} \fi
+Dogs are better than cats in every way.
 \medskip
 \end{minipage}
 
 
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \question[1]
-Dogs are better than cats in every way.
-\setlength\answerlinelength{1in}
-\answerline[True]
+\ifprintanswers
+\textbf{[ True / \textcolor{red}{False} ]} \else
+\textbf{[ True / False ]} \fi
+The sun appears bigger in the sky because it is closer than the moon.
+\medskip
+\end{minipage}
 
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[1]
+\ifprintanswers
+\textbf{[ \textcolor{red}{True} / False ]} \else
+\textbf{[ True / False ]} \fi
+A woodchuck CAN chuck wood.
 \medskip
 \end{minipage}
 
 
 \endgradingrange{TF}
+\newpage
+\begin{center}
+{\Large \textbf{Matching Questions}}
+\fbox{\fbox{\parbox{5.5in}{\centering
+Match the selection on the left with the best answer on the right.
+Answers that are not legible or not made in the space provided will result in a 0 for that question.
+}}}
+\end{center}
+
+\begingradingrange{matching}
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[8]
+Match the captical city to the state\\
+\def\arraystretch{1.5}
+\medskip
+\begin{tabularx}{\textwidth}{ X r X }
+A. Harrisburg &
+\ifprintanswers
+\underline{\hspace{.25cm}\textcolor{red}{D}\hspace{.25cm}}
+\else
+\underline{\hspace{1cm}}\fi
+& New Jersey
+\\
+B. Albany &
+\ifprintanswers
+\underline{\hspace{.25cm}\textcolor{red}{C}\hspace{.25cm}}
+\else
+\underline{\hspace{1cm}}\fi
+& Massachusetts
+\\
+C. Boston &
+\ifprintanswers
+\underline{\hspace{.25cm}\textcolor{red}{B}\hspace{.25cm}}
+\else
+\underline{\hspace{1cm}}\fi
+& New York
+\\
+D. Trenton &
+\ifprintanswers
+\underline{\hspace{.25cm}\textcolor{red}{A}\hspace{.25cm}}
+\else
+\underline{\hspace{1cm}}\fi
+& Pennsylvania
+\\
+\end{tabularx}
+\end{minipage}
+
+
+\endgradingrange{matching}
+
+
+
 \newpage
 \begin{center}
 {\Large \textbf{Multiple Choice Questions}}
@@ -187,34 +344,34 @@ Answer that are not legible or not made in the space provided will result in a 0
 \begingradingrange{multipleChoice}
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \question[2]
-What class would you use to write data to a file?
+What class would you use to read data from stdin?
 \medskip
 \begin{choices}
-\choice ostream
-\choice ifstream
-\choice ofstream
-\choice ffstream
 \choice istream
+\choice ffstream
+\choice ifstream
+\choice ostream
+\choice ofstream
 \end{choices}
 \setlength\answerlinelength{1in}
-\answerline[C]
+\answerline[A]
 
 \end{minipage}
 
 
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \question[2]
-When is it ok to use friends functions in a class definition?
+What class would you use to read data from a file?
 \medskip
 \begin{choices}
-\choice wrong
-\choice not right
-\choice other
-\choice still wrong
-\choice Never
+\choice ofstream
+\choice ifstream
+\choice ostream
+\choice ffstream
+\choice istream
 \end{choices}
 \setlength\answerlinelength{1in}
-\answerline[E]
+\answerline[B]
 
 \end{minipage}
 
@@ -224,31 +381,48 @@ When is it ok to use friends functions in a class definition?
 When is it ok to use enemy functions in a class definition?
 \medskip
 \begin{choices}
-\choice when you feel like it
-\choice on occasion
-\choice sometimes
 \choice always
+\choice when you feel like it
+\choice sometimes
+\choice on occasion
 \choice when the moon is full
 \end{choices}
 \setlength\answerlinelength{1in}
-\answerline[D]
+\answerline[A]
 
 \end{minipage}
 
 
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \question[2]
-What class would you use to write data from stderr?
+When is it ok to use friends functions in a class definition?
 \medskip
 \begin{choices}
-\choice istream
-\choice ffstream
-\choice ofstream
-\choice ostream
-\choice ifstream
+\choice not right
+\choice Never
+\choice other
+\choice still wrong
+\choice wrong
 \end{choices}
 \setlength\answerlinelength{1in}
-\answerline[D]
+\answerline[B]
+
+\end{minipage}
+
+
+\par\vspace{0.100000in}\begin{minipage}{\linewidth}
+\question[2]
+What class would you use to write data from stdout?
+\medskip
+\begin{choices}
+\choice ostream
+\choice ffstream
+\choice ifstream
+\choice istream
+\choice ofstream
+\end{choices}
+\setlength\answerlinelength{1in}
+\answerline[A]
 
 \end{minipage}
 
@@ -265,34 +439,34 @@ What class would you use to write data from stderr?
 \begingradingrange{bonus}
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \bonusquestion[2]
-A library gained fame by moving which celebrity's book from non-fiction to fiction in 2012?
+The city of Tumbuktu is in what country?
 \medskip
 \begin{choices}
-\choice Beyonce
-\choice Mitt Romney
-\choice Lance Armstrong
-\choice Rupert Murdoch
-\choice Crocodile Dundee
+\choice Mali
+\choice There is no such city
+\choice France
+\choice Morocco
+\choice Mauitania
 \end{choices}
 \setlength\answerlinelength{1in}
-\answerline[C]
+\answerline[A]
 
 \end{minipage}
 
 
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \bonusquestion[2]
-The city of Tumbuktu is in what country?
+A library gained fame by moving which celebrity's book from non-fiction to fiction in 2012?
 \medskip
 \begin{choices}
-\choice Mauitania
-\choice France
-\choice There is no such city
-\choice Mali
-\choice Morocco
+\choice Lance Armstrong
+\choice Beyonce
+\choice Mitt Romney
+\choice Crocodile Dundee
+\choice Rupert Murdoch
 \end{choices}
 \setlength\answerlinelength{1in}
-\answerline[D]
+\answerline[A]
 
 \end{minipage}
 
@@ -300,7 +474,7 @@ The city of Tumbuktu is in what country?
 \par\vspace{0.100000in}\begin{minipage}{\linewidth}
 \vspace{.35cm}\bonusquestion[2]
 What is the answer to life, the universe and everything?
-\vspace{.25cm}\setlength\answerlinelength{1in}
+\vspace{.25cm}\setlength\answerlinelength{3in}
 \answerline[42]
 \end{minipage}
 

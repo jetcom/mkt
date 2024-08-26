@@ -1,0 +1,28 @@
+[earth]
+type=multiPart
+question="What if there were no air?"
+showPoints=true
+[[balloon]]
+   question="Describe the effect on the balloon industry"
+   points=5
+   solutionSpace=0.5in
+   solution="It would be very bad"
+
+[[aircraft]]
+   question="Describe the effect on the aircraft industry"
+   points=5
+   solutionSpace=0.5in
+   solution="We would all have to take trains"
+
+
+
+[insert2]
+type=longAnswer
+points=10
+solutionSpace=3in
+
+question='''
+Foooo
+'''
+solution='''
+bar'''

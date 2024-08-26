@@ -12,6 +12,7 @@ By default, a corresponding answer key is generated for the supplied test.
 mkt supports the following types of questions:
 
 * long answer - at least one sentence for the answer
+* multipart long answer 
 * short answer - typically one word answers
 * multiple choice
 * matching
