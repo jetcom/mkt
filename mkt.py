@@ -33,6 +33,9 @@ class MKT:
     # quiz mode has no cover page
     quiz = False
 
+    # whether to split multiple choice questions into multiple columns (this is a default for quizzes)
+    splitMultipleChoice = False
+
     # add an ID to the test 
     id = False
 
@@ -116,6 +119,13 @@ class MKT:
 
         if "quiz" in config and config["quiz"].lower() == "true": 
             self.quiz = True
+            self.splitMultipleChoice = True
+
+        if "splitMultipleChoice" in config:
+            if config["splitMultipleChoice"].lower() == "true":
+                self.splitMultipleChoice = True
+            else: 
+                self.splitMultipleChoice = False
 
         if "includeID" in config and config["includeID"].lower() == "true": 
             self.id = True
@@ -491,7 +501,7 @@ class MKT:
         if c in ["test", "instructor", "courseName", "courseNumber", "term", "note",
                  "school", "department", "nameOnEveryPage", "defaultPoints",
                  "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
-                 "includeID", "useClassicTF", "quiz"]:
+                 "includeID", "useClassicTF", "quiz", "splitMultipleChoice"]:
             if not self.mainSettingsStored:
                 self.mainSettingsStored = True
                 self.config = config
@@ -904,7 +914,7 @@ class MKT:
             answers = self.shuffle(list(answers.items()))
 
             if self.config["useCheckboxes"].lower() == "true":
-                if self.quiz:
+                if self.splitMultipleChoice:
                     of.write("\\\\ \\begin{oneparcheckboxes}\n")
 
                 else:
@@ -913,16 +923,16 @@ class MKT:
                 align = "\\makebox[5cm][l]{"
                 lineBreakOnEach = False
                 for a, b in answers:
-                    if len(a) > 15:
+                    if len(a) > 30:
                         lineBreakOnEach = True
        
                 for a, b in answers:
                     count+=1
                     of.write("\\%s %s %s}\n" % (b, align, a))
-                    if (count % 2==0 or lineBreakOnEach) and not count == len(answers):
+                    if (count % 2==0 or lineBreakOnEach) and not count == len(answers) and (self.splitMultipleChoice):
                         of.write("\\\\")
 
-                if self.quiz:
+                if self.splitMultipleChoice:
                     of.write("\\end{oneparcheckboxes}\n")
                 else:
                     of.write("\\end{checkboxes}\n\n\n")
