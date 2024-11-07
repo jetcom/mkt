@@ -13,7 +13,7 @@ mkt supports the following types of questions:
 
 * long answer - at least one sentence for the answer
 * multipart long answer 
-* short answer - typically one word answers
+* short answer - typically one and two word answers
 * multiple choice
 * matching
 * true/false
@@ -37,8 +37,6 @@ optional arguments:
   -n, --noAnswerKey     do NOT generate corresponding answer key
 
   -p, --pdf             Generate pdf for test and key files
-  
-  -q, --quiz            Generates a file with no cover page or section headers (quiz mode)
 
   -t, --test            Ignore limits on number of points and questions.
                         Useful for testing
