@@ -5,6 +5,7 @@ from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 
 
 class ProtectedHomeView(LoginRequiredMixin, TemplateView):
@@ -12,7 +13,12 @@ class ProtectedHomeView(LoginRequiredMixin, TemplateView):
     login_url = '/login/'
 
 
+def health_check(request):
+    return JsonResponse({'status': 'ok'})
+
+
 urlpatterns = [
+    path('health/', health_check, name='health_check'),
     path('admin/', admin.site.urls),
     path('api/', include('questions.urls')),
     path('api/ai/', include('ai_tools.urls')),
