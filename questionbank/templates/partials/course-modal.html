@@ -1,0 +1,29 @@
+<!-- Course Modal -->
+    <div id="course-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md fade-in">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-900">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">New Course</h3>
+                <button onclick="closeCourseModal()" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500 dark:text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Course Code</label>
+                    <input type="text" id="c-code" placeholder="CSCI320" class="input-modern w-full px-3 py-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Course Name</label>
+                    <input type="text" id="c-name" placeholder="Database Systems" class="input-modern w-full px-3 py-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
+                    <textarea id="c-description" rows="3" placeholder="Course description..." class="input-modern w-full px-3 py-2 rounded-lg"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3 bg-gray-50 dark:bg-slate-900">
+                <button onclick="closeCourseModal()" class="px-5 py-2 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg font-medium">Cancel</button>
+                <button onclick="saveCourse()" class="btn-primary px-6 py-2 text-white rounded-lg font-medium">Create Course</button>
+            </div>
+        </div>
+    </div>

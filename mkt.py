@@ -45,6 +45,9 @@ class MKT:
     # Total points is used for maxPercent calculations
     totalPoints = None
 
+    # use a bubble sheet for T/F and MC question
+    bubbleSheet = False
+
     # For maxPercent to work, we need to make two passes. This will be set to
     # true if we encounter a maxPercent keyword
     needSecondPass = False
@@ -120,6 +123,9 @@ class MKT:
         if "quiz" in config and config["quiz"].lower() == "true": 
             self.quiz = True
             self.splitMultipleChoice = True
+
+        if "bubbleSheet" in config and config["bubbleSheet"].lower() == "true": 
+            self.bubbleSheet = True
 
         if "splitMultipleChoice" in config:
             if config["splitMultipleChoice"].lower() == "true":
@@ -501,7 +507,7 @@ class MKT:
         if c in ["test", "instructor", "courseName", "courseNumber", "term", "note",
                  "school", "department", "nameOnEveryPage", "defaultPoints",
                  "defaultSolutionSpace", "useCheckboxes", "defaultLineLength",
-                 "includeID", "useClassicTF", "quiz", "splitMultipleChoice"]:
+                 "includeID", "useClassicTF", "quiz", "splitMultipleChoice", "bubbleSheet"]:
             if not self.mainSettingsStored:
                 self.mainSettingsStored = True
                 self.config = config
@@ -554,8 +560,10 @@ class MKT:
 
         # found a question. Add it!
         if "question" in config:
-            if (("skipForQuiz" in config) and (self.quiz)):
+            if (("examOnly" in config) and (self.quiz)):
                 print("%s: %s - Skipping question for quiz mode" % (descriptor, os.path.basename(name)))
+            elif (("quizOnly" in config) and (not self.quiz)):
+                print("%s: %s - Skipping question for exam mode" % (descriptor, os.path.basename(name)))
             else:
                 print("%s: %s - Adding question" % (descriptor, os.path.basename(name)))
 
@@ -721,6 +729,12 @@ class MKT:
         elif maxPoints and sectionPoints < maxPoints:
             showSummary = False
             altQList = self.shuffle(altQList)
+            
+            for q in altQList:
+                # If the question is required, move it to the front of the list
+                if ("required" in q and (q["required"].lower() == "true")):
+                    altQList.remove(q)
+                    altQList.insert(0, q)
 
             for p in altQList:
                 if sectionPoints + int(p["points"]) <= maxPoints:
@@ -1010,57 +1024,12 @@ class MKT:
 
             self.endMinipage(of)
 
-    ###########################################
-    # generateTest
-    ##########################################
-    def generateTest(self, of, questions):
-        longAnswer = []
-        shortAnswer = []
-        multipleChoice = []
-        matching = []
-        tf = []
 
-        multipleChoiceBonus = []
-        shortAnswerBonus = []
-
-        beginQuestions = False
-
-        for q in questions:
-            try:
-                # Handle bonus questions
-                if "bonus" in q and q["bonus"].lower() == "true":
-                    if q["type"].lower() == "multiplechoice":
-                        multipleChoiceBonus.append(q)
-                    elif q["type"].lower() == "shortanswer":
-                        shortAnswerBonus.append(q)
-                    else:
-                        fatal("Only multiple choice and short answer bonus questions are currently supported")
-
-
-
-                elif q["type"].lower() == "longanswer":
-                    longAnswer.append(q)
-                elif q["type"].lower() == "multipart":
-                    longAnswer.append(q)
-                elif q["type"].lower() == "multiplechoice":
-                    multipleChoice.append(q)
-                elif q["type"].lower() == "shortanswer":
-                    shortAnswer.append(q)
-                elif q["type"].lower() == "matching":
-                    matching.append(q)
-                elif q["type"].lower() == "tf":
-                    tf.append(q)
-                else:
-                    fatal("unknown test type: %s" % (q["type"]))
-            except KeyError:
-                fatal("'type' not defined: %s" % (q))
-
-        #
-        # START: Long Answer Questions
-        #
+    def generateLongAnswerQuestions(self, of, beginQuestions, longAnswer):
         if len(longAnswer) > 0:
             if not self.quiz:
             # print out the long answer questions.
+                print("\\newpage", file=of)
                 print("\\begin{center}", file=of)
                 print("{\\Large \\textbf{Long Answers Questions}}", file=of)
                 print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
@@ -1071,9 +1040,11 @@ class MKT:
                 print("}}}", file=of)
                 print("\\end{center}\n", file=of)
 
-            print("\\begin{questions}", file=of)
+            if not beginQuestions:
+                print("\\begin{questions}", file=of)
+                beginQuestions = True
+
             print("\\begingradingrange{longanswer}", file=of)
-            beginQuestions = True
 
             for m in self.shuffle(longAnswer):
                 self.beginMinipage(of);
@@ -1105,11 +1076,11 @@ class MKT:
                 self.endMinipage(of)
 
             print("\\endgradingrange{longanswer}\n\n\n", file=of)
+        return beginQuestions
 
-        #
-        # START: Short answer questions
-        #
-        if len(shortAnswer) > 0:
+
+    def generateShortAnswerQuestions(self, of, beginQuestions, shortAnswer):
+         if len(shortAnswer) > 0:
             if not self.quiz:
                 if self.config["useCheckboxes"].lower() == "true":
                     print("#########################################################")
@@ -1133,10 +1104,42 @@ class MKT:
             self.createShortAnswerQuestions(of, shortAnswer)
 
             print("\\endgradingrange{shortanswer}\n\n\n", file=of)
+         return beginQuestions
 
-        #
-        # START: T/F questions
-        #
+
+    def generateMultipleChoiceQuestions(self, of, beginQuestions, multipleChoice):
+        if len(multipleChoice) > 0:
+            if not self.quiz:
+            # Print multiple choice questions:
+                print("\\newpage", file=of)
+                print("\\begin{center}", file=of)
+                print("{\\Large \\textbf{Multiple Choice Questions}}", file=of)
+                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
+                if self.config["useCheckboxes"].lower() == "true":
+
+                    print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\\CIRCLE$ Answer}).", file=of)
+                    print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+
+                    print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
+                else:
+                    print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
+                    print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+
+                print("}}}", file=of)
+                print("\\end{center}\n", file=of)
+            if not beginQuestions:
+                print("\\begin{questions}", file=of)
+                beginQuestions = True
+            print("\\begingradingrange{multipleChoice}", file=of)
+
+            #
+            # START: Regular multiple choice questions
+            #
+            self.createMultipleChoiceQuestions(of, multipleChoice)
+            print("\\endgradingrange{multiplechoice}\n\n\n", file=of)      
+        return beginQuestions 
+
+    def generateTrueFalseQuestions(self, of, beginQuestions,  tf):
         if len(tf) > 0:
             if not self.quiz:
                 print("\\newpage", file=of)
@@ -1164,10 +1167,9 @@ class MKT:
             print("\\begingradingrange{TF}", file=of)
             self.createTrueFalseQuestions(of, tf)
             print("\\endgradingrange{TF}", file=of)
+        return beginQuestions
 
-        #
-        # START: Matching questions
-        #
+    def generateMatchingQuestions(self, of, beginQuestions,  matching):
         if len(matching) > 0:
             if not self.quiz:
                 print("\\newpage", file=of)
@@ -1215,40 +1217,69 @@ class MKT:
                 self.endMinipage(of)
 
             print("\\endgradingrange{matching}\n\n\n", file=of)
+        return beginQuestions
 
-        #
-        # START: Multiple choice questions
-        #
-        if len(multipleChoice) > 0:
-            if not self.quiz:
-            # Print multiple choice questions:
-                print("\\newpage", file=of)
-                print("\\begin{center}", file=of)
-                print("{\\Large \\textbf{Multiple Choice Questions}}", file=of)
-                print("\\fbox{\\fbox{\\parbox{5.5in}{\\centering", file=of)
-                if self.config["useCheckboxes"].lower() == "true":
 
-                    print("Fill in the circle  \\textit{completely} for the answer you selected. (ex: \\textbf{$\\CIRCLE$ Answer}).", file=of)
-                    print("If you make an incorrect mark, erase your mark and clearly mark the correct answer.", file=of)
+    ###########################################
+    # generateTest
+    ##########################################
+    def generateTest(self, of, questions):
+        longAnswer = []
+        shortAnswer = []
+        multipleChoice = []
+        matching = []
+        tf = []
 
-                    print("If the intended mark is not clear, you will receive a 0 for that question", file=of)
+        multipleChoiceBonus = []
+        shortAnswerBonus = []
+
+        beginQuestions = False
+
+        for q in questions:
+            try:
+                # Handle bonus questions
+                if "bonus" in q and q["bonus"].lower() == "true":
+                    if q["type"].lower() == "multiplechoice":
+                        multipleChoiceBonus.append(q)
+                    elif q["type"].lower() == "shortanswer":
+                        shortAnswerBonus.append(q)
+                    else:
+                        fatal("Only multiple choice and short answer bonus questions are currently supported")
+
+
+
+                elif q["type"].lower() == "longanswer":
+                    longAnswer.append(q)
+                elif q["type"].lower() == "multipart":
+                    longAnswer.append(q)
+                elif q["type"].lower() == "multiplechoice":
+                    multipleChoice.append(q)
+                elif q["type"].lower() == "shortanswer":
+                    shortAnswer.append(q)
+                elif q["type"].lower() == "matching":
+                    matching.append(q)
+                elif q["type"].lower() == "tf":
+                    tf.append(q)
                 else:
-                    print("Write the \\textit{best} answer in the space provided next to the question.", file=of)
-                    print("Answer that are not legible or not made in the space provided will result in a 0 for that question.", file=of)
+                    fatal("unknown test type: %s" % (q["type"]))
+            except KeyError:
+                fatal("'type' not defined: %s" % (q))
 
-                print("}}}", file=of)
-                print("\\end{center}\n", file=of)
-            if not beginQuestions:
-                print("\\begin{questions}", file=of)
-                beginQuestions = True
-            print("\\begingradingrange{multipleChoice}", file=of)
-
-            #
-            # START: Regular multiple choice questions
-            #
-            self.createMultipleChoiceQuestions(of, multipleChoice)
-            print("\\endgradingrange{multiplechoice}\n\n\n", file=of)
-
+        if not self.quiz:
+            print("\\shipout\\null", file=of)
+        if self.bubbleSheet:
+            beginQuestions = self.generateTrueFalseQuestions(of, beginQuestions, tf)
+            beginQuestions = self.generateMultipleChoiceQuestions(of, beginQuestions, multipleChoice)
+            beginQuestions = self.generateLongAnswerQuestions(of, beginQuestions, longAnswer)
+            beginQuestions = self.generateShortAnswerQuestions(of, beginQuestions, shortAnswer)
+            beginQuestions = self.generateMatchingQuestions(of, beginQuestions, matching)
+        else:
+            beginQuestions = self.generateLongAnswerQuestions(of, beginQuestions, longAnswer)
+            beginQuestions = self.generateShortAnswerQuestions(of, beginQuestions, shortAnswer)
+            beginQuestions = self.generateTrueFalseQuestions(of, beginQuestions, tf)
+            beginQuestions = self.generateMatchingQuestions(of, beginQuestions, matching)
+            beginQuestions = self.generateMultipleChoiceQuestions(of, beginQuestions, multipleChoice)
+      
         #
         # START: Bonus questions
         #

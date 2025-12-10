@@ -10,17 +10,22 @@ configobj-5.0.6/validate.py
 configobj-5.0.6/__pycache__/_version.cpython-35.pyc
 configobj.pyc
 Icon\r
-.idea/.gitignore
-.idea/encodings.xml
-.idea/misc.xml
-.idea/mkt.iml
-.idea/modules.xml
-.idea/vcs.xml
-.ropeproject/config.py
-.ropeproject/globalnames
-.ropeproject/history
-.ropeproject/objectdb
-.settings/launch.json
-.settings/settings.json
-.vscode/launch.json
+.idea/
+.ropeproject/
+.settings/
+.vscode/
 /venv/
+.DS_Store
+
+# Django questionbank
+questionbank/venv/
+questionbank/db.sqlite3
+questionbank/staticfiles/
+questionbank/media/
+questionbank/*.pyc
+questionbank/.env
+*.pyc
+*.pyo
+
+# Dropbox conflict files
+*conflicted copy*

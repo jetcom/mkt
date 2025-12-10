@@ -1,0 +1,347 @@
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.conf import settings
+from questions.models import Question
+from questions.serializers import QuestionDetailSerializer
+import json
+
+
+class GenerateQuestionsView(APIView):
+    """Generate questions using AI"""
+
+    def post(self, request):
+        provider = request.data.get('provider', 'claude')  # 'claude' or 'openai'
+        content = request.data.get('content', '')  # Source material
+        question_type = request.data.get('type', 'multipleChoice')
+        count = min(int(request.data.get('count', 5)), 20)  # Max 20 at a time
+        difficulty = request.data.get('difficulty', 'medium')
+        examples = request.data.get('examples', [])  # Example questions for style
+
+        if not content:
+            return Response({'error': 'Content is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if provider == 'claude':
+                questions = self._generate_with_claude(content, question_type, count, difficulty, examples)
+            elif provider == 'openai':
+                questions = self._generate_with_openai(content, question_type, count, difficulty, examples)
+            else:
+                return Response({'error': 'Invalid provider'}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({'questions': questions})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _build_prompt(self, content, question_type, count, difficulty, examples):
+        type_instructions = {
+            'multipleChoice': 'Create multiple choice questions with exactly 4 options (1 correct, 3 wrong).',
+            'trueFalse': 'Create true/false questions.',
+            'shortAnswer': 'Create short answer questions that can be answered in 1-2 sentences.',
+            'longAnswer': 'Create long answer/essay questions that require detailed responses.',
+        }
+
+        example_text = ""
+        if examples:
+            example_text = "\n\nHere are example questions to match the style:\n"
+            for i, ex in enumerate(examples[:3], 1):
+                example_text += f"\nExample {i}:\n{ex}\n"
+
+        prompt = f"""Generate {count} {difficulty} difficulty {question_type} questions based on the following content.
+
+{type_instructions.get(question_type, 'Create questions appropriate for the type specified.')}
+
+Return your response as a JSON array with this structure:
+[
+  {{
+    "text": "The question text",
+    "answer_data": {{
+      // For multipleChoice:
+      "correct": "The correct answer",
+      "wrong": ["Wrong 1", "Wrong 2", "Wrong 3"]
+
+      // For trueFalse:
+      "correct": true or false
+
+      // For shortAnswer/longAnswer:
+      "solution": "The expected answer"
+    }},
+    "difficulty": "{difficulty}",
+    "points": 2
+  }}
+]
+
+Content to generate questions from:
+---
+{content}
+---
+{example_text}
+
+Return ONLY the JSON array, no other text."""
+        return prompt
+
+    def _generate_with_claude(self, content, question_type, count, difficulty, examples):
+        import anthropic
+
+        if not settings.ANTHROPIC_API_KEY:
+            raise ValueError("Anthropic API key not configured")
+
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        prompt = self._build_prompt(content, question_type, count, difficulty, examples)
+
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4096,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        response_text = message.content[0].text
+        # Parse JSON from response
+        return json.loads(response_text)
+
+    def _generate_with_openai(self, content, question_type, count, difficulty, examples):
+        from openai import OpenAI
+
+        if not settings.OPENAI_API_KEY:
+            raise ValueError("OpenAI API key not configured")
+
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        prompt = self._build_prompt(content, question_type, count, difficulty, examples)
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert educator who creates clear, well-structured exam questions."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+        )
+
+        response_text = response.choices[0].message.content
+        return json.loads(response_text)
+
+
+class ImproveQuestionView(APIView):
+    """Improve an existing question using AI"""
+
+    def post(self, request):
+        provider = request.data.get('provider', 'claude')
+        question = request.data.get('question', {})
+        instruction = request.data.get('instruction', 'Improve this question for clarity and difficulty')
+
+        if not question:
+            return Response({'error': 'Question is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            prompt = f"""Improve this exam question based on the following instruction: {instruction}
+
+Current question:
+Type: {question.get('question_type', 'unknown')}
+Text: {question.get('text', '')}
+Answer data: {json.dumps(question.get('answer_data', {}))}
+
+Return your response as a JSON object with the same structure:
+{{
+  "text": "The improved question text",
+  "answer_data": {{ ... }},
+  "explanation": "Brief explanation of what was changed"
+}}
+
+Return ONLY the JSON object, no other text."""
+
+            if provider == 'claude':
+                result = self._call_claude(prompt)
+            else:
+                result = self._call_openai(prompt)
+
+            return Response({'improved': result})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _call_claude(self, prompt):
+        import anthropic
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return json.loads(message.content[0].text)
+
+    def _call_openai(self, prompt):
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert educator."},
+                {"role": "user", "content": prompt}
+            ],
+        )
+        return json.loads(response.choices[0].message.content)
+
+
+class ValidateQuestionView(APIView):
+    """Validate a question for issues"""
+
+    def post(self, request):
+        question = request.data.get('question', {})
+
+        if not question:
+            return Response({'error': 'Question is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        issues = []
+        text = question.get('text', '')
+        answer_data = question.get('answer_data', {})
+
+        # Check for common issues
+        if len(text) < 10:
+            issues.append({'type': 'warning', 'message': 'Question text seems too short'})
+
+        if question.get('question_type') == 'multipleChoice':
+            wrong = answer_data.get('wrong', [])
+            if len(wrong) < 3:
+                issues.append({'type': 'error', 'message': 'Multiple choice needs at least 3 wrong answers'})
+            if not answer_data.get('correct'):
+                issues.append({'type': 'error', 'message': 'Missing correct answer'})
+
+        if question.get('question_type') == 'trueFalse':
+            if 'correct' not in answer_data:
+                issues.append({'type': 'error', 'message': 'Missing true/false answer'})
+
+        # Check for ambiguous language
+        ambiguous_phrases = ['might be', 'could be', 'sometimes', 'usually', 'often']
+        for phrase in ambiguous_phrases:
+            if phrase in text.lower():
+                issues.append({'type': 'warning', 'message': f'Potentially ambiguous phrase: "{phrase}"'})
+
+        return Response({
+            'valid': len([i for i in issues if i['type'] == 'error']) == 0,
+            'issues': issues
+        })
+
+
+class GenerateVariantView(APIView):
+    """Generate a variant of an existing question using AI"""
+
+    def post(self, request):
+        question_id = request.data.get('question_id')
+        block_id = request.data.get('block_id')
+        provider = request.data.get('provider', 'claude')
+
+        if not question_id:
+            return Response({'error': 'question_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            original = Question.objects.get(id=question_id)
+        except Question.DoesNotExist:
+            return Response({'error': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get other variants in the block for context
+        existing_variants = []
+        if original.block:
+            existing_variants = list(
+                original.block.questions.exclude(id=original.id)
+                .values_list('text', flat=True)[:5]
+            )
+
+        try:
+            prompt = self._build_variant_prompt(original, existing_variants)
+
+            if provider == 'claude':
+                variant_data = self._call_claude(prompt)
+            else:
+                variant_data = self._call_openai(prompt)
+
+            # Create the new question
+            new_question = Question.objects.create(
+                question_bank=original.question_bank,
+                block=original.block,
+                question_type=original.question_type,
+                text=variant_data.get('text', ''),
+                answer_data=variant_data.get('answer_data', {}),
+                points=original.points,
+                difficulty=original.difficulty,
+                is_bonus=original.is_bonus,
+                is_required=original.is_required,
+            )
+
+            # Copy tags from original
+            new_question.tags.set(original.tags.all())
+
+            return Response(QuestionDetailSerializer(new_question).data)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _build_variant_prompt(self, original, existing_variants):
+        type_instructions = {
+            'multipleChoice': 'Keep exactly 4 options (1 correct, 3 wrong). The answer_data should have "correct" and "wrong" keys.',
+            'trueFalse': 'Keep it as a true/false question. The answer_data should have "correct" as true or false.',
+            'shortAnswer': 'Keep it as a short answer question. The answer_data should have "solution".',
+            'longAnswer': 'Keep it as a long answer question. The answer_data should have "solution".',
+        }
+
+        existing_text = ""
+        if existing_variants:
+            existing_text = "\n\nOther existing variants (avoid duplicating these):\n"
+            for i, text in enumerate(existing_variants, 1):
+                existing_text += f"- {text[:200]}...\n" if len(text) > 200 else f"- {text}\n"
+
+        prompt = f"""Create a NEW variant of this exam question. The variant should test the same concept but with different wording, examples, or values.
+
+Original question:
+Type: {original.question_type}
+Text: {original.text}
+Answer data: {json.dumps(original.answer_data)}
+
+{type_instructions.get(original.question_type, '')}
+{existing_text}
+
+Requirements:
+1. Test the same underlying concept/skill
+2. Use different wording, numbers, examples, or scenarios
+3. Maintain the same difficulty level
+4. Keep the same question type and answer structure
+
+Return your response as a JSON object:
+{{
+  "text": "The new variant question text",
+  "answer_data": {{ ... same structure as original ... }}
+}}
+
+Return ONLY the JSON object, no other text."""
+        return prompt
+
+    def _call_claude(self, prompt):
+        import anthropic
+
+        if not settings.ANTHROPIC_API_KEY:
+            raise ValueError("Anthropic API key not configured")
+
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return json.loads(message.content[0].text)
+
+    def _call_openai(self, prompt):
+        from openai import OpenAI
+
+        if not settings.OPENAI_API_KEY:
+            raise ValueError("OpenAI API key not configured")
+
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert educator creating exam question variants."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.8,
+        )
+        return json.loads(response.choices[0].message.content)

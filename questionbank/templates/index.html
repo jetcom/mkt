@@ -1,0 +1,1040 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Bank</title>
+    <!-- System font stack for instant loading, Inter as enhancement -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/vendor/lucide.min.js"></script>
+    <!-- Monaco loaded lazily when modal opens -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1' },
+                        surface: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 800: '#27272a', 900: '#18181b' }
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 0 20px rgba(14, 165, 233, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; }
+        /* Light mode */
+        body { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); }
+        .glass { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); }
+        .card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1); transition: all 0.2s; }
+        .input-modern { border: 2px solid #e4e4e7; background: white; color: #18181b; transition: all 0.2s; }
+        .question-row:hover { border-left-color: #0ea5e9; background: #f8fafc; }
+        .stat-card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); }
+
+        /* Dark mode */
+        .dark body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .dark .glass { background: rgba(30, 41, 59, 0.8); border-color: rgba(51, 65, 85, 0.5); }
+        .dark .card { background: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.2); border: 1px solid #334155; }
+        .dark .card:hover { box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+        .dark .input-modern { border-color: #475569; background: #0f172a; color: #f1f5f9; }
+        .dark .input-modern:focus { border-color: #0ea5e9; background: #1e293b; }
+        .dark .input-modern::placeholder { color: #64748b; }
+        .dark .question-row:hover { background: #334155; }
+        .dark .stat-card { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Common styles */
+        .sidebar-item { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-item:hover { transform: translateX(4px); }
+        .sidebar-item.active { background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); }
+        .card:hover { transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); transition: all 0.2s; }
+        .btn-primary:hover { box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4); transform: translateY(-1px); }
+        .input-modern:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); outline: none; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+        .monaco-container { height: 250px; border: 2px solid #475569; border-radius: 12px; overflow: hidden; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+        .question-row { border-left: 3px solid transparent; transition: all 0.15s; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* Question tabs (linked and block variants) */
+        #linked-tabs, #block-tabs { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+        #linked-tabs::-webkit-scrollbar, #block-tabs::-webkit-scrollbar { height: 4px; }
+
+        /* Draggable answer space box */
+        .answer-space-container { position: relative; }
+        .answer-space-box {
+            border: 2px dashed #94a3b8;
+            border-radius: 8px;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 10px,
+                rgba(148, 163, 184, 0.1) 10px,
+                rgba(148, 163, 184, 0.1) 11px
+            );
+            position: relative;
+            min-height: 25px;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .answer-space-box:hover { border-color: #0ea5e9; }
+        .dark .answer-space-box { border-color: #475569; background: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(71, 85, 105, 0.2) 10px, rgba(71, 85, 105, 0.2) 11px); }
+        .dark .answer-space-box:hover { border-color: #0ea5e9; }
+        .answer-space-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .answer-space-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+        .dark .answer-space-label { color: #64748b; }
+        .answer-space-handle {
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 2px solid #94a3b8;
+            border-radius: 0 0 6px 6px;
+            padding: 2px 10px;
+            cursor: ns-resize;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .answer-space-handle:hover { background: #f0f9ff; border-color: #0ea5e9; }
+        .dark .answer-space-handle { background: #1e293b; border-color: #475569; }
+        .dark .answer-space-handle:hover { background: #334155; border-color: #0ea5e9; }
+        .answer-space-size {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            min-width: 36px;
+            text-align: center;
+        }
+        .dark .answer-space-size { color: #94a3b8; }
+        .answer-space-handle i { color: #94a3b8; }
+        .dark .answer-space-handle i { color: #64748b; }
+
+        /* Draggable answer line (short answer) - right aligned like real exams */
+        .answer-line-container { position: relative; padding-bottom: 8px; display: flex; justify-content: flex-end; }
+        .answer-line-box {
+            position: relative;
+            min-width: 50px;
+            height: 24px;
+            display: flex;
+            align-items: flex-end;
+        }
+        .answer-line {
+            flex: 1;
+            height: 2px;
+            background: #64748b;
+            border-radius: 1px;
+        }
+        .dark .answer-line { background: #94a3b8; }
+        .answer-line-handle {
+            position: absolute;
+            left: -8px;
+            bottom: -4px;
+            background: white;
+            border: 2px solid #94a3b8;
+            border-radius: 6px;
+            padding: 2px 6px;
+            cursor: ew-resize;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .answer-line-handle:hover { background: #f0f9ff; border-color: #0ea5e9; }
+        .dark .answer-line-handle { background: #1e293b; border-color: #475569; }
+        .dark .answer-line-handle:hover { background: #334155; border-color: #0ea5e9; }
+        .answer-line-size {
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748b;
+            min-width: 28px;
+            text-align: center;
+        }
+        .dark .answer-line-size { color: #94a3b8; }
+        .answer-line-handle i { color: #94a3b8; }
+        .dark .answer-line-handle i { color: #64748b; }
+    </style>
+</head>
+<body class="h-full">
+    <div id="app" class="flex h-full">
+        <!-- Sidebar -->
+        <aside class="w-72 glass border-r border-gray-200/50 dark:border-slate-700/50 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-sky-500/30">
+                        <i data-lucide="library" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900 dark:text-white">Question Bank</h1>
+                        <p class="text-xs text-gray-500 dark:text-slate-400">Exam Management System</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="#" onclick="showView('questions', event)" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
+                    <i data-lucide="file-question" class="w-5 h-5"></i>
+                    <span>Questions</span>
+                    <span id="nav-count" class="ml-auto text-xs bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">0</span>
+                </a>
+                <a href="#" onclick="showView('courses', event)" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
+                    <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                    <span>Courses</span>
+                </a>
+                <a href="#" onclick="showView('exams', event)" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
+                    <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                    <span>Build Exam</span>
+                </a>
+                <a href="#" onclick="showView('generate', event)" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    <span>AI Generate</span>
+                    <span class="ml-auto text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">NEW</span>
+                </a>
+                <a href="#" onclick="showView('trash', event)" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <span>Trash</span>
+                    <span id="nav-trash-count" class="ml-auto text-xs bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full hidden">0</span>
+                </a>
+            </nav>
+
+            <!-- User section -->
+            <div class="px-4 mb-2 border-t border-gray-200 dark:border-slate-700 pt-4">
+                <div class="flex items-center gap-3 px-4 py-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.username }}</div>
+                        <div class="text-xs text-gray-500 dark:text-slate-400">{{ user.email|default:"No email" }}</div>
+                    </div>
+                    <a href="{% url 'logout' %}" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Logout">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Dark mode toggle -->
+            <div class="px-4 mb-2">
+                <button onclick="toggleDarkMode()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="sun" class="w-5 h-5 dark:hidden"></i>
+                    <span class="dark:hidden">Dark Mode</span>
+                    <span class="hidden dark:inline">Light Mode</span>
+                </button>
+            </div>
+
+            <div class="p-4 m-4 rounded-xl bg-gradient-to-br from-sky-50 to-cyan-50 dark:from-sky-900/30 dark:to-cyan-900/30 border border-sky-100 dark:border-sky-800/50">
+                <div class="flex items-center gap-2 text-sm text-sky-700 dark:text-sky-300 font-medium mb-2">
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                    Quick Stats
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-white/60 dark:bg-slate-800/60 rounded-lg p-2 text-center">
+                        <div id="stat-questions" class="text-lg font-bold text-gray-900 dark:text-white">0</div>
+                        <div class="text-gray-500 dark:text-slate-400">Questions</div>
+                    </div>
+                    <div class="bg-white/60 dark:bg-slate-800/60 rounded-lg p-2 text-center">
+                        <div id="stat-courses" class="text-lg font-bold text-gray-900 dark:text-white">0</div>
+                        <div class="text-gray-500 dark:text-slate-400">Courses</div>
+                    </div>
+                </div>
+                <div id="usage-stats-mini" class="mt-2 pt-2 border-t border-sky-100 dark:border-sky-800/50 hidden">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-500 dark:text-slate-400">Usage rate</span>
+                        <span id="stat-usage-rate" class="font-medium text-sky-700 dark:text-sky-300">0%</span>
+                    </div>
+                    <div class="mt-1 h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div id="stat-usage-bar" class="h-full bg-gradient-to-r from-sky-500 to-cyan-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto">
+            <!-- Questions View -->
+            <div id="view-questions" class="view p-8 slide-up">
+                <div class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Questions</h2>
+                            <p class="text-gray-500 dark:text-slate-400 mt-1">Browse, search, and manage your question library</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1 border border-gray-200 dark:border-slate-700 rounded-lg p-1">
+                                <button onclick="exportQuestions('json')" class="px-3 py-1.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg flex items-center gap-1" title="Export as JSON">
+                                    <i data-lucide="download" class="w-4 h-4"></i>JSON
+                                </button>
+                                <button onclick="exportQuestions('csv')" class="px-3 py-1.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg flex items-center gap-1" title="Export as CSV">
+                                    <i data-lucide="download" class="w-4 h-4"></i>CSV
+                                </button>
+                                <button onclick="openImportModal()" class="px-3 py-1.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg flex items-center gap-1" title="Import questions">
+                                    <i data-lucide="upload" class="w-4 h-4"></i>Import
+                                </button>
+                            </div>
+                            <button id="bulk-toggle-btn" onclick="toggleBulkMode()" class="px-3 py-2 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg flex items-center gap-1 border border-gray-200 dark:border-slate-700" title="Bulk select mode">
+                                <i data-lucide="check-square" class="w-4 h-4"></i>
+                                Bulk
+                            </button>
+                            <button onclick="openNewQuestion()" class="btn-primary flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-medium shadow-lg">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                New Question
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Action Bar -->
+                    <div id="bulk-action-bar" class="hidden card p-3 mb-4 flex items-center justify-between bg-sky-50 dark:bg-sky-900/30 border-sky-200 dark:border-sky-700">
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm text-sky-700 dark:text-sky-300"><span id="bulk-count">0</span> selected</span>
+                            <button onclick="selectAllVisible()" class="text-sm text-sky-600 hover:text-sky-700 font-medium">Select All Visible</button>
+                            <button onclick="deselectAll()" class="text-sm text-gray-500 hover:text-gray-700">Clear</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="bulkTag()" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 flex items-center gap-1">
+                                <i data-lucide="tag" class="w-4 h-4"></i>Tag
+                            </button>
+                            <button onclick="bulkMove()" class="px-3 py-1.5 text-sm bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 flex items-center gap-1">
+                                <i data-lucide="folder" class="w-4 h-4"></i>Move
+                            </button>
+                            <button onclick="bulkDelete()" class="px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div class="card p-4 mb-6">
+                        <div class="flex flex-wrap gap-3">
+                            <div class="flex-1 min-w-[280px] relative">
+                                <i data-lucide="search" class="w-5 h-5 text-gray-400 dark:text-slate-500 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                                <input type="text" id="search-input" placeholder="Search questions by text, tags..."
+                                    class="input-modern w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800">
+                            </div>
+                            <select id="filter-course" class="input-modern px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 min-w-[160px]">
+                                <option value="">All Courses</option>
+                            </select>
+                            <div class="relative">
+                                <button type="button" onclick="toggleTagDropdown()" id="tag-dropdown-btn" class="input-modern px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 min-w-[140px] flex items-center gap-2">
+                                    <span id="tag-dropdown-text">All Tags</span>
+                                    <i data-lucide="chevron-down" class="w-4 h-4 ml-auto"></i>
+                                </button>
+                                <div id="tag-dropdown" class="hidden absolute z-50 mt-1 w-64 max-h-64 overflow-y-auto bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg">
+                                    <div class="p-2 border-b border-gray-100 dark:border-slate-700">
+                                        <button onclick="openTagModal()" class="w-full text-left px-2 py-1.5 text-sm text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg flex items-center gap-2">
+                                            <i data-lucide="settings" class="w-4 h-4"></i>Manage Tags
+                                        </button>
+                                    </div>
+                                    <div id="tag-checkboxes" class="p-2 space-y-1"></div>
+                                </div>
+                            </div>
+                            <select id="filter-type" class="input-modern px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 min-w-[160px]">
+                                <option value="">All Types</option>
+                                <option value="multipleChoice">Multiple Choice</option>
+                                <option value="trueFalse">True/False</option>
+                                <option value="shortAnswer">Short Answer</option>
+                                <option value="longAnswer">Long Answer</option>
+                            </select>
+                            <select id="filter-difficulty" class="input-modern px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 min-w-[140px]">
+                                <option value="">All Levels</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Questions List -->
+                    <div class="card overflow-hidden">
+                        <div id="questions-list">
+                            <!-- Skeleton loading rows -->
+                            <div class="divide-y divide-gray-100 dark:divide-slate-700">
+                                <div class="p-4 flex items-start gap-4 animate-pulse">
+                                    <div class="w-20 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                        <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/2"></div>
+                                    </div>
+                                    <div class="w-16 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                </div>
+                                <div class="p-4 flex items-start gap-4 animate-pulse">
+                                    <div class="w-20 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-2/3"></div>
+                                        <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/3"></div>
+                                    </div>
+                                    <div class="w-16 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                </div>
+                                <div class="p-4 flex items-start gap-4 animate-pulse">
+                                    <div class="w-20 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-5/6"></div>
+                                        <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-2/5"></div>
+                                    </div>
+                                    <div class="w-16 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                </div>
+                                <div class="p-4 flex items-start gap-4 animate-pulse">
+                                    <div class="w-20 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/2"></div>
+                                        <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/4"></div>
+                                    </div>
+                                    <div class="w-16 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                </div>
+                                <div class="p-4 flex items-start gap-4 animate-pulse">
+                                    <div class="w-20 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-4/5"></div>
+                                        <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/3"></div>
+                                    </div>
+                                    <div class="w-16 h-5 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courses View -->
+            <div id="view-courses" class="view hidden p-8 slide-up">
+                <div class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Courses</h2>
+                            <p class="text-gray-500 dark:text-slate-400 mt-1">Organize your questions by course</p>
+                        </div>
+                        <button onclick="openNewCourse()" class="btn-primary flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-medium shadow-lg">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            New Course
+                        </button>
+                    </div>
+                    <div id="courses-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </div>
+
+            <!-- Exam Builder View -->
+            <div id="view-exams" class="view hidden p-8 slide-up">
+                <div class="max-w-6xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Build Exam</h2>
+                        <p class="text-gray-500 dark:text-slate-400 mt-1">Select questions and generate exams</p>
+                    </div>
+
+                    <!-- Template Selector -->
+                    <div class="card p-4 mb-6">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-5 h-5 text-gray-400 dark:text-slate-500"></i>
+                                <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Course:</span>
+                            </div>
+                            <select id="template-course-selector" onchange="filterTemplatesByCourse(this.value)" class="input-modern px-3 py-2 rounded-lg min-w-[140px]">
+                                <option value="">All Courses</option>
+                            </select>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Template:</span>
+                            </div>
+                            <select id="template-selector" onchange="loadExamTemplate(this.value)" class="input-modern px-4 py-2 rounded-lg flex-1 min-w-[200px]">
+                                <option value="">Select a template...</option>
+                            </select>
+                            <button onclick="openNewTemplateModal()" class="px-3 py-1.5 text-sm bg-sky-500 dark:bg-sky-600 text-white rounded-lg hover:bg-sky-600 dark:hover:bg-sky-500 font-medium flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                New
+                            </button>
+                            <div class="flex gap-2 text-xs">
+                                <button onclick="loadExamTemplates('false')" class="px-3 py-1.5 bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 dark:hover:bg-sky-800/50">Exams</button>
+                                <button onclick="loadExamTemplates('true')" class="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800/50">Quizzes</button>
+                                <button onclick="loadExamTemplates('')" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600">All</button>
+                            </div>
+                            <div class="border-l border-gray-200 dark:border-slate-600 h-6"></div>
+                            <button onclick="saveAsTemplate()" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800/50 font-medium flex items-center gap-1">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                                Save Template
+                            </button>
+                            <button id="share-template-btn" onclick="openShareModal('template', currentTemplateId)" class="hidden px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 dark:hover:bg-sky-800/50 font-medium flex items-center gap-1" title="Share template">
+                                <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button id="copy-template-btn" onclick="copyTemplate(currentTemplateId)" class="hidden px-3 py-1.5 text-sm bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800/50 font-medium flex items-center gap-1" title="Copy template">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button id="delete-template-btn" onclick="deleteCurrentTemplate()" class="hidden px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-800/50 font-medium flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <!-- Active filters indicator -->
+                        <div id="active-filters" class="hidden mt-3 flex flex-wrap gap-2 text-xs">
+                            <span class="text-gray-500 dark:text-slate-400">Active filters:</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Exam Settings -->
+                        <div class="lg:col-span-1">
+                            <div class="card p-6 sticky top-8 max-h-[calc(100vh-6rem)] overflow-y-auto">
+                                <h3 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <i data-lucide="settings" class="w-5 h-5 text-gray-400 dark:text-slate-500"></i>
+                                    Exam Settings
+                                </h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Exam Title</label>
+                                        <input type="text" id="exam-title" value="Midterm Exam" class="input-modern w-full px-4 py-2 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Course</label>
+                                        <input type="text" id="exam-course" placeholder="CSCI 320" class="input-modern w-full px-4 py-2 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Instructor</label>
+                                        <input type="text" id="exam-instructor" class="input-modern w-full px-4 py-2 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Term</label>
+                                        <input type="text" id="exam-term" placeholder="Fall 2024" class="input-modern w-full px-4 py-2 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Instructions</label>
+                                        <textarea id="exam-instructions" rows="3" class="input-modern w-full px-4 py-2 rounded-lg" placeholder="Answer all questions..."></textarea>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" id="exam-shuffle" checked class="w-4 h-4 rounded text-sky-600">
+                                        <label for="exam-shuffle" class="text-sm text-gray-700 dark:text-slate-300">Shuffle questions</label>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" id="exam-answers" checked class="w-4 h-4 rounded text-sky-600">
+                                        <label for="exam-answers" class="text-sm text-gray-700 dark:text-slate-300">Include answer key</label>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Number of Versions</label>
+                                        <div class="flex items-center gap-3">
+                                            <select id="exam-versions" class="input-modern px-3 py-2 rounded-lg flex-1">
+                                                <option value="1">1 (single version)</option>
+                                                <option value="2">2 versions (A, B)</option>
+                                                <option value="3">3 versions (A, B, C)</option>
+                                                <option value="4">4 versions (A, B, C, D)</option>
+                                                <option value="5">5 versions</option>
+                                                <option value="6">6 versions</option>
+                                            </select>
+                                        </div>
+                                        <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Each version shuffles questions differently</p>
+                                    </div>
+                                    <div class="border-t border-gray-100 dark:border-slate-700 pt-4 mt-4">
+                                        <div class="flex items-center gap-3">
+                                            <input type="checkbox" id="exam-quiz-mode" class="w-4 h-4 rounded text-sky-600" onchange="toggleQuizModeOptions()">
+                                            <label for="exam-quiz-mode" class="text-sm font-medium text-gray-700 dark:text-slate-300">Quiz Mode</label>
+                                            <span class="text-xs text-gray-400 dark:text-slate-500">(compact layout, no cover page)</span>
+                                        </div>
+                                        <div id="quiz-mode-options" class="ml-7 mt-2 space-y-2 hidden">
+                                            <div class="flex items-center gap-3">
+                                                <input type="checkbox" id="exam-include-id" class="w-4 h-4 rounded text-sky-600">
+                                                <label for="exam-include-id" class="text-sm text-gray-700 dark:text-slate-300">Include student ID field</label>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <input type="checkbox" id="exam-split-mc" checked class="w-4 h-4 rounded text-sky-600">
+                                                <label for="exam-split-mc" class="text-sm text-gray-700 dark:text-slate-300">Split multiple choice into columns</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="border-t border-gray-100 dark:border-slate-700 pt-4 mt-4">
+                                        <h4 class="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Answer Formatting</h4>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Short Answer Line Length</label>
+                                                <select id="exam-line-length" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                                    <option value="1in">1 inch</option>
+                                                    <option value="2in">2 inches</option>
+                                                    <option value="3in" selected>3 inches</option>
+                                                    <option value="4in">4 inches</option>
+                                                    <option value="5in">5 inches</option>
+                                                    <option value="\\linewidth">Full width</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Long Answer Space</label>
+                                                <select id="exam-solution-space" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                                    <option value="1in">1 inch</option>
+                                                    <option value="1.5in" selected>1.5 inches</option>
+                                                    <option value="2in">2 inches</option>
+                                                    <option value="3in">3 inches</option>
+                                                    <option value="4in">4 inches</option>
+                                                    <option value="\\stretch{1}">Fill page</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <details class="border-t border-gray-100 dark:border-slate-700 pt-4 mt-4">
+                                        <summary class="text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer hover:text-sky-600">
+                                            Exam Point Constraints (optional)
+                                        </summary>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Max Total Pts</label>
+                                                <input type="number" id="exam-max-points" min="0" placeholder="--" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Max MC Pts</label>
+                                                <input type="number" id="exam-max-mc-points" min="0" placeholder="--" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Max T/F Pts</label>
+                                                <input type="number" id="exam-max-tf-points" min="0" placeholder="--" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Max Short Pts</label>
+                                                <input type="number" id="exam-max-short-points" min="0" placeholder="--" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Max Long Pts</label>
+                                                <input type="number" id="exam-max-long-points" min="0" placeholder="--" class="input-modern w-full px-3 py-1.5 rounded-lg text-sm">
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+
+                                <div class="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-sm text-gray-600 dark:text-slate-400">Questions</span>
+                                        <span id="selected-count" class="font-bold text-sky-600">0</span>
+                                    </div>
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-sm text-gray-600 dark:text-slate-400">Points</span>
+                                        <span id="selected-points" class="font-bold text-sky-600">0</span>
+                                    </div>
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-sm text-gray-600 dark:text-slate-400">Target</span>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="target-points" value="150" min="0" step="10"
+                                                   class="w-20 px-2 py-1 text-sm text-right font-bold border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                                                   onchange="updateTargetIndicator()">
+                                            <span class="text-sm text-gray-400">pts</span>
+                                        </div>
+                                    </div>
+                                    <div id="target-indicator" class="mb-4 p-2 rounded-lg text-sm font-medium text-center hidden">
+                                        <!-- Will show success/warning based on points vs target -->
+                                    </div>
+                                    <button onclick="balanceForTarget()" class="w-full mb-3 px-3 py-2 text-sm bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800/50 font-medium flex items-center justify-center gap-2">
+                                        <i data-lucide="scale" class="w-4 h-4"></i>
+                                        Balance for Target
+                                    </button>
+                                    <div class="flex gap-2">
+                                        <button id="btn-generate-html" onclick="generateExam('html')" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <i data-lucide="file-code" class="w-4 h-4 inline mr-1"></i>HTML
+                                        </button>
+                                        <button id="btn-generate-pdf" onclick="generateExam('pdf')" class="flex-1 btn-primary px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <i data-lucide="file-text" class="w-4 h-4 inline mr-1"></i>PDF
+                                        </button>
+                                    </div>
+                                    <!-- Generation progress indicator -->
+                                    <div id="generation-progress" class="hidden mt-3">
+                                        <div class="flex items-center gap-2 text-sm text-sky-600 dark:text-sky-400">
+                                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span id="generation-status">Generating...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section-based Question Builder -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="card p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <i data-lucide="layers" class="w-5 h-5 text-gray-400"></i>
+                                        Exam Sections
+                                    </h3>
+                                    <button onclick="addExamSection()" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 font-medium flex items-center gap-1">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        Add Section
+                                    </button>
+                                </div>
+                                <div id="exam-sections" class="space-y-4">
+                                    <!-- Sections will be added here -->
+                                    <div class="text-center py-8 text-gray-400 dark:text-slate-500">
+                                        <i data-lucide="layout-list" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                                        <p>Click "Add Section" to start building your exam</p>
+                                        <p class="text-xs mt-1">Each section can have different tags and question counts</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preview of selected questions -->
+                            <div class="card p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <i data-lucide="eye" class="w-5 h-5 text-gray-400"></i>
+                                        Preview
+                                    </h3>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="refreshExamPreview()" class="px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 font-medium flex items-center gap-1" title="Refresh with same questions">
+                                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                            Refresh
+                                        </button>
+                                        <button onclick="refreshExamPreview(true)" class="px-3 py-1.5 text-sm bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 font-medium flex items-center gap-1" title="Shuffle and select new random questions">
+                                            <i data-lucide="shuffle" class="w-4 h-4"></i>
+                                            Shuffle
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="exam-preview" class="space-y-2 max-h-[400px] overflow-y-auto">
+                                    <div class="text-center py-6 text-gray-400 dark:text-slate-500 text-sm">
+                                        Add sections and click Refresh to preview questions
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Generate View -->
+            <div id="view-generate" class="view hidden p-8 slide-up">
+                <div class="max-w-5xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">AI Question Generator</h2>
+                        <p class="text-gray-500 dark:text-slate-400 mt-1">Generate exam questions from your content using AI</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="card p-6">
+                            <h3 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i data-lucide="file-input" class="w-5 h-5 text-gray-400"></i>
+                                Source Content
+                            </h3>
+                            <textarea id="ai-content" rows="12" placeholder="Paste lecture notes, textbook content, or any source material here..."
+                                class="input-modern w-full px-4 py-3 rounded-xl resize-none"></textarea>
+
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">AI Provider</label>
+                                    <select id="ai-provider" class="input-modern w-full px-3 py-2 rounded-lg">
+                                        <option value="claude">Claude (Anthropic)</option>
+                                        <option value="openai">GPT-4 (OpenAI)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Question Type</label>
+                                    <select id="ai-type" class="input-modern w-full px-3 py-2 rounded-lg">
+                                        <option value="multipleChoice">Multiple Choice</option>
+                                        <option value="trueFalse">True/False</option>
+                                        <option value="shortAnswer">Short Answer</option>
+                                        <option value="longAnswer">Essay</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Difficulty</label>
+                                    <select id="ai-difficulty" class="input-modern w-full px-3 py-2 rounded-lg">
+                                        <option value="easy">Easy</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="hard">Hard</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Number of Questions</label>
+                                    <input type="number" id="ai-count" value="5" min="1" max="20" class="input-modern w-full px-3 py-2 rounded-lg">
+                                </div>
+                            </div>
+
+                            <button onclick="generateQuestions()" id="generate-btn"
+                                class="btn-primary w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl font-medium">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                Generate Questions
+                            </button>
+                        </div>
+
+                        <div class="card p-6">
+                            <h3 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i data-lucide="list-checks" class="w-5 h-5 text-gray-400 dark:text-slate-500"></i>
+                                Generated Questions
+                            </h3>
+                            <div id="generated-questions" class="space-y-4 max-h-[500px] overflow-y-auto">
+                                <div class="text-center py-12 text-gray-400 dark:text-slate-500">
+                                    <i data-lucide="wand-2" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                                    <p>Generated questions will appear here</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trash View -->
+            <div id="view-trash" class="view hidden p-8 slide-up">
+                <div class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Trash</h2>
+                            <p class="text-gray-500 dark:text-slate-400 mt-1">Deleted questions can be restored or permanently removed</p>
+                        </div>
+                        <button onclick="emptyTrash()" id="empty-trash-btn" class="px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2 border border-red-200 dark:border-red-800">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Empty Trash
+                        </button>
+                    </div>
+
+                    <div class="card overflow-hidden">
+                        <div id="trash-list" class="divide-y divide-gray-100 dark:divide-slate-700">
+                            <div class="p-12 text-center text-gray-400 dark:text-slate-500">
+                                <i data-lucide="trash-2" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                                <p>Trash is empty</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {% include "partials/question-modal.html" %}
+
+    {% include "partials/course-modal.html" %}
+
+    {% include "partials/preview-modal.html" %}
+
+    <!-- Import Modal -->
+    <div id="import-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import Questions</h3>
+                    <button onclick="hideModal('import-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Question Bank</label>
+                    <select id="import-bank" class="input-modern w-full px-3 py-2 rounded-lg">
+                        <option value="">Select a bank...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">File (JSON or CSV)</label>
+                    <input type="file" id="import-file" accept=".json,.csv" class="input-modern w-full px-3 py-2 rounded-lg">
+                </div>
+                <div class="text-xs text-gray-500 dark:text-slate-400">
+                    <p class="font-medium mb-1">Expected format:</p>
+                    <p>JSON: Array of objects with text, question_type, points, difficulty, answer_data</p>
+                    <p>CSV: Headers: text, type, points, difficulty, answer</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3 bg-gray-50 dark:bg-slate-900">
+                <button onclick="hideModal('import-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onclick="importQuestions()" class="btn-primary px-6 py-2 text-white rounded-lg">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tag Management Modal -->
+    <div id="tag-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Manage Tags</h3>
+                    <button onclick="hideModal('tag-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex gap-2">
+                    <input type="text" id="new-tag-name" placeholder="New tag name..." class="input-modern flex-1 px-3 py-2 rounded-lg">
+                    <input type="color" id="new-tag-color" value="#10b981" class="w-10 h-10 rounded-lg cursor-pointer">
+                    <button onclick="createTag()" class="btn-primary px-4 py-2 text-white rounded-lg">Add</button>
+                </div>
+                <div id="tag-list" class="space-y-2 max-h-64 overflow-y-auto">
+                    <!-- Tags will be listed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Template Modal -->
+    <div id="new-template-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create New Template</h3>
+                    <button onclick="hideModal('new-template-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Template Name *</label>
+                    <input type="text" id="new-template-name" placeholder="e.g., Midterm 1, Quiz 3" class="input-modern w-full px-4 py-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Course *</label>
+                    <select id="new-template-course" class="input-modern w-full px-4 py-2 rounded-lg">
+                        <option value="">Select a course...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Type</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="new-template-type" value="exam" checked class="w-4 h-4 text-sky-500">
+                            <span class="text-gray-700 dark:text-slate-300">Exam</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="new-template-type" value="quiz" class="w-4 h-4 text-purple-500">
+                            <span class="text-gray-700 dark:text-slate-300">Quiz</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Instructor (optional)</label>
+                    <input type="text" id="new-template-instructor" placeholder="e.g., Dr. Smith" class="input-modern w-full px-4 py-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Term (optional)</label>
+                    <input type="text" id="new-template-term" placeholder="e.g., Fall 2025" class="input-modern w-full px-4 py-2 rounded-lg">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-end gap-3">
+                <button onclick="hideModal('new-template-modal')" class="px-4 py-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
+                    Cancel
+                </button>
+                <button onclick="createNewTemplate()" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 font-medium">
+                    Create Template
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                <div class="flex justify-between items-center">
+                    <h3 id="share-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">Share</h3>
+                    <button onclick="hideModal('share-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <!-- Search users -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Share with user</label>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <input type="text" id="share-user-search" placeholder="Search by username or email..."
+                                class="input-modern w-full px-3 py-2 rounded-lg" oninput="searchUsersDebounced()">
+                            <div id="share-user-results" class="hidden absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permission select -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Permission</label>
+                    <select id="share-permission" class="input-modern w-full px-3 py-2 rounded-lg">
+                        <option value="view">View Only</option>
+                        <option value="edit">Can Edit</option>
+                    </select>
+                </div>
+
+                <!-- Current shares -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currently shared with</label>
+                    <div id="current-shares" class="space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-sm text-gray-400 dark:text-slate-500">Not shared with anyone</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=20251208d"></script>
+    <script>
+        // Initialize import modal bank select when opened
+        function openImportModal() {
+            updateBankSelect();
+            document.getElementById('import-bank').innerHTML = document.getElementById('q-bank').innerHTML;
+            showModal('import-modal');
+        }
+
+        // Tag management functions
+        async function openTagModal() {
+            await loadTagList();
+            showModal('tag-modal');
+        }
+
+        async function loadTagList() {
+            const data = await api('tags/');
+            const tags = data.results || data || [];
+            const container = document.getElementById('tag-list');
+            container.innerHTML = tags.map(t => `
+                <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+                    <span class="w-4 h-4 rounded-full" style="background-color: ${t.color || '#10b981'}"></span>
+                    <span class="flex-1 text-sm text-gray-700 dark:text-slate-300">${escapeHtml(t.name)}</span>
+                    <span class="text-xs text-gray-400">${t.question_count || 0} questions</span>
+                    <button onclick="deleteTag(${t.id}, '${escapeHtml(t.name)}')" class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function createTag() {
+            const name = document.getElementById('new-tag-name').value.trim();
+            const color = document.getElementById('new-tag-color').value;
+            if (!name) return alert('Please enter a tag name');
+
+            await api('tags/', 'POST', { name, color });
+            document.getElementById('new-tag-name').value = '';
+            await loadTagList();
+            await loadTags();
+        }
+
+        async function deleteTag(id, name) {
+            if (!confirm(`Delete tag "${name}"? This will remove it from all questions.`)) return;
+            await api(`tags/${id}/`, 'DELETE');
+            await loadTagList();
+            await loadTags();
+        }
+    </script>
+</body>
+</html>

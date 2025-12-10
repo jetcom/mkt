@@ -1,0 +1,26 @@
+# fly.toml - Fly.io deployment configuration
+# Deploy with: fly launch
+
+app = "questionbank"
+primary_region = "sjc"
+
+[build]
+
+[env]
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[deploy]
+  release_command = "python manage.py migrate --noinput && python manage.py collectstatic --noinput"
