@@ -1876,14 +1876,18 @@ Answers that are not legible or not made in the space provided will result in a 
             # Find pdflatex
             pdflatex = shutil.which('pdflatex')
             if not pdflatex:
-                # Try common locations
-                for path in ['/Library/TeX/texbin/pdflatex', '/usr/local/texlive/2023/bin/x86_64-darwin/pdflatex']:
+                # Try common locations (macOS and Linux)
+                for path in [
+                    '/Library/TeX/texbin/pdflatex',  # macOS MacTeX
+                    '/usr/local/texlive/2023/bin/x86_64-darwin/pdflatex',  # macOS alternate
+                    '/usr/bin/pdflatex',  # Linux texlive
+                ]:
                     if os.path.exists(path):
                         pdflatex = path
                         break
 
             if not pdflatex:
-                raise Exception("pdflatex not found. Install MacTeX: brew install --cask mactex")
+                raise Exception("pdflatex not found. Install texlive (Linux) or MacTeX (macOS)")
 
             # Run pdflatex twice (for cross-references)
             for _ in range(2):
