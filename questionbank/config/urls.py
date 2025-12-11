@@ -23,9 +23,12 @@ urlpatterns = [
     path('api/', include('questions.urls')),
     path('api/ai/', include('ai_tools.urls')),
     path('api/exams/', include('exams.urls')),
+    path('api/quizzes/', include('quizzes.urls')),
     # Authentication
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
+    # Public quiz taking page (no auth required)
+    path('quiz/<str:code>/', TemplateView.as_view(template_name='quiz_take.html'), name='quiz-take'),
     # Frontend routes - protected
     path('', ProtectedHomeView.as_view(), name='home'),
 ]

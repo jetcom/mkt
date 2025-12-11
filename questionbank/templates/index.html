@@ -219,6 +219,11 @@
                     <i data-lucide="clipboard-list" class="w-5 h-5"></i>
                     <span>Build Exam</span>
                 </a>
+                <a href="#" onclick="showView('quizzes', event)" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
+                    <i data-lucide="play-circle" class="w-5 h-5"></i>
+                    <span>Live Quizzes</span>
+                    <span class="ml-auto text-xs bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-2 py-0.5 rounded-full">NEW</span>
+                </a>
                 <a href="#" onclick="showView('generate', event)" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 font-medium">
                     <i data-lucide="sparkles" class="w-5 h-5"></i>
                     <span>AI Generate</span>
@@ -725,6 +730,103 @@
                 </div>
             </div>
 
+            <!-- Live Quizzes View -->
+            <div id="view-quizzes" class="view hidden p-8 slide-up">
+                <div class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Live Quizzes</h2>
+                            <p class="text-gray-500 dark:text-slate-400 mt-1">Create online quizzes with AI grading</p>
+                        </div>
+                        <button onclick="openNewQuizModal()" class="btn-primary flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-medium shadow-lg">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            New Quiz Session
+                        </button>
+                    </div>
+
+                    <!-- Quiz Sessions List -->
+                    <div class="card overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                            <h3 class="font-semibold text-gray-900 dark:text-white">Quiz Sessions</h3>
+                            <div class="flex gap-2">
+                                <button onclick="loadQuizSessions('active')" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200">Active</button>
+                                <button onclick="loadQuizSessions('closed')" class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200">Closed</button>
+                                <button onclick="loadQuizSessions('')" class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200">All</button>
+                            </div>
+                        </div>
+                        <div id="quiz-sessions-list" class="divide-y divide-gray-100 dark:divide-slate-700">
+                            <div class="p-12 text-center text-gray-400 dark:text-slate-500">
+                                <i data-lucide="play-circle" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                                <p>No quiz sessions yet</p>
+                                <p class="text-sm mt-1">Create a quiz session to let students take quizzes online</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submissions Section -->
+                    <div id="quiz-submissions-section" class="hidden mt-8">
+                        <div class="card overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <h3 class="font-semibold text-gray-900 dark:text-white">
+                                    <span id="submissions-quiz-name">Submissions</span>
+                                </h3>
+                                <div class="flex gap-2">
+                                    <button onclick="showScanUpload()" class="px-3 py-1.5 text-sm bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 flex items-center gap-1">
+                                        <i data-lucide="scan" class="w-4 h-4"></i>
+                                        Upload Scans
+                                    </button>
+                                    <button onclick="gradeAllPending()" class="px-3 py-1.5 text-sm bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 flex items-center gap-1">
+                                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                        AI Grade All
+                                    </button>
+                                    <button onclick="exportSubmissions()" class="px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 flex items-center gap-1">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                        Export CSV
+                                    </button>
+                                    <button onclick="hideSubmissions()" class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400">
+                                        <i data-lucide="x" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Scan Upload Area (hidden by default) -->
+                            <div id="scan-upload-area" class="hidden p-6 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-amber-900 dark:text-amber-200 mb-2">Upload Scanned Paper Exams</h4>
+                                        <p class="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                                            Upload PDF files of scanned exams. OCR will extract student info and answers automatically.
+                                        </p>
+                                        <div class="flex items-center gap-3">
+                                            <label class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700 rounded-lg cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">
+                                                <i data-lucide="file-up" class="w-5 h-5 text-amber-600"></i>
+                                                <span class="text-sm font-medium text-amber-700 dark:text-amber-300">Select PDF Files</span>
+                                                <input type="file" id="scan-file-input" accept=".pdf" multiple class="hidden" onchange="handleScanFiles(this.files)">
+                                            </label>
+                                            <span id="scan-file-count" class="text-sm text-amber-600 dark:text-amber-400"></span>
+                                        </div>
+                                        <div id="scan-upload-progress" class="hidden mt-3">
+                                            <div class="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+                                                <div class="animate-spin w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full"></div>
+                                                <span id="scan-progress-text">Processing...</span>
+                                            </div>
+                                        </div>
+                                        <div id="scan-upload-results" class="hidden mt-3 space-y-2">
+                                            <!-- Results will be added here -->
+                                        </div>
+                                    </div>
+                                    <button onclick="hideScanUpload()" class="text-amber-500 hover:text-amber-700">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="quiz-submissions-list" class="divide-y divide-gray-100 dark:divide-slate-700">
+                                <!-- Submissions loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- AI Generate View -->
             <div id="view-generate" class="view hidden p-8 slide-up">
                 <div class="max-w-5xl mx-auto">
@@ -988,7 +1090,129 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=20251208d"></script>
+    <!-- New Quiz Session Modal -->
+    <div id="quiz-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden fade-in max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 sticky top-0">
+                <div class="flex justify-between items-center">
+                    <h3 id="quiz-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">Create Quiz Session</h3>
+                    <button onclick="hideModal('quiz-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="quiz-edit-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Quiz Name *</label>
+                    <input type="text" id="quiz-name" placeholder="e.g., Week 5 Quiz" class="input-modern w-full px-4 py-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
+                    <textarea id="quiz-description" rows="2" class="input-modern w-full px-4 py-2 rounded-lg" placeholder="Optional description..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Instructions</label>
+                    <textarea id="quiz-instructions" rows="3" class="input-modern w-full px-4 py-2 rounded-lg" placeholder="Answer all questions. No notes allowed..."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Time Limit (minutes)</label>
+                        <input type="number" id="quiz-time-limit" value="30" min="1" class="input-modern w-full px-4 py-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Max Attempts</label>
+                        <input type="number" id="quiz-max-attempts" value="1" min="1" class="input-modern w-full px-4 py-2 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Based on Exam Template (optional)</label>
+                    <select id="quiz-template" class="input-modern w-full px-4 py-2 rounded-lg">
+                        <option value="">Select a template to use its questions...</option>
+                    </select>
+                </div>
+                <div class="border-t border-gray-100 dark:border-slate-700 pt-4">
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Options</h4>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="quiz-shuffle-questions" checked class="w-4 h-4 rounded text-sky-600">
+                            <span class="text-sm text-gray-700 dark:text-slate-300">Shuffle questions for each student</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="quiz-shuffle-answers" checked class="w-4 h-4 rounded text-sky-600">
+                            <span class="text-sm text-gray-700 dark:text-slate-300">Shuffle answer choices</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="quiz-require-student-id" class="w-4 h-4 rounded text-sky-600">
+                            <span class="text-sm text-gray-700 dark:text-slate-300">Require student ID</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="quiz-show-score" checked class="w-4 h-4 rounded text-sky-600">
+                            <span class="text-sm text-gray-700 dark:text-slate-300">Show score immediately after submission</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="quiz-show-answers" class="w-4 h-4 rounded text-sky-600">
+                            <span class="text-sm text-gray-700 dark:text-slate-300">Show correct answers after submission</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="border-t border-gray-100 dark:border-slate-700 pt-4">
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">AI Grading</h4>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="quiz-ai-grading" checked class="w-4 h-4 rounded text-sky-600">
+                            <span class="text-sm text-gray-700 dark:text-slate-300">Enable AI grading for short/long answers</span>
+                        </label>
+                        <div id="ai-provider-select" class="ml-7">
+                            <select id="quiz-ai-provider" class="input-modern w-full px-3 py-2 rounded-lg text-sm">
+                                <option value="claude">Claude (Anthropic)</option>
+                                <option value="openai">GPT-4 (OpenAI)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-end gap-3 sticky bottom-0">
+                <button onclick="hideModal('quiz-modal')" class="px-4 py-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
+                    Cancel
+                </button>
+                <button onclick="saveQuizSession()" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 font-medium">
+                    Create Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission Review Modal -->
+    <div id="submission-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden fade-in max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Review Submission</h3>
+                    <p id="submission-student-name" class="text-sm text-gray-500 dark:text-slate-400"></p>
+                </div>
+                <button onclick="hideModal('submission-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div id="submission-responses" class="space-y-6">
+                    <!-- Responses loaded here -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-between items-center">
+                <div>
+                    <span class="text-sm text-gray-500 dark:text-slate-400">Total Score:</span>
+                    <span id="submission-total-score" class="ml-2 text-lg font-bold text-sky-600"></span>
+                </div>
+                <button onclick="hideModal('submission-modal')" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 font-medium">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=20251211a"></script>
     <script>
         // Initialize import modal bank select when opened
         function openImportModal() {

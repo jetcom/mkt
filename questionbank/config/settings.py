@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'questions',
     'exams',
     'ai_tools',
+    'quizzes',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .timer-warning { animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Quiz Container -->
+    <div id="quiz-app" class="max-w-4xl mx-auto p-4">
+
+        <!-- Access Code Entry -->
+        <div id="access-view" class="bg-white rounded-lg shadow-lg p-8 mt-20">
+            <h1 class="text-2xl font-bold text-center mb-6">Enter Quiz Access Code</h1>
+            <div class="max-w-sm mx-auto">
+                <input type="text" id="access-code"
+                    class="w-full text-center text-3xl font-mono tracking-widest border-2 border-gray-300 rounded-lg p-4 uppercase"
+                    placeholder="ABC123" maxlength="10" autocomplete="off">
+                <button onclick="checkAccessCode()"
+                    class="w-full mt-4 bg-sky-600 text-white py-3 rounded-lg font-medium hover:bg-sky-700">
+                    Continue
+                </button>
+                <p id="access-error" class="text-red-500 text-center mt-2 hidden"></p>
+            </div>
+        </div>
+
+        <!-- Student Info & Start -->
+        <div id="start-view" class="bg-white rounded-lg shadow-lg p-8 hidden">
+            <h1 id="quiz-title" class="text-2xl font-bold mb-2">Quiz</h1>
+            <p id="quiz-description" class="text-gray-600 mb-6"></p>
+
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 class="font-medium mb-2">Quiz Details</h3>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li><i data-lucide="clock" class="w-4 h-4 inline mr-1"></i> Time Limit: <span id="time-limit">60</span> minutes</li>
+                    <li><i data-lucide="list" class="w-4 h-4 inline mr-1"></i> Questions: <span id="question-count">-</span></li>
+                </ul>
+            </div>
+
+            <div id="quiz-instructions" class="bg-blue-50 text-blue-800 rounded-lg p-4 mb-6 hidden">
+                <h3 class="font-medium mb-2">Instructions</h3>
+                <div id="instructions-text"></div>
+            </div>
+
+            <form id="student-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
+                    <input type="text" id="student-name" required
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <div id="student-id-field">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Student ID *</label>
+                    <input type="text" id="student-id"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email (optional)</label>
+                    <input type="email" id="student-email"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <button type="submit"
+                    class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700">
+                    Start Quiz
+                </button>
+            </form>
+            <p id="start-error" class="text-red-500 text-center mt-2 hidden"></p>
+        </div>
+
+        <!-- Quiz Taking -->
+        <div id="quiz-view" class="hidden">
+            <!-- Timer Header -->
+            <div class="bg-white rounded-lg shadow-lg p-4 mb-4 sticky top-0 z-10 flex justify-between items-center">
+                <div>
+                    <h1 id="quiz-header-title" class="font-bold"></h1>
+                    <p class="text-sm text-gray-500">Question <span id="current-q">1</span> of <span id="total-q">0</span></p>
+                </div>
+                <div id="timer" class="text-2xl font-mono font-bold text-gray-900">
+                    <i data-lucide="clock" class="w-5 h-5 inline mr-1"></i>
+                    <span id="timer-display">60:00</span>
+                </div>
+            </div>
+
+            <!-- Question Navigation -->
+            <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+                <div id="question-nav" class="flex flex-wrap gap-2">
+                    <!-- Question number buttons generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Question Display -->
+            <div id="question-container" class="bg-white rounded-lg shadow-lg p-6 mb-4">
+                <div id="question-text" class="text-lg mb-6"></div>
+                <div id="answer-area"></div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between">
+                <button onclick="prevQuestion()" id="prev-btn"
+                    class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50">
+                    Previous
+                </button>
+                <button onclick="nextQuestion()" id="next-btn"
+                    class="bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-700">
+                    Next
+                </button>
+                <button onclick="submitQuiz()" id="submit-btn"
+                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 hidden">
+                    Submit Quiz
+                </button>
+            </div>
+        </div>
+
+        <!-- Results View -->
+        <div id="results-view" class="bg-white rounded-lg shadow-lg p-8 hidden">
+            <div class="text-center">
+                <i data-lucide="check-circle" class="w-16 h-16 mx-auto text-green-500 mb-4"></i>
+                <h1 class="text-2xl font-bold mb-2">Quiz Submitted!</h1>
+                <p id="results-name" class="text-gray-600 mb-6"></p>
+            </div>
+
+            <div id="score-display" class="bg-gray-50 rounded-lg p-6 text-center mb-6">
+                <div class="text-4xl font-bold text-sky-600" id="score-percentage">--%</div>
+                <div class="text-gray-500" id="score-points">-- / -- points</div>
+            </div>
+
+            <div id="results-details" class="hidden">
+                <h3 class="font-medium mb-4">Your Answers</h3>
+                <div id="results-list" class="space-y-4">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // State
+        let quizCode = '';
+        let quizInfo = null;
+        let sessionToken = null;
+        let questions = [];
+        let answers = {};
+        let currentQuestion = 0;
+        let timerInterval = null;
+        let expiresAt = null;
+
+        // Extract code from URL if present
+        const pathParts = window.location.pathname.split('/');
+        const codeFromUrl = pathParts[pathParts.indexOf('quiz') + 1];
+        if (codeFromUrl && codeFromUrl.length >= 4) {
+            document.getElementById('access-code').value = codeFromUrl.toUpperCase();
+            // Auto-check
+            setTimeout(checkAccessCode, 500);
+        }
+
+        async function checkAccessCode() {
+            const code = document.getElementById('access-code').value.trim().toUpperCase();
+            if (!code) return;
+
+            try {
+                const res = await fetch(`/api/quizzes/take/${code}/`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError('access-error', data.error || 'Quiz not found');
+                    return;
+                }
+
+                quizCode = code;
+                quizInfo = data;
+                showStartView();
+            } catch (e) {
+                showError('access-error', 'Error checking access code');
+            }
+        }
+
+        function showStartView() {
+            document.getElementById('access-view').classList.add('hidden');
+            document.getElementById('start-view').classList.remove('hidden');
+
+            document.getElementById('quiz-title').textContent = quizInfo.name;
+            document.getElementById('quiz-description').textContent = quizInfo.description || '';
+            document.getElementById('time-limit').textContent = quizInfo.time_limit_minutes;
+
+            if (quizInfo.instructions) {
+                document.getElementById('quiz-instructions').classList.remove('hidden');
+                document.getElementById('instructions-text').textContent = quizInfo.instructions;
+            }
+
+            if (!quizInfo.require_student_id) {
+                document.getElementById('student-id-field').classList.add('hidden');
+                document.getElementById('student-id').removeAttribute('required');
+            }
+
+            lucide.createIcons();
+        }
+
+        document.getElementById('student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await startQuiz();
+        });
+
+        async function startQuiz() {
+            const name = document.getElementById('student-name').value.trim();
+            const studentId = document.getElementById('student-id').value.trim();
+            const email = document.getElementById('student-email').value.trim();
+
+            try {
+                const res = await fetch(`/api/quizzes/take/${quizCode}/start/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_name: name,
+                        student_id: studentId,
+                        student_email: email
+                    })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError('start-error', data.error || 'Could not start quiz');
+                    return;
+                }
+
+                sessionToken = data.session_token;
+                expiresAt = new Date(data.expires_at);
+
+                await loadQuestions();
+                showQuizView();
+                startTimer();
+
+            } catch (e) {
+                showError('start-error', 'Error starting quiz');
+            }
+        }
+
+        async function loadQuestions() {
+            const res = await fetch(`/api/quizzes/take/${quizCode}/questions/`, {
+                headers: { 'X-Quiz-Session': sessionToken }
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || 'Error loading questions');
+                return;
+            }
+
+            questions = data.questions;
+            answers = data.answers || {};
+            document.getElementById('total-q').textContent = questions.length;
+            document.getElementById('question-count').textContent = questions.length;
+
+            buildQuestionNav();
+            showQuestion(0);
+        }
+
+        function showQuizView() {
+            document.getElementById('start-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.remove('hidden');
+            document.getElementById('quiz-header-title').textContent = quizInfo.name;
+            lucide.createIcons();
+        }
+
+        function buildQuestionNav() {
+            const nav = document.getElementById('question-nav');
+            nav.innerHTML = questions.map((q, i) => `
+                <button onclick="showQuestion(${i})" id="nav-${i}"
+                    class="w-10 h-10 rounded-lg font-medium ${i === 0 ? 'bg-sky-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-sky-500 hover:text-white">
+                    ${i + 1}
+                </button>
+            `).join('');
+        }
+
+        function showQuestion(index) {
+            currentQuestion = index;
+            const q = questions[index];
+
+            document.getElementById('current-q').textContent = index + 1;
+            document.getElementById('question-text').innerHTML = formatText(q.text);
+
+            // Update nav
+            document.querySelectorAll('#question-nav button').forEach((btn, i) => {
+                btn.className = `w-10 h-10 rounded-lg font-medium ${
+                    i === index ? 'bg-sky-600 text-white' :
+                    answers[q.id] ? 'bg-green-500 text-white' :
+                    'bg-gray-200 text-gray-700'
+                } hover:bg-sky-500 hover:text-white`;
+            });
+
+            // Build answer area
+            const area = document.getElementById('answer-area');
+            const savedAnswer = answers[q.id] || {};
+
+            if (q.question_type === 'multipleChoice') {
+                const choices = q.answer_data.choices || [];
+                area.innerHTML = choices.map((choice, i) => `
+                    <label class="flex items-center p-4 border rounded-lg mb-2 cursor-pointer hover:bg-gray-50 ${savedAnswer.selected === choice ? 'border-sky-500 bg-sky-50' : ''}">
+                        <input type="radio" name="mc" value="${escapeHtml(choice)}"
+                            ${savedAnswer.selected === choice ? 'checked' : ''}
+                            onchange="saveAnswer('${q.id}', {selected: this.value})"
+                            class="w-5 h-5 text-sky-600">
+                        <span class="ml-3">${formatText(choice)}</span>
+                    </label>
+                `).join('');
+            } else if (q.question_type === 'trueFalse') {
+                area.innerHTML = ['True', 'False'].map(choice => `
+                    <label class="flex items-center p-4 border rounded-lg mb-2 cursor-pointer hover:bg-gray-50 ${String(savedAnswer.selected) === choice.toLowerCase() ? 'border-sky-500 bg-sky-50' : ''}">
+                        <input type="radio" name="tf" value="${choice.toLowerCase()}"
+                            ${String(savedAnswer.selected) === choice.toLowerCase() ? 'checked' : ''}
+                            onchange="saveAnswer('${q.id}', {selected: this.value === 'true'})"
+                            class="w-5 h-5 text-sky-600">
+                        <span class="ml-3 font-medium">${choice}</span>
+                    </label>
+                `).join('');
+            } else {
+                // Short or long answer
+                const rows = q.question_type === 'longAnswer' ? 8 : 3;
+                area.innerHTML = `
+                    <textarea id="text-answer" rows="${rows}"
+                        class="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-sky-500"
+                        placeholder="Enter your answer..."
+                        onblur="saveAnswer('${q.id}', {text: this.value})">${savedAnswer.text || ''}</textarea>
+                `;
+            }
+
+            // Update buttons
+            document.getElementById('prev-btn').disabled = index === 0;
+            if (index === questions.length - 1) {
+                document.getElementById('next-btn').classList.add('hidden');
+                document.getElementById('submit-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('next-btn').classList.remove('hidden');
+                document.getElementById('submit-btn').classList.add('hidden');
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestion > 0) showQuestion(currentQuestion - 1);
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) showQuestion(currentQuestion + 1);
+        }
+
+        async function saveAnswer(questionId, data) {
+            answers[questionId] = data;
+
+            // Update nav button to show answered
+            const idx = questions.findIndex(q => q.id == questionId);
+            if (idx >= 0) {
+                const btn = document.getElementById(`nav-${idx}`);
+                if (btn && idx !== currentQuestion) {
+                    btn.classList.remove('bg-gray-200', 'text-gray-700');
+                    btn.classList.add('bg-green-500', 'text-white');
+                }
+            }
+
+            // Save to server
+            try {
+                await fetch(`/api/quizzes/take/${quizCode}/answer/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Quiz-Session': sessionToken
+                    },
+                    body: JSON.stringify({
+                        question_id: questionId,
+                        answer: data
+                    })
+                });
+            } catch (e) {
+                console.error('Error saving answer:', e);
+            }
+        }
+
+        function startTimer() {
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            const now = new Date();
+            const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            const display = document.getElementById('timer-display');
+            display.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            // Warning when < 5 minutes
+            const timer = document.getElementById('timer');
+            if (remaining < 300) {
+                timer.classList.add('text-red-600', 'timer-warning');
+            }
+
+            // Auto-submit when time's up
+            if (remaining <= 0) {
+                clearInterval(timerInterval);
+                submitQuiz(true);
+            }
+        }
+
+        async function submitQuiz(autoSubmit = false) {
+            if (!autoSubmit) {
+                const unanswered = questions.filter(q => !answers[q.id]).length;
+                if (unanswered > 0) {
+                    if (!confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) {
+                        return;
+                    }
+                }
+            }
+
+            clearInterval(timerInterval);
+
+            try {
+                const res = await fetch(`/api/quizzes/take/${quizCode}/submit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Quiz-Session': sessionToken
+                    }
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.error || 'Error submitting quiz');
+                    return;
+                }
+
+                showResults(data);
+            } catch (e) {
+                alert('Error submitting quiz');
+            }
+        }
+
+        async function showResults(submitData) {
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('results-view').classList.remove('hidden');
+
+            document.getElementById('results-name').textContent =
+                `Thank you, ${document.getElementById('student-name').value}!`;
+
+            if (submitData.score) {
+                const pct = submitData.score.percentage ?
+                    submitData.score.percentage.toFixed(1) + '%' : '--';
+                document.getElementById('score-percentage').textContent = pct;
+                document.getElementById('score-points').textContent =
+                    `${submitData.score.points_earned} / ${submitData.score.points_possible} points`;
+            }
+
+            // Load full results if available
+            try {
+                const res = await fetch(`/api/quizzes/take/${quizCode}/results/`, {
+                    headers: { 'X-Quiz-Session': sessionToken }
+                });
+                const data = await res.json();
+
+                if (data.responses) {
+                    document.getElementById('results-details').classList.remove('hidden');
+                    const list = document.getElementById('results-list');
+                    list.innerHTML = data.responses.map(r => `
+                        <div class="border rounded-lg p-4 ${r.is_correct ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="font-medium">Question ${r.question_number}</span>
+                                <span class="${r.is_correct ? 'text-green-600' : 'text-red-600'}">${r.points_earned}/${r.points_possible} pts</span>
+                            </div>
+                            <div class="text-sm text-gray-700 mb-2">${formatText(r.question_text)}</div>
+                            ${r.feedback ? `<div class="text-sm text-gray-600 mt-2"><strong>Feedback:</strong> ${r.feedback}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error('Error loading results:', e);
+            }
+
+            lucide.createIcons();
+        }
+
+        // Utilities
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatText(text) {
+            // Basic markdown-like formatting
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded">$1</code>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Handle page unload
+        window.addEventListener('beforeunload', (e) => {
+            if (sessionToken && document.getElementById('quiz-view').classList.contains('hidden') === false) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

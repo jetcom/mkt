@@ -270,6 +270,9 @@
                 loadExamQuestions();
                 loadExamTemplates('');
             }
+            if (view === 'quizzes') {
+                loadQuizSessions();
+            }
             if (view === 'trash') {
                 loadTrash();
             }
@@ -1890,6 +1893,7 @@
             } else {
                 section.tags.push(tagName);
             }
+            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
             loadSectionTags(sectionId); // Re-render tags
             saveViewState();
         }
@@ -1907,6 +1911,7 @@
                 section.tags = []; // Reset tags when course changes
                 loadSectionTags(id);
             }
+            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
             saveViewState();
         }
 
@@ -1916,12 +1921,14 @@
                 section.type = value;
                 updateSectionAvailable(id);
             }
+            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
             saveViewState();
         }
 
         function updateSectionCount(id, value) {
             const section = examSections.find(s => s.id === id);
             if (section) section.count = parseInt(value) || 1;
+            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
             updateExamStats();
             saveViewState();
         }
@@ -1931,6 +1938,7 @@
             if (section) {
                 section[field] = value ? parseInt(value) : null;
             }
+            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
             saveViewState();
         }
 
@@ -3484,4 +3492,571 @@
                 console.error('Error copying template:', err);
                 alert('Error copying template. Please try again.');
             }
+        }
+
+        // ===============================
+        // LIVE QUIZZES SECTION
+        // ===============================
+
+        let currentQuizSessionId = null;
+        let quizSessions = [];
+
+        async function loadQuizSessions(status = '') {
+            try {
+                let url = 'quizzes/sessions/';
+                if (status) url += `?status=${status}`;
+                const data = await api(url);
+                quizSessions = data.results || data || [];
+                renderQuizSessions();
+            } catch (err) {
+                console.error('Error loading quiz sessions:', err);
+            }
+        }
+
+        function renderQuizSessions() {
+            const container = document.getElementById('quiz-sessions-list');
+            if (!quizSessions.length) {
+                container.innerHTML = `
+                    <div class="p-12 text-center text-gray-400 dark:text-slate-500">
+                        <i data-lucide="play-circle" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p>No quiz sessions found</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = quizSessions.map(q => `
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(q.name)}</span>
+                                <span class="badge ${getStatusBadgeClass(q.status)}">${q.status}</span>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-slate-400 mb-2">
+                                ${q.course_code || ''} ${q.template_name ? `• Template: ${q.template_name}` : ''}
+                            </p>
+                            <div class="flex items-center gap-4 text-sm">
+                                <span class="flex items-center gap-1 text-gray-500 dark:text-slate-400">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                    ${q.time_limit_minutes} min
+                                </span>
+                                <span class="flex items-center gap-1 text-gray-500 dark:text-slate-400">
+                                    <i data-lucide="users" class="w-4 h-4"></i>
+                                    ${q.submission_count || 0} submissions
+                                </span>
+                                ${q.status === 'active' ? `
+                                    <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                                        <i data-lucide="key" class="w-4 h-4"></i>
+                                        ${q.access_code}
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${q.status === 'draft' ? `
+                                <button onclick="activateQuiz('${q.id}')" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 flex items-center gap-1">
+                                    <i data-lucide="play" class="w-4 h-4"></i>Activate
+                                </button>
+                            ` : ''}
+                            ${q.status === 'active' ? `
+                                <button onclick="copyAccessCode('${q.access_code}')" class="px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 flex items-center gap-1" title="Copy quiz link">
+                                    <i data-lucide="copy" class="w-4 h-4"></i>Link
+                                </button>
+                                <button onclick="closeQuiz('${q.id}')" class="px-3 py-1.5 text-sm bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 flex items-center gap-1">
+                                    <i data-lucide="square" class="w-4 h-4"></i>Close
+                                </button>
+                            ` : ''}
+                            <button onclick="viewSubmissions('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 flex items-center gap-1">
+                                <i data-lucide="list" class="w-4 h-4"></i>View
+                            </button>
+                            <button onclick="editQuizSession('${q.id}')" class="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteQuizSession('${q.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'active': return 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300';
+                case 'closed': return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300';
+                case 'draft': return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300';
+                default: return 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400';
+            }
+        }
+
+        async function openNewQuizModal() {
+            document.getElementById('quiz-edit-id').value = '';
+            document.getElementById('quiz-name').value = '';
+            document.getElementById('quiz-description').value = '';
+            document.getElementById('quiz-instructions').value = '';
+            document.getElementById('quiz-time-limit').value = '30';
+            document.getElementById('quiz-max-attempts').value = '1';
+            document.getElementById('quiz-shuffle-questions').checked = true;
+            document.getElementById('quiz-shuffle-answers').checked = true;
+            document.getElementById('quiz-require-student-id').checked = false;
+            document.getElementById('quiz-show-score').checked = true;
+            document.getElementById('quiz-show-answers').checked = false;
+            document.getElementById('quiz-ai-grading').checked = true;
+            document.getElementById('quiz-ai-provider').value = 'claude';
+            document.getElementById('quiz-modal-title').textContent = 'Create Quiz Session';
+
+            // Load templates for dropdown
+            await loadQuizTemplateOptions();
+
+            showModal('quiz-modal');
+        }
+
+        async function loadQuizTemplateOptions() {
+            try {
+                const data = await api('exams/templates/');
+                const templates = data.results || data || [];
+                const select = document.getElementById('quiz-template');
+                select.innerHTML = '<option value="">Select a template to use its questions...</option>' +
+                    templates.map(t => `<option value="${t.id}">${escapeHtml(t.name)} (${t.course_code || 'No course'})</option>`).join('');
+            } catch (err) {
+                console.error('Error loading templates:', err);
+            }
+        }
+
+        async function saveQuizSession() {
+            const id = document.getElementById('quiz-edit-id').value;
+            const name = document.getElementById('quiz-name').value.trim();
+            if (!name) return alert('Please enter a quiz name');
+
+            const data = {
+                name,
+                description: document.getElementById('quiz-description').value.trim(),
+                instructions: document.getElementById('quiz-instructions').value.trim(),
+                time_limit_minutes: parseInt(document.getElementById('quiz-time-limit').value) || 30,
+                max_attempts: parseInt(document.getElementById('quiz-max-attempts').value) || 1,
+                shuffle_questions: document.getElementById('quiz-shuffle-questions').checked,
+                shuffle_answers: document.getElementById('quiz-shuffle-answers').checked,
+                require_student_id: document.getElementById('quiz-require-student-id').checked,
+                show_score_immediately: document.getElementById('quiz-show-score').checked,
+                show_correct_answers: document.getElementById('quiz-show-answers').checked,
+                ai_grading_enabled: document.getElementById('quiz-ai-grading').checked,
+                ai_grading_provider: document.getElementById('quiz-ai-provider').value,
+            };
+
+            const templateId = document.getElementById('quiz-template').value;
+            if (templateId) {
+                data.template = parseInt(templateId);
+            }
+
+            try {
+                if (id) {
+                    await api(`quizzes/sessions/${id}/`, 'PATCH', data);
+                } else {
+                    await api('quizzes/sessions/', 'POST', data);
+                }
+                hideModal('quiz-modal');
+                await loadQuizSessions();
+            } catch (err) {
+                console.error('Error saving quiz:', err);
+                alert('Error saving quiz. Please try again.');
+            }
+        }
+
+        async function editQuizSession(id) {
+            try {
+                const quiz = await api(`quizzes/sessions/${id}/`);
+                document.getElementById('quiz-edit-id').value = id;
+                document.getElementById('quiz-name').value = quiz.name || '';
+                document.getElementById('quiz-description').value = quiz.description || '';
+                document.getElementById('quiz-instructions').value = quiz.instructions || '';
+                document.getElementById('quiz-time-limit').value = quiz.time_limit_minutes || 30;
+                document.getElementById('quiz-max-attempts').value = quiz.max_attempts || 1;
+                document.getElementById('quiz-shuffle-questions').checked = quiz.shuffle_questions !== false;
+                document.getElementById('quiz-shuffle-answers').checked = quiz.shuffle_answers !== false;
+                document.getElementById('quiz-require-student-id').checked = quiz.require_student_id || false;
+                document.getElementById('quiz-show-score').checked = quiz.show_score_immediately !== false;
+                document.getElementById('quiz-show-answers').checked = quiz.show_correct_answers || false;
+                document.getElementById('quiz-ai-grading').checked = quiz.ai_grading_enabled !== false;
+                document.getElementById('quiz-ai-provider').value = quiz.ai_grading_provider || 'claude';
+                document.getElementById('quiz-modal-title').textContent = 'Edit Quiz Session';
+
+                await loadQuizTemplateOptions();
+                if (quiz.template) {
+                    document.getElementById('quiz-template').value = quiz.template;
+                }
+
+                showModal('quiz-modal');
+            } catch (err) {
+                console.error('Error loading quiz:', err);
+                alert('Error loading quiz. Please try again.');
+            }
+        }
+
+        async function deleteQuizSession(id) {
+            if (!confirm('Delete this quiz session? This will also delete all submissions.')) return;
+            try {
+                await api(`quizzes/sessions/${id}/`, 'DELETE');
+                await loadQuizSessions();
+            } catch (err) {
+                console.error('Error deleting quiz:', err);
+                alert('Error deleting quiz. Please try again.');
+            }
+        }
+
+        async function activateQuiz(id) {
+            try {
+                await api(`quizzes/sessions/${id}/activate/`, 'POST');
+                await loadQuizSessions();
+            } catch (err) {
+                console.error('Error activating quiz:', err);
+                alert('Error activating quiz. Please try again.');
+            }
+        }
+
+        async function closeQuiz(id) {
+            if (!confirm('Close this quiz? Students will no longer be able to start new attempts.')) return;
+            try {
+                await api(`quizzes/sessions/${id}/close/`, 'POST');
+                await loadQuizSessions();
+            } catch (err) {
+                console.error('Error closing quiz:', err);
+                alert('Error closing quiz. Please try again.');
+            }
+        }
+
+        function copyAccessCode(code) {
+            const url = `${window.location.origin}/quiz/${code}/`;
+            navigator.clipboard.writeText(url);
+            alert(`Quiz link copied to clipboard:\n${url}`);
+        }
+
+        // Submissions management
+        async function viewSubmissions(quizId, quizName) {
+            currentQuizSessionId = quizId;
+            document.getElementById('submissions-quiz-name').textContent = `Submissions: ${quizName}`;
+            document.getElementById('quiz-submissions-section').classList.remove('hidden');
+
+            try {
+                const data = await api(`quizzes/submissions/?quiz_session=${quizId}`);
+                const submissions = data.results || data || [];
+                renderSubmissions(submissions);
+            } catch (err) {
+                console.error('Error loading submissions:', err);
+            }
+        }
+
+        function hideSubmissions() {
+            document.getElementById('quiz-submissions-section').classList.add('hidden');
+            currentQuizSessionId = null;
+        }
+
+        function renderSubmissions(submissions) {
+            const container = document.getElementById('quiz-submissions-list');
+            if (!submissions.length) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 dark:text-slate-500">
+                        <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p>No submissions yet</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = submissions.map(s => `
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(s.student_name)}</span>
+                                ${s.student_id ? `<span class="text-sm text-gray-500 dark:text-slate-400">(${s.student_id})</span>` : ''}
+                                <span class="badge ${getSubmissionStatusClass(s.status)}">${s.status}</span>
+                                ${s.is_late ? '<span class="badge bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">Late</span>' : ''}
+                            </div>
+                            <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
+                                <span>Submitted: ${s.submitted_at ? new Date(s.submitted_at).toLocaleString() : 'In progress'}</span>
+                                ${s.percentage_score !== null ? `
+                                    <span class="font-medium ${s.percentage_score >= 70 ? 'text-emerald-600' : s.percentage_score >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                                        ${s.percentage_score.toFixed(1)}% (${s.total_points_earned}/${s.total_points_possible} pts)
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${s.status === 'submitted' ? `
+                                <button onclick="gradeSubmission('${s.id}')" class="px-3 py-1.5 text-sm bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 flex items-center gap-1">
+                                    <i data-lucide="sparkles" class="w-4 h-4"></i>AI Grade
+                                </button>
+                            ` : ''}
+                            <button onclick="reviewSubmission('${s.id}')" class="px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 flex items-center gap-1">
+                                <i data-lucide="eye" class="w-4 h-4"></i>Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function getSubmissionStatusClass(status) {
+            switch (status) {
+                case 'submitted': return 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300';
+                case 'graded': return 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300';
+                case 'reviewed': return 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300';
+                case 'in_progress': return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300';
+                default: return 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400';
+            }
+        }
+
+        async function gradeSubmission(submissionId) {
+            try {
+                const result = await api(`quizzes/grade/batch/`, 'POST', { submission_id: submissionId });
+                alert(`Graded ${result.graded_count} responses.`);
+                if (currentQuizSessionId) {
+                    viewSubmissions(currentQuizSessionId, document.getElementById('submissions-quiz-name').textContent.replace('Submissions: ', ''));
+                }
+            } catch (err) {
+                console.error('Error grading submission:', err);
+                alert('Error grading submission. Please try again.');
+            }
+        }
+
+        async function gradeAllPending() {
+            if (!currentQuizSessionId) return;
+            try {
+                const result = await api(`quizzes/grade/batch/`, 'POST', { quiz_session_id: currentQuizSessionId });
+                alert(`Graded ${result.graded_count} responses across ${result.submission_count || 'all'} submissions.`);
+                viewSubmissions(currentQuizSessionId, document.getElementById('submissions-quiz-name').textContent.replace('Submissions: ', ''));
+            } catch (err) {
+                console.error('Error grading:', err);
+                alert('Error grading submissions. Please try again.');
+            }
+        }
+
+        async function reviewSubmission(submissionId) {
+            try {
+                const submission = await api(`quizzes/submissions/${submissionId}/`);
+                document.getElementById('submission-student-name').textContent =
+                    `${submission.student_name}${submission.student_id ? ` (${submission.student_id})` : ''} - ${new Date(submission.submitted_at || submission.started_at).toLocaleString()}`;
+
+                const totalPossible = submission.total_points_possible || 0;
+                const totalEarned = submission.total_points_earned || 0;
+                const pct = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : 0;
+                document.getElementById('submission-total-score').textContent = `${totalEarned}/${totalPossible} pts (${pct}%)`;
+
+                const responses = submission.responses || [];
+                document.getElementById('submission-responses').innerHTML = responses.map((r, idx) => `
+                    <div class="border border-gray-200 dark:border-slate-700 rounded-xl p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <span class="font-medium text-gray-900 dark:text-white">Question ${r.question_number || idx + 1}</span>
+                                <span class="ml-2 badge ${getQuestionTypeBadge(r.question_type)}">${formatQuestionType(r.question_type)}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="${r.is_correct ? 'text-emerald-600' : r.final_score !== null ? 'text-sky-600' : 'text-gray-400'} font-medium">
+                                    ${r.final_score !== null ? `${r.final_score}/${r.points_possible} pts` : 'Not graded'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-700 dark:text-slate-300 mb-3">${escapeHtml(r.question_text || '')}</div>
+                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-3 mb-3">
+                            <div class="text-xs text-gray-500 dark:text-slate-400 mb-1">Student's Answer:</div>
+                            <div class="text-gray-900 dark:text-white">${formatResponseData(r.response_data, r.question_type)}</div>
+                        </div>
+                        ${r.ai_feedback || r.override_feedback ? `
+                            <div class="bg-sky-50 dark:bg-sky-900/30 rounded-lg p-3 text-sm">
+                                <div class="text-xs text-sky-600 dark:text-sky-400 mb-1">Feedback:</div>
+                                <div class="text-gray-700 dark:text-slate-300">${escapeHtml(r.override_feedback || r.ai_feedback)}</div>
+                            </div>
+                        ` : ''}
+                        <div class="mt-3 flex items-center gap-2">
+                            <input type="number" id="override-score-${r.id}" value="${r.final_score || ''}" min="0" max="${r.points_possible}"
+                                class="input-modern w-20 px-2 py-1 rounded text-sm" placeholder="Score">
+                            <span class="text-sm text-gray-500">/ ${r.points_possible}</span>
+                            <input type="text" id="override-feedback-${r.id}" value="${escapeHtml(r.override_feedback || '')}"
+                                class="input-modern flex-1 px-2 py-1 rounded text-sm" placeholder="Override feedback (optional)">
+                            <button onclick="overrideGrade('${r.id}')" class="px-3 py-1 text-sm bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200">
+                                Override
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                showModal('submission-modal');
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Error loading submission:', err);
+                alert('Error loading submission. Please try again.');
+            }
+        }
+
+        function getQuestionTypeBadge(type) {
+            switch (type) {
+                case 'multipleChoice': return 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300';
+                case 'trueFalse': return 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300';
+                case 'shortAnswer': return 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300';
+                case 'longAnswer': return 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300';
+                default: return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300';
+            }
+        }
+
+        function formatResponseData(data, type) {
+            if (!data) return '<em class="text-gray-400">No answer</em>';
+            if (type === 'multipleChoice' || type === 'trueFalse') {
+                return escapeHtml(String(data.selected || data));
+            }
+            return escapeHtml(data.text || JSON.stringify(data));
+        }
+
+        async function overrideGrade(responseId) {
+            const score = document.getElementById(`override-score-${responseId}`).value;
+            const feedback = document.getElementById(`override-feedback-${responseId}`).value;
+
+            if (score === '') return alert('Please enter a score');
+
+            try {
+                await api(`quizzes/grade/override/${responseId}/`, 'POST', {
+                    score: parseFloat(score),
+                    feedback: feedback || null
+                });
+                alert('Grade overridden successfully');
+                // Refresh the submission view
+                const submissionId = document.querySelector('#submission-responses [id^="override-score-"]')?.id?.split('-').pop();
+                // Just close and reopen would refresh
+            } catch (err) {
+                console.error('Error overriding grade:', err);
+                alert('Error overriding grade. Please try again.');
+            }
+        }
+
+        async function exportSubmissions() {
+            if (!currentQuizSessionId) return;
+            try {
+                const data = await api(`quizzes/submissions/?quiz_session=${currentQuizSessionId}`);
+                const submissions = data.results || data || [];
+
+                // Build CSV
+                const headers = ['Student Name', 'Student ID', 'Email', 'Status', 'Submitted At', 'Points Earned', 'Points Possible', 'Percentage'];
+                const rows = submissions.map(s => [
+                    s.student_name,
+                    s.student_id || '',
+                    s.student_email || '',
+                    s.status,
+                    s.submitted_at || '',
+                    s.total_points_earned || 0,
+                    s.total_points_possible || 0,
+                    s.percentage_score !== null ? s.percentage_score.toFixed(1) : ''
+                ]);
+
+                const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `quiz-submissions-${currentQuizSessionId}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Error exporting:', err);
+                alert('Error exporting submissions. Please try again.');
+            }
+        }
+
+        // ===============================
+        // SCANNED EXAM UPLOAD (OCR)
+        // ===============================
+
+        function showScanUpload() {
+            document.getElementById('scan-upload-area').classList.remove('hidden');
+            document.getElementById('scan-file-input').value = '';
+            document.getElementById('scan-file-count').textContent = '';
+            document.getElementById('scan-upload-progress').classList.add('hidden');
+            document.getElementById('scan-upload-results').classList.add('hidden');
+            document.getElementById('scan-upload-results').innerHTML = '';
+            lucide.createIcons();
+        }
+
+        function hideScanUpload() {
+            document.getElementById('scan-upload-area').classList.add('hidden');
+        }
+
+        async function handleScanFiles(files) {
+            if (!files || files.length === 0) return;
+            if (!currentQuizSessionId) {
+                alert('Please select a quiz session first');
+                return;
+            }
+
+            const fileCount = files.length;
+            document.getElementById('scan-file-count').textContent = `${fileCount} file${fileCount > 1 ? 's' : ''} selected`;
+            document.getElementById('scan-upload-progress').classList.remove('hidden');
+            document.getElementById('scan-upload-results').classList.remove('hidden');
+            document.getElementById('scan-upload-results').innerHTML = '';
+
+            let processed = 0;
+            let successful = 0;
+
+            for (const file of files) {
+                document.getElementById('scan-progress-text').textContent = `Processing ${processed + 1} of ${fileCount}: ${file.name}...`;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('pdf_file', file);
+                    formData.append('quiz_session', currentQuizSessionId);
+
+                    const response = await fetch('/api/quizzes/scan/upload/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successful++;
+                        const sub = result.submission;
+                        addScanResult(file.name, 'success',
+                            `${sub.student_name || 'Unknown'} - ${sub.total_points_earned}/${sub.total_points_possible} pts`);
+                    } else {
+                        addScanResult(file.name, 'error', result.error || 'Unknown error');
+                    }
+                } catch (err) {
+                    console.error('Error uploading scan:', err);
+                    addScanResult(file.name, 'error', err.message || 'Upload failed');
+                }
+
+                processed++;
+            }
+
+            document.getElementById('scan-upload-progress').classList.add('hidden');
+            document.getElementById('scan-progress-text').textContent = `Done! ${successful} of ${fileCount} processed successfully.`;
+            document.getElementById('scan-upload-progress').classList.remove('hidden');
+            document.querySelector('#scan-upload-progress .animate-spin')?.classList.add('hidden');
+
+            // Refresh submissions list
+            if (currentQuizSessionId) {
+                const quizName = document.getElementById('submissions-quiz-name').textContent.replace('Submissions: ', '');
+                viewSubmissions(currentQuizSessionId, quizName);
+            }
+        }
+
+        function addScanResult(filename, status, message) {
+            const container = document.getElementById('scan-upload-results');
+            const statusClass = status === 'success'
+                ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300';
+            const icon = status === 'success' ? 'check-circle' : 'x-circle';
+
+            container.innerHTML += `
+                <div class="flex items-center gap-2 text-sm ${statusClass} px-3 py-2 rounded-lg">
+                    <i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0"></i>
+                    <span class="font-medium">${escapeHtml(filename)}:</span>
+                    <span>${escapeHtml(message)}</span>
+                </div>
+            `;
+            lucide.createIcons();
         }
