@@ -834,34 +834,30 @@
                 document.getElementById('block-max-display').textContent = `Exam will pick ${q.block_max_questions} of ${q.block_variant_count} variants from "${q.block_name}"`;
                 lucide.createIcons();
 
-                // Fetch variants and show tabs
+                // Fetch variants and show tabs (always show container so Add Variant button is visible)
                 const variants = await api(`blocks/${q.block}/questions/`);
                 window.blockVariants = variants;
 
-                if (variants.length > 1) {
-                    blockTabsContainer.classList.remove('hidden');
-                    blockTabsLabel.textContent = `${q.block_name} (pick ${q.block_max_questions})`;
+                blockTabsContainer.classList.remove('hidden');
+                blockTabsLabel.textContent = `${q.block_name} (pick ${q.block_max_questions})`;
 
-                    blockTabs.innerHTML = variants.map((v, idx) => {
-                        const isActive = v.id === q.id;
-                        return `
-                            <button
-                                onclick="event.stopPropagation(); switchToVariant(${v.id})"
-                                class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                                    isActive
-                                        ? 'bg-orange-500 text-white shadow-sm'
-                                        : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                                }"
-                                title="${escapeHtml(v.text.substring(0, 80))}"
-                            >
-                                V${idx + 1}
-                            </button>
-                        `;
-                    }).join('');
-                    lucide.createIcons();
-                } else {
-                    blockTabsContainer.classList.add('hidden');
-                }
+                blockTabs.innerHTML = variants.map((v, idx) => {
+                    const isActive = v.id === q.id;
+                    return `
+                        <button
+                            onclick="event.stopPropagation(); switchToVariant(${v.id})"
+                            class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                                isActive
+                                    ? 'bg-orange-500 text-white shadow-sm'
+                                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                            }"
+                            title="${escapeHtml(v.text.substring(0, 80))}"
+                        >
+                            V${idx + 1}
+                        </button>
+                    `;
+                }).join('');
+                lucide.createIcons();
             } else {
                 // No block - show create block option (only for existing questions)
                 blockSection.classList.add('hidden');
