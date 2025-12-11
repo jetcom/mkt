@@ -30,7 +30,7 @@ class QuizSession(models.Model):
     access_code = models.CharField(max_length=10, unique=True, default=generate_access_code, db_index=True)
 
     # Link to exam definition
-    template = models.ForeignKey(ExamTemplate, on_delete=models.CASCADE, related_name='quiz_sessions')
+    template = models.ForeignKey(ExamTemplate, on_delete=models.CASCADE, related_name='quiz_sessions', null=True, blank=True)
     generated_exam = models.ForeignKey(GeneratedExam, on_delete=models.SET_NULL, null=True, blank=True,
                                        help_text="Specific generated exam if using pre-selected questions")
 

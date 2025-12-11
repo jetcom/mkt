@@ -159,7 +159,7 @@ class GradeOverrideView(APIView):
         # Verify ownership
         user = request.user
         quiz = response_obj.submission.quiz_session
-        if quiz.created_by != user and quiz.template.owner != user:
+        if quiz.created_by != user and (not quiz.template or quiz.template.owner != user):
             return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
 
         score = request.data.get('score')
@@ -191,7 +191,7 @@ class AIGradeView(APIView):
         # Verify ownership
         user = request.user
         quiz = response_obj.submission.quiz_session
-        if quiz.created_by != user and quiz.template.owner != user:
+        if quiz.created_by != user and (not quiz.template or quiz.template.owner != user):
             return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
 
         provider = request.data.get('provider', quiz.ai_grading_provider)
@@ -341,7 +341,7 @@ class QuizStartView(APIView):
         questions = list(quiz.questions.all())
         if not questions:
             # Fall back to template questions
-            questions = list(quiz.template.filter_banks.all()[0].questions.all()[:20]) if quiz.template.filter_banks.exists() else []
+            questions = list(quiz.template.filter_banks.all()[0].questions.all()[:20]) if quiz.template and quiz.template.filter_banks.exists() else []
 
         if not questions:
             return Response({'error': 'No questions configured for this quiz'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

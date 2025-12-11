@@ -4087,9 +4087,9 @@
                             </div>
                             <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
                                 <span>Submitted: ${s.submitted_at ? new Date(s.submitted_at).toLocaleString() : 'In progress'}</span>
-                                ${s.percentage_score !== null ? `
+                                ${s.percentage_score != null ? `
                                     <span class="font-medium ${s.percentage_score >= 70 ? 'text-emerald-600' : s.percentage_score >= 50 ? 'text-yellow-600' : 'text-red-600'}">
-                                        ${s.percentage_score.toFixed(1)}% (${s.total_points_earned}/${s.total_points_possible} pts)
+                                        ${Number(s.percentage_score).toFixed(1)}% (${s.total_points_earned || 0}/${s.total_points_possible || 0} pts)
                                     </span>
                                 ` : ''}
                             </div>
@@ -4272,7 +4272,7 @@
                     s.submitted_at || '',
                     s.total_points_earned || 0,
                     s.total_points_possible || 0,
-                    s.percentage_score !== null ? s.percentage_score.toFixed(1) : ''
+                    s.percentage_score != null ? Number(s.percentage_score).toFixed(1) : ''
                 ]);
 
                 const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
