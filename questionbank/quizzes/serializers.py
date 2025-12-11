@@ -195,13 +195,22 @@ class QuizSessionCreateSerializer(serializers.ModelSerializer):
 
             all_questions.extend(section_questions)
 
-        # If we got questions from sections, use them; otherwise fall back to filter_banks
+        # If we got questions from sections, use them; otherwise fall back to filter_banks or course
         if all_questions:
             quiz.questions.set(all_questions)
         elif template.filter_banks.exists():
             questions = Question.objects.filter(
                 question_bank__in=template.filter_banks.all(),
                 deleted_at__isnull=True
+            )
+            quiz.questions.set(questions[:100])
+        elif template.course:
+            # Fall back to all questions from the template's course
+            questions = Question.objects.filter(
+                question_bank__course=template.course,
+                deleted_at__isnull=True
+            ).filter(
+                Q(block__isnull=True) | Q(variant_number=1)
             )
             quiz.questions.set(questions[:100])
 

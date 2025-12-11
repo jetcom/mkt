@@ -339,9 +339,20 @@ class QuizStartView(APIView):
 
         # Get questions
         questions = list(quiz.questions.all())
-        if not questions:
-            # Fall back to template questions
-            questions = list(quiz.template.filter_banks.all()[0].questions.all()[:20]) if quiz.template and quiz.template.filter_banks.exists() else []
+        if not questions and quiz.template:
+            # Fall back to template filter_banks
+            if quiz.template.filter_banks.exists():
+                questions = list(quiz.template.filter_banks.all()[0].questions.filter(deleted_at__isnull=True)[:50])
+            # Fall back to template course
+            if not questions and quiz.template.course:
+                from questions.models import Question
+                from django.db.models import Q
+                questions = list(Question.objects.filter(
+                    question_bank__course=quiz.template.course,
+                    deleted_at__isnull=True
+                ).filter(
+                    Q(block__isnull=True) | Q(variant_number=1)
+                )[:50])
 
         if not questions:
             return Response({'error': 'No questions configured for this quiz'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
