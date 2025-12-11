@@ -1673,7 +1673,11 @@ class GenerateExamView(APIView):
             # Title (always required)
             latex += f'\\textsc{{\\Huge {title}}}\\\\[1cm]\n'
 
-            # Instructions
+            # Version line (if multiple versions)
+            if version:
+                latex += f'\\textsc{{\\LARGE Version: {version}}}\\\\[1cm]\n'
+
+            # Instructions/Note
             if instructions:
                 latex += f'{instructions}\n'
 
@@ -1689,8 +1693,15 @@ class GenerateExamView(APIView):
 '''
             if include_answers:
                 latex += '\\makebox[\\textwidth]{\\textcolor{red}{KEY}}\n'
+            elif include_id:
+                latex += '\\makebox[0.60\\textwidth]{Name: \\enspace\\hrulefill}\n'
+                latex += '\\makebox[0.40\\textwidth]{ID: \\enspace\\hrulefill}\n'
             else:
                 latex += '\\makebox[\\textwidth]{Name: \\enspace\\hrulefill}\n'
+
+            # Exam ID at bottom (miniscule)
+            exam_uuid = str(uuid.uuid4())
+            latex += f'\\covercfoot{{\\miniscule{{ Exam ID: {exam_uuid}}}}}\n'
 
             latex += '''\\end{coverpages}
 
