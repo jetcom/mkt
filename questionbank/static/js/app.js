@@ -1603,7 +1603,9 @@
                     await loadExamTemplates('');
                     document.getElementById('template-selector').value = result.id;
                     await loadExamTemplate(result.id);
-                    showToast('Template created - add sections to define questions', 'success');
+                    // Auto-add first section
+                    addExamSection();
+                    showToast('Template created', 'success');
                 }
             } catch (err) {
                 console.error('Failed to create template:', err);
