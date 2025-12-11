@@ -3156,11 +3156,11 @@
 
             try {
                 const response = await api(`questions/${questionId}/images/`);
-                questionImages = response || [];
-                updateImageGallery();
+                questionImages = Array.isArray(response) ? response : [];
             } catch (err) {
                 console.error('Failed to load question images:', err);
             }
+            updateImageGallery();
         }
 
         // Live preview in editor
