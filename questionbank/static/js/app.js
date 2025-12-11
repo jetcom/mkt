@@ -1067,7 +1067,13 @@
             const wasInBlock = q?.block;
             const blockVariants = window.blockVariants || [];
 
-            await api(`questions/${editingQuestionId}/`, 'DELETE');
+            try {
+                await api(`questions/${editingQuestionId}/`, 'DELETE');
+            } catch (err) {
+                console.error('Delete failed:', err);
+                showToast('Failed to delete question', 'error');
+                return;
+            }
 
             // If this was a variant in a block, switch to another variant if available
             if (wasInBlock && blockVariants.length > 1) {
