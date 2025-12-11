@@ -228,8 +228,6 @@ class AIGradingService:
         Returns:
             dict with grading results including any errors
         """
-        from .models import QuestionResponse
-
         submission.status = 'grading'
         submission.save(update_fields=['status'])
 
