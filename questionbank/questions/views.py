@@ -256,6 +256,7 @@ class QuestionBlockViewSet(viewsets.ModelViewSet):
 
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
+    pagination_class = None  # Return all questions without pagination for exam builder
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['text', 'tags__name']
     ordering_fields = ['created_at', 'updated_at', 'points', 'difficulty', 'times_used']
