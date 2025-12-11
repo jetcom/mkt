@@ -225,44 +225,55 @@ class BatchGradeView(APIView):
         response_ids = request.data.get('response_ids', [])
         provider = request.data.get('provider', 'claude')
 
-        grading_service = AIGradingService(provider=provider)
+        try:
+            grading_service = AIGradingService(provider=provider)
+        except Exception as e:
+            return Response({'error': f'AI service unavailable: {str(e)}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        if quiz_session_id:
-            # Grade all pending responses in a quiz session
-            quiz = get_object_or_404(QuizSession, id=quiz_session_id)
-            if quiz.created_by != request.user and (quiz.template and quiz.template.owner != request.user):
-                return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            if quiz_session_id:
+                # Grade all pending responses in a quiz session
+                quiz = get_object_or_404(QuizSession, id=quiz_session_id)
+                if quiz.created_by != request.user and (quiz.template and quiz.template.owner != request.user):
+                    return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
 
-            graded_count = 0
-            for submission in quiz.submissions.filter(status__in=['submitted', 'grading']):
+                graded_count = 0
+                errors = []
+                for submission in quiz.submissions.filter(status__in=['submitted', 'grading']):
+                    try:
+                        grading_service.grade_submission(submission)
+                        graded_count += submission.responses.filter(grading_status__in=['auto_graded', 'ai_graded']).count()
+                    except Exception as e:
+                        errors.append(str(e))
+
+                return Response({
+                    'success': True,
+                    'graded_count': graded_count,
+                    'submission_count': quiz.submissions.count(),
+                    'errors': errors if errors else None
+                })
+
+            elif submission_id:
+                submission = get_object_or_404(StudentSubmission, id=submission_id)
+                # Verify ownership
+                quiz = submission.quiz_session
+                if quiz.created_by != request.user and (quiz.template and quiz.template.owner != request.user):
+                    return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
                 grading_service.grade_submission(submission)
-                graded_count += submission.responses.filter(grading_status__in=['auto', 'ai']).count()
+                graded_count = submission.responses.filter(grading_status__in=['auto_graded', 'ai_graded']).count()
+                return Response({
+                    'success': True,
+                    'graded_count': graded_count,
+                    'submission': StudentSubmissionDetailSerializer(submission).data
+                })
 
-            return Response({
-                'success': True,
-                'graded_count': graded_count,
-                'submission_count': quiz.submissions.count()
-            })
-
-        elif submission_id:
-            submission = get_object_or_404(StudentSubmission, id=submission_id)
-            # Verify ownership
-            quiz = submission.quiz_session
-            if quiz.created_by != request.user and (quiz.template and quiz.template.owner != request.user):
-                return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
-
-            grading_service.grade_submission(submission)
-            graded_count = submission.responses.filter(grading_status__in=['auto', 'ai']).count()
-            return Response({
-                'success': True,
-                'graded_count': graded_count,
-                'submission': StudentSubmissionDetailSerializer(submission).data
-            })
-
-        elif response_ids:
-            responses = QuestionResponse.objects.filter(id__in=response_ids)
-            results = grading_service.batch_grade(responses)
-            return Response({'success': True, 'results': results})
+            elif response_ids:
+                responses = QuestionResponse.objects.filter(id__in=response_ids)
+                results = grading_service.batch_grade(responses)
+                return Response({'success': True, 'results': results})
+        except Exception as e:
+            return Response({'error': f'Grading failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'error': 'submission_id, quiz_session_id, or response_ids required'}, status=status.HTTP_400_BAD_REQUEST)
 

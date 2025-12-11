@@ -4212,6 +4212,16 @@
             }
         }
 
+        function formatQuestionType(type) {
+            switch (type) {
+                case 'multipleChoice': return 'MC';
+                case 'trueFalse': return 'T/F';
+                case 'shortAnswer': return 'Short';
+                case 'longAnswer': return 'Long';
+                default: return type || 'Unknown';
+            }
+        }
+
         function formatResponseData(data, type) {
             if (!data) return '<em class="text-gray-400">No answer</em>';
             if (type === 'multipleChoice' || type === 'trueFalse') {
