@@ -1497,11 +1497,17 @@
 
         // New Template Modal
         function openNewTemplateModal() {
+            // Get currently selected course from template filter or main filter
+            const currentCourseCode = document.getElementById('template-course-selector')?.value
+                || document.getElementById('filter-course')?.value
+                || '';
+
             // Populate course dropdown
             const courseSelect = document.getElementById('new-template-course');
             courseSelect.innerHTML = '<option value="">Select a course...</option>';
             for (const course of courses) {
-                courseSelect.innerHTML += `<option value="${course.id}" data-code="${course.code}">${course.code} - ${course.name}</option>`;
+                const selected = course.code === currentCourseCode ? 'selected' : '';
+                courseSelect.innerHTML += `<option value="${course.id}" data-code="${course.code}" ${selected}>${course.code} - ${course.name}</option>`;
             }
 
             // Clear form fields
@@ -1723,8 +1729,8 @@
 
         function addExamSection() {
             const id = ++sectionIdCounter;
-            // Default to currently selected course from either filter
-            const defaultCourse = document.getElementById('exam-filter-course')?.value
+            // Default to currently selected course from template course selector or main filter
+            const defaultCourse = document.getElementById('template-course-selector')?.value
                 || document.getElementById('filter-course')?.value
                 || '';
             const section = {
