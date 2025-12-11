@@ -4137,7 +4137,12 @@
             if (!currentQuizSessionId) return;
             try {
                 const result = await api(`quizzes/grade/batch/`, 'POST', { quiz_session_id: currentQuizSessionId });
-                alert(`Graded ${result.graded_count} responses across ${result.submission_count || 'all'} submissions.`);
+                let msg = `Graded ${result.graded_count} responses across ${result.submission_count || 'all'} submissions.`;
+                if (result.errors && result.errors.length > 0) {
+                    msg += `\n\nErrors (${result.errors.length}):\n` + result.errors.slice(0, 5).join('\n');
+                    if (result.errors.length > 5) msg += `\n... and ${result.errors.length - 5} more`;
+                }
+                alert(msg);
                 viewSubmissions(currentQuizSessionId, document.getElementById('submissions-quiz-name').textContent.replace('Submissions: ', ''));
             } catch (err) {
                 console.error('Error grading:', err);

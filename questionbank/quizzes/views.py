@@ -241,8 +241,10 @@ class BatchGradeView(APIView):
                 errors = []
                 for submission in quiz.submissions.filter(status__in=['submitted', 'grading']):
                     try:
-                        grading_service.grade_submission(submission)
-                        graded_count += submission.responses.filter(grading_status__in=['auto_graded', 'ai_graded']).count()
+                        result = grading_service.grade_submission(submission)
+                        graded_count += result.get('graded', 0)
+                        if result.get('errors'):
+                            errors.extend(result['errors'])
                     except Exception as e:
                         errors.append(str(e))
 

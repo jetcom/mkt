@@ -224,16 +224,23 @@ class AIGradingService:
 
         Args:
             submission: StudentSubmission model instance
+
+        Returns:
+            dict with grading results including any errors
         """
         from .models import QuestionResponse
 
         submission.status = 'grading'
         submission.save(update_fields=['status'])
 
+        graded = 0
+        errors = []
         for response in submission.responses.filter(grading_status='pending'):
             try:
                 self.grade_response(response)
+                graded += 1
             except Exception as e:
+                errors.append(f"Response {response.id}: {str(e)}")
                 print(f"Error grading response {response.id}: {e}")
 
         # Recalculate total score
@@ -246,6 +253,8 @@ class AIGradingService:
         else:
             submission.status = 'submitted'  # Some still need grading
         submission.save(update_fields=['status'])
+
+        return {'graded': graded, 'errors': errors}
 
     def batch_grade(self, responses):
         """
