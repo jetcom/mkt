@@ -1114,7 +1114,7 @@
                 document.getElementById('exam-term').value = '';
                 document.getElementById('exam-instructions').value = '';
                 document.getElementById('exam-shuffle').checked = true;
-                document.getElementById('exam-answers').checked = false;
+                document.getElementById('exam-answers').checked = true;
                 document.getElementById('exam-line-length').value = '3in';
                 document.getElementById('exam-solution-space').value = '1.5in';
                 document.getElementById('exam-quiz-mode').checked = false;
@@ -1173,7 +1173,7 @@
             document.getElementById('exam-term').value = template.term || '';
             document.getElementById('exam-instructions').value = template.instructions || '';
             document.getElementById('exam-shuffle').checked = template.shuffle_questions ?? true;
-            document.getElementById('exam-answers').checked = false;
+            document.getElementById('exam-answers').checked = true;
 
             // Answer formatting settings
             const lineLengthSelect = document.getElementById('exam-line-length');
