@@ -230,6 +230,7 @@ class GenerateVariantView(APIView):
         question_id = request.data.get('question_id')
         block_id = request.data.get('block_id')
         provider = request.data.get('provider', 'claude')
+        target_type = request.data.get('target_type')  # None = same type, or specific type
 
         if not question_id:
             return Response({'error': 'question_id is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -247,22 +248,37 @@ class GenerateVariantView(APIView):
                 .values_list('text', flat=True)[:5]
             )
 
+        # Determine output type
+        output_type = target_type if target_type else original.question_type
+
         try:
-            prompt = self._build_variant_prompt(original, existing_variants)
+            prompt = self._build_variant_prompt(original, existing_variants, target_type)
 
             if provider == 'claude':
                 variant_data = self._call_claude(prompt)
             else:
                 variant_data = self._call_openai(prompt)
 
+            # Determine points based on type conversion
+            points = original.points
+            if target_type and target_type != original.question_type:
+                # Adjust points for type conversion
+                type_points = {
+                    'multipleChoice': 1,
+                    'trueFalse': 1,
+                    'shortAnswer': 2,
+                    'longAnswer': 4,
+                }
+                points = type_points.get(output_type, original.points)
+
             # Create the new question
             new_question = Question.objects.create(
                 question_bank=original.question_bank,
                 block=original.block,
-                question_type=original.question_type,
+                question_type=output_type,
                 text=variant_data.get('text', ''),
                 answer_data=variant_data.get('answer_data', {}),
-                points=original.points,
+                points=points,
                 difficulty=original.difficulty,
                 is_bonus=original.is_bonus,
                 is_required=original.is_required,
@@ -276,12 +292,12 @@ class GenerateVariantView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _build_variant_prompt(self, original, existing_variants):
+    def _build_variant_prompt(self, original, existing_variants, target_type=None):
         type_instructions = {
-            'multipleChoice': 'Keep exactly 4 options (1 correct, 3 wrong). The answer_data should have "correct" and "wrong" keys.',
-            'trueFalse': 'Keep it as a true/false question. The answer_data should have "correct" as true or false.',
-            'shortAnswer': 'Keep it as a short answer question. The answer_data should have "solution".',
-            'longAnswer': 'Keep it as a long answer question. The answer_data should have "solution".',
+            'multipleChoice': 'Create a multiple choice question with exactly 4 options (1 correct, 3 wrong). The answer_data should have "correct" (string) and "wrong" (array of 3 strings) keys.',
+            'trueFalse': 'Create a true/false question. The answer_data should have "correct" as true or false (boolean).',
+            'shortAnswer': 'Create a short answer question (1-2 sentence answer). The answer_data should have "solution" (string).',
+            'longAnswer': 'Create a long answer/essay question (paragraph answer). The answer_data should have "solution" (string).',
         }
 
         existing_text = ""
@@ -290,26 +306,39 @@ class GenerateVariantView(APIView):
             for i, text in enumerate(existing_variants, 1):
                 existing_text += f"- {text[:200]}...\n" if len(text) > 200 else f"- {text}\n"
 
+        # Determine if we're converting types
+        output_type = target_type if target_type else original.question_type
+        is_converting = target_type and target_type != original.question_type
+
+        if is_converting:
+            type_change_instruction = f"""
+IMPORTANT: Convert this question to a {output_type} format.
+{type_instructions.get(output_type, '')}
+
+The new question should test the same concept but as a different question type."""
+        else:
+            type_change_instruction = f"""
+Keep the same question type ({output_type}).
+{type_instructions.get(output_type, '')}"""
+
         prompt = f"""Create a NEW variant of this exam question. The variant should test the same concept but with different wording, examples, or values.
 
 Original question:
 Type: {original.question_type}
 Text: {original.text}
 Answer data: {json.dumps(original.answer_data)}
-
-{type_instructions.get(original.question_type, '')}
+{type_change_instruction}
 {existing_text}
 
 Requirements:
 1. Test the same underlying concept/skill
 2. Use different wording, numbers, examples, or scenarios
 3. Maintain the same difficulty level
-4. Keep the same question type and answer structure
 
 Return your response as a JSON object:
 {{
   "text": "The new variant question text",
-  "answer_data": {{ ... same structure as original ... }}
+  "answer_data": {{ ... structure appropriate for {output_type} ... }}
 }}
 
 Return ONLY the JSON object, no other text."""

@@ -935,37 +935,54 @@
             }
         }
 
-        async function aiBlockVariant() {
+        function toggleAiVariantMenu() {
+            const menu = document.getElementById('ai-variant-menu');
+            menu.classList.toggle('hidden');
+            lucide.createIcons();
+
+            // Close on click outside
+            if (!menu.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeAiVariantMenu, { once: true });
+                }, 0);
+            }
+        }
+
+        function closeAiVariantMenu(e) {
+            const dropdown = document.getElementById('ai-variant-dropdown');
+            if (!dropdown.contains(e?.target)) {
+                document.getElementById('ai-variant-menu').classList.add('hidden');
+            }
+        }
+
+        async function aiBlockVariant(targetType = 'same') {
             if (!window.currentQuestion?.block) return;
             const q = window.currentQuestion;
 
-            // Show a loading state
-            const btn = event.target.closest('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Generating...';
-            btn.disabled = true;
-            lucide.createIcons();
+            // Close dropdown
+            document.getElementById('ai-variant-menu').classList.add('hidden');
+
+            // Show loading toast
+            showToast('Generating AI variant...', 'info');
 
             try {
                 // Call AI to generate a variant
                 const response = await api('ai/generate-variant/', 'POST', {
                     question_id: q.id,
                     block_id: q.block,
+                    target_type: targetType === 'same' ? null : targetType,
                 });
 
                 if (response.id) {
                     // Switch to the new AI-generated variant
                     await editQuestion(response.id);
+                    showToast('AI variant created', 'success');
                 } else if (response.error) {
-                    alert('AI generation failed: ' + response.error);
+                    showToast('AI generation failed: ' + response.error, 'error');
                 }
             } catch (err) {
                 console.error('AI variant generation failed:', err);
-                alert('Failed to generate AI variant. Make sure an API key is configured.');
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                lucide.createIcons();
+                showToast('Failed to generate AI variant. Check API key.', 'error');
             }
         }
 
