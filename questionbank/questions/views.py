@@ -254,9 +254,16 @@ class QuestionBlockViewSet(viewsets.ModelViewSet):
         return Response(QuestionListSerializer(questions, many=True).data)
 
 
+from rest_framework.pagination import PageNumberPagination
+
+class LargeResultsSetPagination(PageNumberPagination):
+    page_size = 500
+    page_size_query_param = 'page_size'
+    max_page_size = 2000
+
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
-    pagination_class = None  # Return all questions without pagination for exam builder
+    pagination_class = LargeResultsSetPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['text', 'tags__name']
     ordering_fields = ['created_at', 'updated_at', 'points', 'difficulty', 'times_used']
