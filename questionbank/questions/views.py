@@ -6,6 +6,7 @@ from django.db.models import Q, Count, Avg
 from django.contrib.auth.models import User
 from django.conf import settings
 from .models import Tag, Course, QuestionBank, QuestionBlock, Question, QuestionVersion, Week, CourseShare, QuestionBankShare, QuestionImage
+from exams.models import ExamTemplate, ExamTemplateShare
 
 # Try to import PostgreSQL full-text search, fall back gracefully
 try:
@@ -57,7 +58,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def share(self, request, code=None):
-        """Share this course with another user"""
+        """Share this course with another user - cascades to all banks and templates"""
         course = self.get_object()
         if course.owner != request.user:
             return Response({'error': 'Only the owner can share'}, status=status.HTTP_403_FORBIDDEN)
@@ -70,22 +71,57 @@ class CourseViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Share the course
         share, created = CourseShare.objects.update_or_create(
             course=course,
             shared_with=target_user,
             defaults={'permission': permission, 'shared_by': request.user}
         )
+
+        # Cascade: share all question banks in this course
+        for bank in course.question_banks.filter(owner=request.user):
+            QuestionBankShare.objects.update_or_create(
+                bank=bank,
+                shared_with=target_user,
+                defaults={'permission': permission, 'shared_by': request.user}
+            )
+
+        # Cascade: share all exam templates in this course
+        for template in course.exam_templates.filter(owner=request.user):
+            ExamTemplateShare.objects.update_or_create(
+                template=template,
+                shared_with=target_user,
+                defaults={'permission': permission, 'shared_by': request.user}
+            )
+
         return Response(CourseShareSerializer(share).data)
 
     @action(detail=True, methods=['delete'])
     def unshare(self, request, code=None):
-        """Remove sharing for a user"""
+        """Remove sharing for a user - cascades to all banks and templates"""
         course = self.get_object()
         if course.owner != request.user:
             return Response({'error': 'Only the owner can manage sharing'}, status=status.HTTP_403_FORBIDDEN)
 
         username = request.data.get('username')
+
+        # Unshare the course
         CourseShare.objects.filter(course=course, shared_with__username=username).delete()
+
+        # Cascade: unshare all question banks in this course
+        QuestionBankShare.objects.filter(
+            bank__course=course,
+            bank__owner=request.user,
+            shared_with__username=username
+        ).delete()
+
+        # Cascade: unshare all exam templates in this course
+        ExamTemplateShare.objects.filter(
+            template__course=course,
+            template__owner=request.user,
+            shared_with__username=username
+        ).delete()
+
         return Response({'status': 'unshared'})
 
     @action(detail=True, methods=['get'])
