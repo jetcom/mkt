@@ -1204,9 +1204,25 @@
             document.getElementById('exam-max-long-points').value = template.max_long_points || '';
 
             // Sync target points in sidebar with template max_points
+            // If template has max_points, use that; otherwise calculate from selected questions
             const targetPointsInput = document.getElementById('target-points');
-            if (targetPointsInput && template.max_points) {
-                targetPointsInput.value = template.max_points;
+            if (targetPointsInput) {
+                if (template.max_points) {
+                    targetPointsInput.value = template.max_points;
+                } else {
+                    // Calculate total points from selected questions
+                    const totalPoints = Array.from(selectedQuestions).reduce((sum, qId) => {
+                        const row = document.querySelector(`tr[data-question-id="${qId}"]`);
+                        if (row) {
+                            const pointsCell = row.querySelector('td:nth-child(4)');
+                            if (pointsCell) {
+                                return sum + (parseFloat(pointsCell.textContent) || 0);
+                            }
+                        }
+                        return sum;
+                    }, 0);
+                    targetPointsInput.value = totalPoints || '';
+                }
                 updateTargetIndicator();
             }
 
