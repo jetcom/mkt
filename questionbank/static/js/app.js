@@ -1723,10 +1723,14 @@
 
         function addExamSection() {
             const id = ++sectionIdCounter;
+            // Default to currently selected course from either filter
+            const defaultCourse = document.getElementById('exam-filter-course')?.value
+                || document.getElementById('filter-course')?.value
+                || '';
             const section = {
                 id,
                 name: `Section ${examSections.length + 1}`,
-                course: '',
+                course: defaultCourse,
                 tags: [],
                 type: '',
                 count: 5,
@@ -1739,6 +1743,10 @@
             };
             examSections.push(section);
             renderExamSections();
+            // Load tags for the default course if one was set
+            if (defaultCourse) {
+                loadSectionTags(id);
+            }
             saveViewState();
         }
 
