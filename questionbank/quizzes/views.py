@@ -526,7 +526,7 @@ class QuizSubmitView(APIView):
         submission.time_spent_seconds = int((timezone.now() - submission.started_at).total_seconds())
         submission.save()
 
-        # Grade objective questions immediately
+        # Grade objective questions immediately (fast, no API calls)
         grading_service = AIGradingService(provider=quiz.ai_grading_provider)
         for response in submission.responses.filter(
             question__question_type__in=['multipleChoice', 'trueFalse'],
@@ -534,19 +534,17 @@ class QuizSubmitView(APIView):
         ):
             grading_service.grade_response(response)
 
-        # Queue AI grading for text answers if enabled
-        if quiz.ai_grading_enabled:
-            submission.status = StudentSubmission.Status.GRADING
+        # Mark text answers for AI grading (done asynchronously to avoid timeout)
+        # AI grading will be done via batch grading endpoint by instructor
+        text_responses = submission.responses.filter(
+            question__question_type__in=['shortAnswer', 'longAnswer'],
+            grading_status='pending'
+        )
+        if text_responses.exists() and quiz.ai_grading_enabled:
+            submission.status = StudentSubmission.Status.SUBMITTED
             submission.save(update_fields=['status'])
-
-            for response in submission.responses.filter(
-                question__question_type__in=['shortAnswer', 'longAnswer'],
-                grading_status='pending'
-            ):
-                try:
-                    grading_service.grade_response(response)
-                except Exception as e:
-                    print(f"AI grading error: {e}")
+            # Note: AI grading deferred to avoid request timeout
+            # Instructor can trigger batch grading from dashboard
 
         # Recalculate score
         submission.calculate_score()
