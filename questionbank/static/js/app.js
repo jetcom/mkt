@@ -1087,8 +1087,14 @@
         // Exam Templates
         let examTemplates = [];
         let currentTemplateId = null;
+        let currentTemplateCourse = ''; // Track current template's course code
 
         let currentTemplateFilter = ''; // Track current quiz filter
+
+        // Session persistence for template creation
+        let sessionInstructor = localStorage.getItem('templateSessionInstructor') || '';
+        let sessionTerm = localStorage.getItem('templateSessionTerm') || '';
+        let sessionType = localStorage.getItem('templateSessionType') || 'exam';
 
         async function loadExamTemplates(isQuiz = '') {
             currentTemplateFilter = isQuiz;
@@ -1131,6 +1137,7 @@
         async function loadExamTemplate(templateId) {
             if (!templateId) {
                 currentTemplateId = null;
+                currentTemplateCourse = '';
                 document.getElementById('delete-template-btn').classList.add('hidden');
                 document.getElementById('share-template-btn')?.classList.add('hidden');
                 document.getElementById('copy-template-btn')?.classList.add('hidden');
@@ -1181,6 +1188,7 @@
             }
 
             currentTemplateId = templateId;
+            currentTemplateCourse = template.course_code || '';
 
             // Clear question cache when loading a new template
             cachedSectionQuestions = {};
@@ -1510,11 +1518,11 @@
                 courseSelect.innerHTML += `<option value="${course.id}" data-code="${course.code}" ${selected}>${course.code} - ${course.name}</option>`;
             }
 
-            // Clear form fields
+            // Use session values for instructor, term, and type (persisted across template creations)
             document.getElementById('new-template-name').value = '';
-            document.getElementById('new-template-instructor').value = '';
-            document.getElementById('new-template-term').value = '';
-            document.querySelector('input[name="new-template-type"][value="exam"]').checked = true;
+            document.getElementById('new-template-instructor').value = sessionInstructor;
+            document.getElementById('new-template-term').value = sessionTerm;
+            document.querySelector(`input[name="new-template-type"][value="${sessionType}"]`).checked = true;
 
             showModal('new-template-modal');
         }
@@ -1524,9 +1532,18 @@
             const courseSelect = document.getElementById('new-template-course');
             const courseId = courseSelect.value;
             const courseCode = courseSelect.selectedOptions[0]?.dataset?.code || '';
-            const isQuiz = document.querySelector('input[name="new-template-type"]:checked').value === 'quiz';
+            const templateType = document.querySelector('input[name="new-template-type"]:checked').value;
+            const isQuiz = templateType === 'quiz';
             const instructor = document.getElementById('new-template-instructor').value.trim();
             const term = document.getElementById('new-template-term').value.trim();
+
+            // Save session values for next template creation
+            sessionInstructor = instructor;
+            sessionTerm = term;
+            sessionType = templateType;
+            localStorage.setItem('templateSessionInstructor', instructor);
+            localStorage.setItem('templateSessionTerm', term);
+            localStorage.setItem('templateSessionType', templateType);
 
             if (!name) {
                 alert('Please enter a template name');
@@ -1729,8 +1746,9 @@
 
         function addExamSection() {
             const id = ++sectionIdCounter;
-            // Default to currently selected course from template course selector or main filter
-            const defaultCourse = document.getElementById('template-course-selector')?.value
+            // Default to current template's course, or fall back to filter selections
+            const defaultCourse = currentTemplateCourse
+                || document.getElementById('template-course-selector')?.value
                 || document.getElementById('filter-course')?.value
                 || '';
             const section = {
