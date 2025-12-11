@@ -231,11 +231,25 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return QuestionDetailSerializer
 
     def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Question.objects.none()
+
         queryset = Question.objects.select_related(
             'question_bank__course',
             'block',  # Add block to avoid N+1 for block info
             'week'   # Add week to avoid N+1 for week info
         ).prefetch_related('tags')
+
+        # Filter by question bank ownership/sharing
+        # User can see questions if they own the bank, bank is shared with them,
+        # they own the course, or course is shared with them
+        queryset = queryset.filter(
+            Q(question_bank__owner=user) |
+            Q(question_bank__shares__shared_with=user) |
+            Q(question_bank__course__owner=user) |
+            Q(question_bank__course__shares__shared_with=user)
+        ).distinct()
 
         # Check if we're viewing trash
         show_trash = self.request.query_params.get('trash') == 'true'
