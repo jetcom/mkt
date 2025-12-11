@@ -167,10 +167,25 @@ class QuizSessionCreateSerializer(serializers.ModelSerializer):
                 quiz.questions.set(questions[:100])  # Limit to 100
             return
 
+        # Handle case where selection_rules is not a list of dicts
+        # (e.g., it might be a dict or have unexpected format)
+        if not isinstance(selection_rules, list):
+            # Fall back to filter_banks
+            if template.filter_banks.exists():
+                questions = Question.objects.filter(
+                    question_bank__in=template.filter_banks.all(),
+                    deleted_at__isnull=True
+                )
+                quiz.questions.set(questions[:100])
+            return
+
         # Process each section in selection_rules
         all_questions = []
 
         for section in selection_rules:
+            # Skip non-dict entries (strings, etc.)
+            if not isinstance(section, dict):
+                continue
             section_questions = self._get_section_questions(template, section)
 
             # Apply count limit if specified
@@ -180,7 +195,15 @@ class QuizSessionCreateSerializer(serializers.ModelSerializer):
 
             all_questions.extend(section_questions)
 
-        quiz.questions.set(all_questions)
+        # If we got questions from sections, use them; otherwise fall back to filter_banks
+        if all_questions:
+            quiz.questions.set(all_questions)
+        elif template.filter_banks.exists():
+            questions = Question.objects.filter(
+                question_bank__in=template.filter_banks.all(),
+                deleted_at__isnull=True
+            )
+            quiz.questions.set(questions[:100])
 
     def _get_section_questions(self, template, section):
         """Get questions matching section criteria."""
