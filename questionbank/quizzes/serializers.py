@@ -139,9 +139,91 @@ class QuizSessionCreateSerializer(serializers.ModelSerializer):
         questions = validated_data.pop('questions', [])
         validated_data['created_by'] = self.context['request'].user
         quiz = QuizSession.objects.create(**validated_data)
+
         if questions:
             quiz.questions.set(questions)
+        elif quiz.template:
+            # Auto-populate questions from template sections
+            self._populate_questions_from_template(quiz)
+
         return quiz
+
+    def _populate_questions_from_template(self, quiz):
+        """Pull questions from the template's selection rules (sections)."""
+        from questions.models import Question
+        from django.db.models import Q
+        import random
+
+        template = quiz.template
+        selection_rules = template.selection_rules
+
+        if not selection_rules:
+            # Fall back to filter_banks if no sections defined
+            if template.filter_banks.exists():
+                questions = Question.objects.filter(
+                    question_bank__in=template.filter_banks.all(),
+                    deleted_at__isnull=True
+                )
+                quiz.questions.set(questions[:100])  # Limit to 100
+            return
+
+        # Process each section in selection_rules
+        all_questions = []
+
+        for section in selection_rules:
+            section_questions = self._get_section_questions(template, section)
+
+            # Apply count limit if specified
+            count = section.get('count') or section.get('questionCount')
+            if count and count < len(section_questions):
+                section_questions = random.sample(section_questions, count)
+
+            all_questions.extend(section_questions)
+
+        quiz.questions.set(all_questions)
+
+    def _get_section_questions(self, template, section):
+        """Get questions matching section criteria."""
+        from questions.models import Question
+        from django.db.models import Q
+
+        # Start with base queryset
+        queryset = Question.objects.filter(deleted_at__isnull=True)
+
+        # Filter by course
+        course = section.get('course') or (template.course.code if template.course else None)
+        if course:
+            queryset = queryset.filter(question_bank__course__code=course)
+
+        # Filter by bank
+        bank_id = section.get('bank')
+        if bank_id:
+            queryset = queryset.filter(question_bank_id=bank_id)
+        elif template.filter_banks.exists():
+            queryset = queryset.filter(question_bank__in=template.filter_banks.all())
+
+        # Filter by tags
+        tags = section.get('tags', [])
+        if tags:
+            for tag in tags:
+                queryset = queryset.filter(tags__name=tag)
+
+        # Filter by question type
+        question_type = section.get('type') or section.get('questionType')
+        if question_type:
+            queryset = queryset.filter(question_type=question_type)
+
+        # Filter by difficulty
+        difficulty = section.get('difficulty')
+        if difficulty:
+            queryset = queryset.filter(difficulty=difficulty)
+
+        # Only get first variant from blocks
+        queryset = queryset.filter(
+            Q(block__isnull=True) | Q(variant_number=1)
+        )
+
+        return list(queryset.distinct())
 
 
 # Public serializers (for student quiz taking - no auth)
