@@ -1063,9 +1063,25 @@
 
         async function deleteQuestion() {
             if (!confirm('Delete this question?')) return;
+            const q = window.currentQuestion;
+            const wasInBlock = q?.block;
+            const blockVariants = window.blockVariants || [];
+
             await api(`questions/${editingQuestionId}/`, 'DELETE');
+
+            // If this was a variant in a block, switch to another variant if available
+            if (wasInBlock && blockVariants.length > 1) {
+                const otherVariant = blockVariants.find(v => v.id !== editingQuestionId);
+                if (otherVariant) {
+                    await editQuestion(otherVariant.id);
+                    showToast('Variant deleted', 'success');
+                    return;
+                }
+            }
+
             closeModal();
             await loadQuestions();
+            showToast('Question deleted', 'success');
         }
 
         function updateAnswerFields(data = {}) {
