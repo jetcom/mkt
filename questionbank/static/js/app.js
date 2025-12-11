@@ -1786,7 +1786,7 @@
                 course: defaultCourse,
                 tags: [],
                 type: '',
-                count: 5,
+                count: null, // null = use all available questions
                 maxPoints: null,
                 maxMCPoints: null,
                 maxTFPoints: null,
@@ -1858,8 +1858,8 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1"># Questions</label>
-                            <input type="number" value="${s.count}" min="1" max="50" onchange="updateSectionCount(${s.id}, this.value)"
-                                class="input-modern w-full px-2 py-1.5 rounded-lg text-sm">
+                            <input type="number" value="${s.count || ''}" min="1" max="500" onchange="updateSectionCount(${s.id}, this.value)"
+                                class="input-modern w-full px-2 py-1.5 rounded-lg text-sm" placeholder="All">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Available</label>
@@ -1954,7 +1954,13 @@
             } else {
                 section.tags.push(tagName);
             }
-            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
+            // Clear all caches so refresh will re-fetch
+            hasCachedQuestions = false;
+            cachedSectionQuestions = {};
+            cachedFinalQuestions = null;
+            if (currentTemplateId) {
+                localStorage.removeItem(`examQuestionIds_${currentTemplateId}`);
+            }
             loadSectionTags(sectionId); // Re-render tags
             saveViewState();
         }
@@ -1972,7 +1978,13 @@
                 section.tags = []; // Reset tags when course changes
                 loadSectionTags(id);
             }
-            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
+            // Clear all caches so refresh will re-fetch
+            hasCachedQuestions = false;
+            cachedSectionQuestions = {};
+            cachedFinalQuestions = null;
+            if (currentTemplateId) {
+                localStorage.removeItem(`examQuestionIds_${currentTemplateId}`);
+            }
             saveViewState();
         }
 
@@ -1982,14 +1994,26 @@
                 section.type = value;
                 updateSectionAvailable(id);
             }
-            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
+            // Clear all caches so refresh will re-fetch
+            hasCachedQuestions = false;
+            cachedSectionQuestions = {};
+            cachedFinalQuestions = null;
+            if (currentTemplateId) {
+                localStorage.removeItem(`examQuestionIds_${currentTemplateId}`);
+            }
             saveViewState();
         }
 
         function updateSectionCount(id, value) {
             const section = examSections.find(s => s.id === id);
-            if (section) section.count = parseInt(value) || 1;
-            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
+            if (section) section.count = value ? parseInt(value) : null; // null = use all
+            // Clear all caches so refresh will re-fetch
+            hasCachedQuestions = false;
+            cachedSectionQuestions = {};
+            cachedFinalQuestions = null;
+            if (currentTemplateId) {
+                localStorage.removeItem(`examQuestionIds_${currentTemplateId}`);
+            }
             updateExamStats();
             saveViewState();
         }
@@ -1999,7 +2023,13 @@
             if (section) {
                 section[field] = value ? parseInt(value) : null;
             }
-            hasCachedQuestions = false; // Clear cache so refresh will re-fetch
+            // Clear all caches so refresh will re-fetch
+            hasCachedQuestions = false;
+            cachedSectionQuestions = {};
+            cachedFinalQuestions = null;
+            if (currentTemplateId) {
+                localStorage.removeItem(`examQuestionIds_${currentTemplateId}`);
+            }
             saveViewState();
         }
 
@@ -2191,8 +2221,8 @@
                         }
                     }
                 } else {
-                    // Simple count-based selection (original behavior)
-                    sectionQuestions = questions.slice(0, section.count);
+                    // Simple count-based selection (or all if count is null)
+                    sectionQuestions = section.count ? questions.slice(0, section.count) : questions;
                 }
 
                 // Cache the selected questions for this section config
