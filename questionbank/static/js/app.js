@@ -103,7 +103,6 @@
                 examQuizMode: document.getElementById('exam-quiz-mode')?.checked,
                 examIncludeId: document.getElementById('exam-include-id')?.checked,
                 examSplitMc: document.getElementById('exam-split-mc')?.checked,
-                examShuffle: document.getElementById('exam-shuffle')?.checked,
                 examAnswers: document.getElementById('exam-answers')?.checked,
             };
             localStorage.setItem('examBuilderState', JSON.stringify(state));
@@ -141,7 +140,6 @@
                     if (state.examQuizMode !== undefined) document.getElementById('exam-quiz-mode').checked = state.examQuizMode;
                     if (state.examIncludeId !== undefined) document.getElementById('exam-include-id').checked = state.examIncludeId;
                     if (state.examSplitMc !== undefined) document.getElementById('exam-split-mc').checked = state.examSplitMc;
-                    if (state.examShuffle !== undefined) document.getElementById('exam-shuffle').checked = state.examShuffle;
                     if (state.examAnswers !== undefined) document.getElementById('exam-answers').checked = state.examAnswers;
 
                     // Re-render sections and preview if on exam view
@@ -1174,7 +1172,6 @@
                 document.getElementById('exam-instructor').value = '';
                 document.getElementById('exam-term').value = '';
                 document.getElementById('exam-instructions').value = '';
-                document.getElementById('exam-shuffle').checked = true;
                 document.getElementById('exam-answers').checked = true;
                 document.getElementById('exam-line-length').value = '3in';
                 document.getElementById('exam-solution-space').value = '1.5in';
@@ -1234,7 +1231,6 @@
             document.getElementById('exam-instructor').value = template.instructor || '';
             document.getElementById('exam-term').value = template.term || '';
             document.getElementById('exam-instructions').value = template.instructions || '';
-            document.getElementById('exam-shuffle').checked = template.shuffle_questions ?? true;
             document.getElementById('exam-answers').checked = true;
 
             // Answer formatting settings
@@ -1467,8 +1463,8 @@
                 instructor: document.getElementById('exam-instructor').value || '',
                 term: document.getElementById('exam-term').value || '',
                 instructions: document.getElementById('exam-instructions').value || '',
-                shuffle_questions: document.getElementById('exam-shuffle').checked,
-                shuffle_answers: document.getElementById('exam-shuffle-answers')?.checked ?? true,
+                shuffle_questions: true, // Always shuffle within sections
+                shuffle_answers: true,
                 is_quiz: document.getElementById('exam-quiz-mode')?.checked || false,
                 include_id_field: document.getElementById('exam-include-id')?.checked || false,
                 default_line_length: document.getElementById('exam-line-length')?.value || '3in',
@@ -2599,7 +2595,7 @@
                 instructor: document.getElementById('exam-instructor').value,
                 term: document.getElementById('exam-term').value,
                 instructions: document.getElementById('exam-instructions').value,
-                shuffle: document.getElementById('exam-shuffle').checked,
+                shuffle: true, // Always shuffle within sections
                 include_answers: document.getElementById('exam-answers').checked,
                 is_quiz: document.getElementById('exam-quiz-mode')?.checked || false,
                 include_id: document.getElementById('exam-include-id')?.checked || false,
