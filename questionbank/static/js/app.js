@@ -881,6 +881,7 @@
         async function addBlockVariant() {
             if (!window.currentQuestion?.block) return;
             const q = window.currentQuestion;
+            const blockVariants = window.blockVariants || [];
 
             // Create a copy of the question in the same block
             const newQuestion = {
@@ -891,6 +892,7 @@
                 difficulty: q.difficulty,
                 answer_data: q.answer_data,
                 block: q.block,
+                variant_number: blockVariants.length + 1,
             };
 
             try {

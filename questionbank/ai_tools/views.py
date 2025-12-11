@@ -271,6 +271,9 @@ class GenerateVariantView(APIView):
                 }
                 points = type_points.get(output_type, original.points)
 
+            # Get next variant number for this block
+            next_variant_num = (original.block.questions.count() + 1) if original.block else 1
+
             # Create the new question
             new_question = Question.objects.create(
                 question_bank=original.question_bank,
@@ -282,6 +285,7 @@ class GenerateVariantView(APIView):
                 difficulty=original.difficulty,
                 is_bonus=original.is_bonus,
                 is_required=original.is_required,
+                variant_number=next_variant_num,
             )
 
             # Copy tags from original
