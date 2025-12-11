@@ -16,6 +16,34 @@ import markdown
 import re
 import zipfile
 import io
+from collections import defaultdict
+
+
+def select_version_questions(questions, shuffle=True):
+    """
+    Given a list of questions, select one variant per block.
+    Questions without a block are included as-is.
+    Returns a new list with one question per block, shuffled if requested.
+    """
+    # Group questions by block
+    blocks = defaultdict(list)
+    no_block = []
+
+    for q in questions:
+        if q.block_id:
+            blocks[q.block_id].append(q)
+        else:
+            no_block.append(q)
+
+    # Select one random variant from each block
+    selected = list(no_block)
+    for block_id, variants in blocks.items():
+        selected.append(random.choice(variants))
+
+    if shuffle:
+        random.shuffle(selected)
+
+    return selected
 
 
 def latex_to_html(text):
@@ -676,10 +704,8 @@ class GenerateExamView(APIView):
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                         for v in range(num_versions):
                             version = version_letters[v]
-                            # Shuffle questions for each version
-                            version_questions = list(questions)
-                            if shuffle:
-                                random.shuffle(version_questions)
+                            # Select random variant per block and shuffle for each version
+                            version_questions = select_version_questions(questions, shuffle=shuffle)
 
                             # Generate exam PDF
                             latex_content = self._generate_latex(
