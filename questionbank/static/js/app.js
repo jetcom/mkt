@@ -1203,6 +1203,13 @@
             document.getElementById('exam-max-short-points').value = template.max_short_points || '';
             document.getElementById('exam-max-long-points').value = template.max_long_points || '';
 
+            // Sync target points in sidebar with template max_points
+            const targetPointsInput = document.getElementById('target-points');
+            if (targetPointsInput && template.max_points) {
+                targetPointsInput.value = template.max_points;
+                updateTargetIndicator();
+            }
+
             // Load sections from selection_rules
             examSections = [];
             sectionIdCounter = 0;
@@ -1393,8 +1400,8 @@
                     include_answers: document.getElementById('exam-answers')?.checked || false,
                     versions: parseInt(document.getElementById('exam-versions')?.value) || 1
                 },
-                // Template-level point constraints
-                max_points: parseFloat(document.getElementById('exam-max-points')?.value) || null,
+                // Template-level point constraints (use target-points from sidebar if exam-max-points is empty)
+                max_points: parseFloat(document.getElementById('exam-max-points')?.value) || parseFloat(document.getElementById('target-points')?.value) || null,
                 max_mc_points: parseFloat(document.getElementById('exam-max-mc-points')?.value) || null,
                 max_tf_points: parseFloat(document.getElementById('exam-max-tf-points')?.value) || null,
                 max_short_points: parseFloat(document.getElementById('exam-max-short-points')?.value) || null,
