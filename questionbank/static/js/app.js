@@ -16,6 +16,30 @@
         let hasCachedQuestions = false; // Simple flag - reset when template changes
         let isRestoringState = false; // Flag to prevent saving during restore
 
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            // Remove existing toasts
+            document.querySelectorAll('.toast-notification').forEach(t => t.remove());
+
+            const colors = {
+                success: 'bg-emerald-500',
+                error: 'bg-red-500',
+                warning: 'bg-amber-500',
+                info: 'bg-sky-500'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast-notification fixed bottom-4 right-4 ${colors[type] || colors.info} text-white px-4 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         // Dark mode - check saved preference or system preference
         function initDarkMode() {
             const saved = localStorage.getItem('darkMode');
@@ -1095,6 +1119,7 @@
         let sessionInstructor = localStorage.getItem('templateSessionInstructor') || '';
         let sessionTerm = localStorage.getItem('templateSessionTerm') || '';
         let sessionType = localStorage.getItem('templateSessionType') || 'exam';
+        let sessionCourseCode = localStorage.getItem('templateSessionCourseCode') || '';
 
         async function loadExamTemplates(isQuiz = '') {
             currentTemplateFilter = isQuiz;
@@ -1363,7 +1388,7 @@
             saveViewState();
             } catch (err) {
                 console.error('Error loading template:', err);
-                alert('Error loading template: ' + err.message);
+                showToast('Error loading template', 'error');
             }
         }
 
@@ -1407,11 +1432,11 @@
             const courseCode = document.getElementById('exam-course').value.trim();
 
             if (!title) {
-                alert('Please enter an exam title to save as template');
+                showToast('Please enter an exam title', 'warning');
                 return;
             }
             if (!courseCode) {
-                alert('Please enter a course code');
+                showToast('Please enter a course code', 'warning');
                 return;
             }
 
@@ -1473,15 +1498,16 @@
                 }
 
                 if (result.id) {
+                    const wasNew = !currentTemplateId;
                     currentTemplateId = result.id;
                     await loadExamTemplates('');
                     document.getElementById('template-selector').value = result.id;
                     document.getElementById('delete-template-btn').classList.remove('hidden');
-                    alert(currentTemplateId ? 'Template updated!' : 'Template saved!');
+                    showToast(wasNew ? 'Template saved' : 'Template updated', 'success');
                 }
             } catch (err) {
                 console.error('Failed to save template:', err);
-                alert('Failed to save template. Please try again.');
+                showToast('Failed to save template', 'error');
             }
         }
 
@@ -1496,17 +1522,18 @@
                 document.getElementById('delete-template-btn').classList.add('hidden');
                 updateActiveFiltersDisplay(null);
                 await loadExamTemplates('');
-                alert('Template deleted.');
+                showToast('Template deleted', 'success');
             } catch (err) {
                 console.error('Failed to delete template:', err);
-                alert('Failed to delete template.');
+                showToast('Failed to delete template', 'error');
             }
         }
 
         // New Template Modal
         function openNewTemplateModal() {
-            // Get currently selected course from template filter or main filter
-            const currentCourseCode = document.getElementById('template-course-selector')?.value
+            // Get course: session > filter > empty
+            const currentCourseCode = sessionCourseCode
+                || document.getElementById('template-course-selector')?.value
                 || document.getElementById('filter-course')?.value
                 || '';
 
@@ -1541,16 +1568,18 @@
             sessionInstructor = instructor;
             sessionTerm = term;
             sessionType = templateType;
+            sessionCourseCode = courseCode;
             localStorage.setItem('templateSessionInstructor', instructor);
             localStorage.setItem('templateSessionTerm', term);
             localStorage.setItem('templateSessionType', templateType);
+            localStorage.setItem('templateSessionCourseCode', courseCode);
 
             if (!name) {
-                alert('Please enter a template name');
+                showToast('Please enter a template name', 'warning');
                 return;
             }
             if (!courseId) {
-                alert('Please select a course');
+                showToast('Please select a course', 'warning');
                 return;
             }
 
@@ -1574,11 +1603,11 @@
                     await loadExamTemplates('');
                     document.getElementById('template-selector').value = result.id;
                     await loadExamTemplate(result.id);
-                    alert('Template created! Now add sections to define which questions to include.');
+                    showToast('Template created - add sections to define questions', 'success');
                 }
             } catch (err) {
                 console.error('Failed to create template:', err);
-                alert('Failed to create template. Please try again.');
+                showToast('Failed to create template', 'error');
             }
         }
 
@@ -3519,10 +3548,10 @@
             try {
                 await api(`exams/templates/${templateId}/copy/`, 'POST', { name: newName });
                 await loadExamTemplates(currentTemplateFilter);
-                alert('Template copied successfully!');
+                showToast('Template copied', 'success');
             } catch (err) {
                 console.error('Error copying template:', err);
-                alert('Error copying template. Please try again.');
+                showToast('Error copying template', 'error');
             }
         }
 
