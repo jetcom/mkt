@@ -99,8 +99,10 @@ class AIGradingService:
         if question.question_type not in ['shortAnswer', 'longAnswer']:
             return self._auto_grade_objective(response)
 
-        # Get student's answer
+        # Get student's answer and expected answer
         student_answer = response.response_data.get('text', '').strip()
+        expected_answer = (question.answer_data or {}).get('solution', '').strip()
+
         if not student_answer:
             # Empty response = 0 points
             response.points_earned = 0
@@ -110,7 +112,16 @@ class AIGradingService:
             response.save()
             return {'score': 0, 'is_correct': False, 'feedback': 'No answer provided.'}
 
-        # Build and send prompt
+        # Check for exact or near-exact match first (case-insensitive)
+        if expected_answer and self._is_close_match(student_answer, expected_answer):
+            response.points_earned = response.points_possible
+            response.is_correct = True
+            response.grading_status = 'auto_graded'
+            response.ai_feedback = "Correct!"
+            response.save()
+            return {'score': float(response.points_possible), 'is_correct': True, 'feedback': 'Correct!', 'confidence': 1.0}
+
+        # Build and send prompt for AI grading
         prompt = self._build_prompt(question, response, student_answer)
 
         try:
@@ -177,6 +188,35 @@ class AIGradingService:
             'feedback': 'Correct!' if is_correct else 'Incorrect.',
             'confidence': 1.0
         }
+
+    def _is_close_match(self, student_answer, expected_answer):
+        """Check if student answer is close enough to expected answer for auto-grading."""
+        # Normalize both answers
+        student_norm = self._normalize_answer(student_answer)
+        expected_norm = self._normalize_answer(expected_answer)
+
+        # Exact match after normalization
+        if student_norm == expected_norm:
+            return True
+
+        # Check if student answer contains the expected answer (for short answers)
+        if len(expected_norm) <= 50 and expected_norm in student_norm:
+            return True
+
+        # Check if expected answer contains the student answer (student gave partial)
+        if len(student_norm) <= 50 and student_norm in expected_norm and len(student_norm) >= len(expected_norm) * 0.8:
+            return True
+
+        return False
+
+    def _normalize_answer(self, text):
+        """Normalize text for comparison."""
+        import re
+        # Lowercase, remove extra whitespace, remove punctuation
+        text = text.lower().strip()
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'[^\w\s]', '', text)
+        return text
 
     def _build_prompt(self, question, response, student_answer):
         """Build the grading prompt based on question type."""
