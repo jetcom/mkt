@@ -456,6 +456,7 @@
 
                     <!-- Template Selector -->
                     <div class="card p-4 mb-6">
+                        <!-- Row 1: Template selection and actions -->
                         <div class="flex flex-wrap items-center gap-4">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="file-text" class="w-5 h-5 text-gray-400 dark:text-slate-500"></i>
@@ -474,16 +475,6 @@
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                                 New
                             </button>
-                            <div class="flex gap-2 text-xs">
-                                <button onclick="loadExamTemplates('false')" class="px-3 py-1.5 bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 dark:hover:bg-sky-800/50">Exams</button>
-                                <button onclick="loadExamTemplates('true')" class="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800/50">Quizzes</button>
-                                <button onclick="loadExamTemplates('')" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600">All</button>
-                            </div>
-                            <div class="border-l border-gray-200 dark:border-slate-600 h-6"></div>
-                            <button onclick="saveAsTemplate()" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800/50 font-medium flex items-center gap-1">
-                                <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                                Save Template
-                            </button>
                             <button id="share-template-btn" onclick="openShareModal('template', currentTemplateId)" class="hidden px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 dark:hover:bg-sky-800/50 font-medium flex items-center gap-1" title="Share template">
                                 <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
                             </button>
@@ -494,9 +485,22 @@
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>
-                        <!-- Active filters indicator -->
-                        <div id="active-filters" class="hidden mt-3 flex flex-wrap gap-2 text-xs">
-                            <span class="text-gray-500 dark:text-slate-400">Active filters:</span>
+                        <!-- Row 2: Filters and save -->
+                        <div class="flex flex-wrap items-center gap-4 mt-3">
+                            <div class="flex gap-2 text-xs">
+                                <button onclick="loadExamTemplates('false')" class="px-3 py-1.5 bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 dark:hover:bg-sky-800/50">Exams</button>
+                                <button onclick="loadExamTemplates('true')" class="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800/50">Quizzes</button>
+                                <button onclick="loadExamTemplates('')" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600">All</button>
+                            </div>
+                            <div class="border-l border-gray-200 dark:border-slate-600 h-6"></div>
+                            <button onclick="saveAsTemplate()" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800/50 font-medium flex items-center gap-1">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                                Save Template
+                            </button>
+                            <!-- Active filters indicator -->
+                            <div id="active-filters" class="hidden flex flex-wrap gap-2 text-xs">
+                                <span class="text-gray-500 dark:text-slate-400">Active filters:</span>
+                            </div>
                         </div>
                     </div>
 
