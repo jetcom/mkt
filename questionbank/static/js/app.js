@@ -2544,9 +2544,12 @@
 
         function toggleQuizModeOptions() {
             const quizMode = document.getElementById('exam-quiz-mode')?.checked;
-            const optionsDiv = document.getElementById('quiz-mode-options');
-            if (optionsDiv) {
-                optionsDiv.classList.toggle('hidden', !quizMode);
+            // When quiz mode is enabled, set the defaults for quiz mode
+            if (quizMode) {
+                const includeIdCheckbox = document.getElementById('exam-include-id');
+                const splitMcCheckbox = document.getElementById('exam-split-mc');
+                if (includeIdCheckbox) includeIdCheckbox.checked = true;
+                if (splitMcCheckbox) splitMcCheckbox.checked = true;
             }
         }
 

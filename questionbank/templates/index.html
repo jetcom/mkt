@@ -551,21 +551,19 @@
                                         </div>
                                         <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Each version shuffles questions differently</p>
                                     </div>
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" id="exam-include-id" class="w-4 h-4 rounded text-sky-600">
+                                        <label for="exam-include-id" class="text-sm text-gray-700 dark:text-slate-300">Include student ID field</label>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" id="exam-split-mc" class="w-4 h-4 rounded text-sky-600">
+                                        <label for="exam-split-mc" class="text-sm text-gray-700 dark:text-slate-300">Split multiple choice into columns</label>
+                                    </div>
                                     <div class="border-t border-gray-100 dark:border-slate-700 pt-4 mt-4">
                                         <div class="flex items-center gap-3">
                                             <input type="checkbox" id="exam-quiz-mode" class="w-4 h-4 rounded text-sky-600" onchange="toggleQuizModeOptions()">
                                             <label for="exam-quiz-mode" class="text-sm font-medium text-gray-700 dark:text-slate-300">Quiz Mode</label>
-                                            <span class="text-xs text-gray-400 dark:text-slate-500">(compact layout, no cover page)</span>
-                                        </div>
-                                        <div id="quiz-mode-options" class="ml-7 mt-2 space-y-2 hidden">
-                                            <div class="flex items-center gap-3">
-                                                <input type="checkbox" id="exam-include-id" class="w-4 h-4 rounded text-sky-600">
-                                                <label for="exam-include-id" class="text-sm text-gray-700 dark:text-slate-300">Include student ID field</label>
-                                            </div>
-                                            <div class="flex items-center gap-3">
-                                                <input type="checkbox" id="exam-split-mc" checked class="w-4 h-4 rounded text-sky-600">
-                                                <label for="exam-split-mc" class="text-sm text-gray-700 dark:text-slate-300">Split multiple choice into columns</label>
-                                            </div>
+                                            <span class="text-xs text-gray-400 dark:text-slate-500">(compact layout, no cover page, enables ID field & split MC)</span>
                                         </div>
                                     </div>
                                     <div class="border-t border-gray-100 dark:border-slate-700 pt-4 mt-4">
