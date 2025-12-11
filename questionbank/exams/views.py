@@ -276,6 +276,7 @@ def markdown_to_latex(text):
 
 class ExamTemplateViewSet(viewsets.ModelViewSet):
     queryset = ExamTemplate.objects.select_related('course').all()
+    pagination_class = None  # Return all templates without pagination
 
     def get_serializer_class(self):
         if self.action == 'list':
