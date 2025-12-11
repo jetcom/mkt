@@ -2518,10 +2518,16 @@
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        // Filename includes version info if multiple versions
-                        const filename = numVersions > 1
-                            ? `${data.title.replace(/\s+/g, '_')}_versions.zip`
-                            : `${data.title.replace(/\s+/g, '_')}.pdf`;
+                        // Filename: ZIP if multiple versions OR if include_answers (since we generate exam + key)
+                        const includeAnswers = document.getElementById('exam-answers')?.checked;
+                        let filename;
+                        if (numVersions > 1) {
+                            filename = `${data.title.replace(/\s+/g, '_')}_versions.zip`;
+                        } else if (includeAnswers) {
+                            filename = `${data.title.replace(/\s+/g, '_')}.zip`;
+                        } else {
+                            filename = `${data.title.replace(/\s+/g, '_')}.pdf`;
+                        }
                         a.download = filename;
                         a.click();
                     } else {
