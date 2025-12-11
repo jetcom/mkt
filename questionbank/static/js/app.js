@@ -3132,6 +3132,11 @@
                 const rateEl = document.getElementById('stat-usage-rate');
                 const barEl = document.getElementById('stat-usage-bar');
 
+                // Update the total questions count in quick stats
+                if (data.total_questions !== undefined) {
+                    document.getElementById('stat-questions').textContent = data.total_questions;
+                }
+
                 if (container && data.total_questions > 0) {
                     container.classList.remove('hidden');
                     if (rateEl) rateEl.textContent = `${data.usage_rate}%`;
