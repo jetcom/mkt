@@ -589,35 +589,86 @@ class GenerateExamView(APIView):
 
             try:
                 if num_versions == 1:
-                    # Single version - return PDF directly
-                    latex_content = self._generate_latex(
-                        questions, title, course_code, instructor, term, date,
-                        raw_instructions, include_answers,
-                        department=request.data.get('department', ''),
-                        school=request.data.get('school', ''),
-                        course_name=request.data.get('course_name', ''),
-                        is_quiz=is_quiz,
-                        include_id=include_id,
-                        split_mc=split_mc,
-                        default_line_length=default_line_length,
-                        default_solution_space=default_solution_space,
-                        question_overrides=question_overrides
-                    )
-                    pdf_path = self._latex_to_pdf_compile(latex_content, title)
+                    if include_answers:
+                        # Single version with answer key - return ZIP with exam and key
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                            # Generate exam PDF (without answers)
+                            exam_latex = self._generate_latex(
+                                questions, title, course_code, instructor, term, date,
+                                raw_instructions, False,
+                                department=request.data.get('department', ''),
+                                school=request.data.get('school', ''),
+                                course_name=request.data.get('course_name', ''),
+                                is_quiz=is_quiz,
+                                include_id=include_id,
+                                split_mc=split_mc,
+                                default_line_length=default_line_length,
+                                default_solution_space=default_solution_space,
+                                question_overrides=question_overrides
+                            )
+                            exam_pdf_path = self._latex_to_pdf_compile(exam_latex, title)
+                            with open(exam_pdf_path, 'rb') as f:
+                                zip_file.writestr(f"{title.replace(' ', '_')}.pdf", f.read())
 
-                    # Record the generated exam for history
-                    self._record_generated_exam(
-                        request, template_id, title, questions,
-                        version=None, include_answers=include_answers
-                    )
+                            # Generate answer key PDF
+                            key_latex = self._generate_latex(
+                                questions, title, course_code, instructor, term, date,
+                                raw_instructions, True,
+                                department=request.data.get('department', ''),
+                                school=request.data.get('school', ''),
+                                course_name=request.data.get('course_name', ''),
+                                is_quiz=is_quiz,
+                                include_id=include_id,
+                                split_mc=split_mc,
+                                default_line_length=default_line_length,
+                                default_solution_space=default_solution_space,
+                                question_overrides=question_overrides
+                            )
+                            key_pdf_path = self._latex_to_pdf_compile(key_latex, f"{title}_key")
+                            with open(key_pdf_path, 'rb') as f:
+                                zip_file.writestr(f"{title.replace(' ', '_')}_key.pdf", f.read())
 
-                    response = FileResponse(
-                        open(pdf_path, 'rb'),
-                        content_type='application/pdf',
-                        as_attachment=True,
-                        filename=f"{title.replace(' ', '_')}.pdf"
-                    )
-                    return response
+                        # Record the generated exam for history
+                        self._record_generated_exam(
+                            request, template_id, title, questions,
+                            version=None, include_answers=include_answers
+                        )
+
+                        zip_buffer.seek(0)
+                        response = HttpResponse(zip_buffer.read(), content_type='application/zip')
+                        response['Content-Disposition'] = f'attachment; filename="{title.replace(" ", "_")}.zip"'
+                        return response
+                    else:
+                        # Single version without answer key - return PDF directly
+                        latex_content = self._generate_latex(
+                            questions, title, course_code, instructor, term, date,
+                            raw_instructions, False,
+                            department=request.data.get('department', ''),
+                            school=request.data.get('school', ''),
+                            course_name=request.data.get('course_name', ''),
+                            is_quiz=is_quiz,
+                            include_id=include_id,
+                            split_mc=split_mc,
+                            default_line_length=default_line_length,
+                            default_solution_space=default_solution_space,
+                            question_overrides=question_overrides
+                        )
+                        pdf_path = self._latex_to_pdf_compile(latex_content, title)
+
+                        # Record the generated exam for history
+                        self._record_generated_exam(
+                            request, template_id, title, questions,
+                            version=None, include_answers=False
+                        )
+
+                        response = FileResponse(
+                            open(pdf_path, 'rb'),
+                            content_type='application/pdf',
+                            as_attachment=True,
+                            filename=f"{title.replace(' ', '_')}.pdf"
+                        )
+                        return response
                 else:
                     # Multiple versions - create ZIP with all PDFs
                     zip_buffer = io.BytesIO()
