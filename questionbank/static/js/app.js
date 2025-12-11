@@ -600,6 +600,10 @@
 
         function renderExamQuestions(questions) {
             const container = document.getElementById('exam-questions-list');
+            if (!container) {
+                // Exam builder now uses section-based approach, this function is not used
+                return;
+            }
             container.innerHTML = questions.map(q => {
                 const hasMultipleVariants = q.block_types && q.block_types.length > 1;
                 const blockVariantsJson = q.block_types ? escapeHtml(JSON.stringify(q.block_types)) : '';
