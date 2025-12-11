@@ -142,6 +142,22 @@
                     </div>
                 </div>
 
+                <!-- Create Block option (shown when question is NOT in a block) -->
+                <div id="create-block-section" class="hidden">
+                    <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 border border-gray-200 dark:border-slate-600">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="git-branch" class="w-4 h-4 text-gray-400"></i>
+                                <span class="text-sm text-gray-600 dark:text-slate-300">Create variants of this question</span>
+                            </div>
+                            <button type="button" onclick="createBlockFromQuestion()" class="text-xs px-3 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/60 flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Create Block
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 dark:text-slate-500 mt-2">Blocks let you create multiple versions of a question. When generating exams, one variant is randomly selected per block.</p>
+                    </div>
+                </div>
+
                 <!-- Sync button for non-canonical questions -->
                 <div id="sync-section" class="hidden border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
                     <button type="button" onclick="syncFromCanonical()" id="sync-btn" class="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 font-medium flex items-center gap-2">

@@ -822,13 +822,15 @@
 
         async function updateBlockSection(q) {
             const blockSection = document.getElementById('block-section');
+            const createBlockSection = document.getElementById('create-block-section');
             const blockTabsContainer = document.getElementById('block-tabs-container');
             const blockTabs = document.getElementById('block-tabs');
             const blockTabsLabel = document.getElementById('block-tabs-label');
 
             if (q.block && q.block_name) {
-                // Show block info
+                // Show block info, hide create block option
                 blockSection.classList.remove('hidden');
+                createBlockSection?.classList.add('hidden');
                 document.getElementById('block-max-display').textContent = `Exam will pick ${q.block_max_questions} of ${q.block_variant_count} variants from "${q.block_name}"`;
                 lucide.createIcons();
 
@@ -861,9 +863,17 @@
                     blockTabsContainer.classList.add('hidden');
                 }
             } else {
+                // No block - show create block option (only for existing questions)
                 blockSection.classList.add('hidden');
                 blockTabsContainer.classList.add('hidden');
                 blockTabs.innerHTML = '';
+                // Only show create block for existing questions (not new ones)
+                if (q.id && createBlockSection) {
+                    createBlockSection.classList.remove('hidden');
+                    lucide.createIcons();
+                } else if (createBlockSection) {
+                    createBlockSection.classList.add('hidden');
+                }
             }
         }
 
@@ -891,9 +901,41 @@
                 const created = await api('questions/', 'POST', newQuestion);
                 // Switch to the new variant
                 await editQuestion(created.id);
+                showToast('Variant created', 'success');
             } catch (err) {
                 console.error('Failed to create variant:', err);
-                alert('Failed to create variant');
+                showToast('Failed to create variant', 'error');
+            }
+        }
+
+        async function createBlockFromQuestion() {
+            if (!window.currentQuestion?.id) return;
+            const q = window.currentQuestion;
+
+            // Prompt for block name
+            const blockName = prompt('Enter a name for this block (e.g., "Week 3 Q1" or "SQL Join Question"):');
+            if (!blockName) return;
+
+            try {
+                // Create a new block
+                const block = await api('blocks/', 'POST', {
+                    question_bank: q.question_bank,
+                    name: blockName,
+                    max_questions: 1, // Default: pick 1 variant per exam
+                });
+
+                // Update the current question to be in this block
+                await api(`questions/${q.id}/`, 'PATCH', {
+                    block: block.id,
+                    variant_number: 1,
+                });
+
+                // Reload the question to show the block UI
+                await editQuestion(q.id);
+                showToast('Block created - add variants with "Add Variant" or "AI Variant"', 'success');
+            } catch (err) {
+                console.error('Failed to create block:', err);
+                showToast('Failed to create block', 'error');
             }
         }
 
