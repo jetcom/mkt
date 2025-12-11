@@ -1119,6 +1119,10 @@
         let sessionType = localStorage.getItem('templateSessionType') || 'exam';
         let sessionCourseCode = localStorage.getItem('templateSessionCourseCode') || '';
 
+        // Multi-version preview state
+        let versionPreviewData = null; // Stores {versions: [...], blocks: [...]}
+        let currentPreviewVersion = 'A'; // Currently displayed version tab
+
         async function loadExamTemplates(isQuiz = '') {
             currentTemplateFilter = isQuiz;
             const params = new URLSearchParams();
@@ -2316,9 +2320,147 @@
             initAnswerSpaceDrag();
             initAnswerLineDrag();
             updateExamStats();
+            lucide.createIcons();
+
+            // If multiple versions selected, show version tabs with per-version previews
+            const numVersions = parseInt(document.getElementById('exam-versions')?.value) || 1;
+            if (numVersions > 1) {
+                await refreshMultiVersionPreview();
+            } else {
+                document.getElementById('version-tabs').classList.add('hidden');
+                versionPreviewData = null;
+            }
             } catch (err) {
                 console.error('Error in refreshExamPreview:', err);
-                alert('Error in refreshExamPreview: ' + err.message);
+                showToast('Error refreshing preview: ' + err.message, 'error');
+            }
+        }
+
+        // Multi-version preview functions
+        async function fetchMultiVersionPreview(questionIds, numVersions) {
+            const response = await api('exams/preview/versions/', 'POST', {
+                question_ids: questionIds,
+                versions: numVersions
+            });
+            return response;
+        }
+
+        function renderVersionTabs(versions) {
+            const tabsContainer = document.getElementById('version-tabs');
+            const tabsList = document.getElementById('version-tabs-list');
+
+            if (versions.length <= 1) {
+                tabsContainer.classList.add('hidden');
+                return;
+            }
+
+            tabsContainer.classList.remove('hidden');
+            tabsList.innerHTML = versions.map(v => `
+                <button onclick="switchPreviewVersion('${v.version}')"
+                    class="version-tab px-4 py-2 text-sm font-medium border-b-2 transition-colors
+                        ${v.version === currentPreviewVersion
+                            ? 'border-sky-500 text-sky-600 dark:text-sky-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 hover:border-gray-300'}"
+                    data-version="${v.version}">
+                    Version ${v.version}
+                    <span class="ml-1 text-xs ${v.total_points !== versions[0].total_points ? 'text-amber-500' : 'text-gray-400'}">
+                        (${v.total_points} pts)
+                    </span>
+                </button>
+            `).join('');
+        }
+
+        function switchPreviewVersion(version) {
+            currentPreviewVersion = version;
+            if (versionPreviewData) {
+                renderVersionTabs(versionPreviewData.versions);
+                const versionData = versionPreviewData.versions.find(v => v.version === version);
+                if (versionData) {
+                    renderVersionPreview(versionData);
+                    updateVersionStats(versionData);
+                }
+            }
+        }
+
+        function updateVersionStats(versionData) {
+            const statsContainer = document.getElementById('version-stats');
+            if (!statsContainer) return;
+
+            const typeLabels = {
+                multipleChoice: 'MC',
+                trueFalse: 'T/F',
+                shortAnswer: 'Short',
+                longAnswer: 'Long'
+            };
+
+            const typeStats = Object.entries(versionData.by_type)
+                .map(([type, data]) => `${typeLabels[type] || type}: ${data.count} (${data.points} pts)`)
+                .join(' • ');
+
+            statsContainer.innerHTML = `
+                <span class="font-medium">${versionData.question_count} questions</span> •
+                <span class="font-medium text-emerald-600 dark:text-emerald-400">${versionData.total_points} total points</span>
+                ${typeStats ? ` • ${typeStats}` : ''}
+                ${versionPreviewData.has_variants ? '<span class="ml-2 text-amber-500"><i data-lucide="git-branch" class="w-3 h-3 inline"></i> Has variants</span>' : ''}
+            `;
+            lucide.createIcons();
+        }
+
+        function renderVersionPreview(versionData) {
+            const previewContainer = document.getElementById('exam-preview');
+            const questions = versionData.questions;
+
+            if (!questions.length) {
+                previewContainer.innerHTML = '<div class="text-center py-6 text-gray-400 text-sm">No questions in this version</div>';
+                return;
+            }
+
+            previewContainer.innerHTML = questions.map((q, idx) => `
+                <div class="exam-question-preview p-3 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700" data-question-id="${q.id}">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xs font-medium text-gray-400 mt-0.5">${idx + 1}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="badge ${getTypeBadgeClass(q.type)} text-xs">${formatType(q.type)}</span>
+                                ${q.block_name ? `<span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded" title="Question variant from block: ${escapeHtml(q.block_name)}">
+                                    <i data-lucide="git-branch" class="w-3 h-3 inline"></i> ${escapeHtml(q.block_name)} v${q.variant_number}
+                                </span>` : ''}
+                                <span class="exam-points-display text-xs text-gray-400">${q.points} pts</span>
+                                ${q.tags && q.tags.length ? `<span class="text-xs text-gray-400">${q.tags.slice(0, 2).join(', ')}${q.tags.length > 2 ? '...' : ''}</span>` : ''}
+                            </div>
+                            <p class="text-sm text-gray-700 dark:text-slate-300 line-clamp-3">${escapeHtml(q.text)}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        async function refreshMultiVersionPreview() {
+            const numVersions = parseInt(document.getElementById('exam-versions')?.value) || 1;
+            if (numVersions <= 1 || !selectedQuestions.size) {
+                // Single version - use existing preview
+                document.getElementById('version-tabs').classList.add('hidden');
+                return;
+            }
+
+            const previewContainer = document.getElementById('exam-preview');
+            previewContainer.innerHTML = '<div class="text-center py-6"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto text-sky-500"></i><p class="mt-2 text-sm text-gray-400">Generating version previews...</p></div>';
+            lucide.createIcons();
+
+            try {
+                versionPreviewData = await fetchMultiVersionPreview(Array.from(selectedQuestions), numVersions);
+                currentPreviewVersion = 'A';
+                renderVersionTabs(versionPreviewData.versions);
+                const firstVersion = versionPreviewData.versions[0];
+                if (firstVersion) {
+                    renderVersionPreview(firstVersion);
+                    updateVersionStats(firstVersion);
+                }
+            } catch (err) {
+                console.error('Error fetching multi-version preview:', err);
+                showToast('Error generating version previews', 'error');
             }
         }
 

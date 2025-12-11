@@ -2125,7 +2125,7 @@ class ExamPreviewView(APIView):
         if not question_ids:
             return Response({'error': 'No questions selected'}, status=status.HTTP_400_BAD_REQUEST)
 
-        questions = Question.objects.filter(id__in=question_ids).select_related('question_bank__course')
+        questions = Question.objects.filter(id__in=question_ids).select_related('question_bank__course', 'block')
 
         preview_data = {
             'question_count': questions.count(),
@@ -2150,3 +2150,86 @@ class ExamPreviewView(APIView):
             })
 
         return Response(preview_data)
+
+
+class MultiVersionPreviewView(APIView):
+    """Preview multiple exam versions with block-based variant selection"""
+
+    def post(self, request):
+        question_ids = request.data.get('question_ids', [])
+        num_versions = int(request.data.get('versions', 1))
+        version_letters = 'ABCDEFGHIJ'
+
+        if not question_ids:
+            return Response({'error': 'No questions selected'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if num_versions < 1 or num_versions > 10:
+            return Response({'error': 'Versions must be between 1 and 10'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch all questions with block info
+        questions = list(Question.objects.filter(id__in=question_ids).select_related(
+            'question_bank__course', 'block'
+        ).prefetch_related('tags'))
+
+        # Generate preview for each version
+        versions = []
+        for v in range(num_versions):
+            version_letter = version_letters[v]
+            # Select random variant per block and shuffle
+            version_questions = select_version_questions(questions, shuffle=True)
+
+            # Calculate stats for this version
+            total_points = sum(float(q.points) for q in version_questions)
+            by_type = {}
+            question_list = []
+
+            for q in version_questions:
+                qtype = q.question_type
+                if qtype not in by_type:
+                    by_type[qtype] = {'count': 0, 'points': 0}
+                by_type[qtype]['count'] += 1
+                by_type[qtype]['points'] += float(q.points)
+
+                question_list.append({
+                    'id': q.id,
+                    'type': q.question_type,
+                    'text': q.text,
+                    'points': float(q.points),
+                    'course': q.question_bank.course.code,
+                    'block_id': q.block_id,
+                    'block_name': q.block.name if q.block else None,
+                    'variant_number': q.variant_number,
+                    'tags': [t.name for t in q.tags.all()],
+                    'difficulty': q.difficulty,
+                })
+
+            versions.append({
+                'version': version_letter,
+                'question_count': len(version_questions),
+                'total_points': total_points,
+                'by_type': by_type,
+                'questions': question_list,
+            })
+
+        # Also return block info so UI can show which blocks have variants
+        blocks = {}
+        for q in questions:
+            if q.block_id:
+                if q.block_id not in blocks:
+                    blocks[q.block_id] = {
+                        'id': q.block_id,
+                        'name': q.block.name if q.block else f'Block {q.block_id}',
+                        'variants': []
+                    }
+                blocks[q.block_id]['variants'].append({
+                    'id': q.id,
+                    'variant_number': q.variant_number,
+                    'points': float(q.points),
+                    'type': q.question_type,
+                })
+
+        return Response({
+            'versions': versions,
+            'blocks': list(blocks.values()),
+            'has_variants': len(blocks) > 0,
+        })

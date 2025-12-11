@@ -545,7 +545,7 @@
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Number of Versions</label>
                                         <div class="flex items-center gap-3">
-                                            <select id="exam-versions" class="input-modern px-3 py-2 rounded-lg flex-1">
+                                            <select id="exam-versions" class="input-modern px-3 py-2 rounded-lg flex-1" onchange="refreshMultiVersionPreview()">
                                                 <option value="1">1 (single version)</option>
                                                 <option value="2">2 versions (A, B)</option>
                                                 <option value="3">3 versions (A, B, C)</option>
@@ -554,7 +554,7 @@
                                                 <option value="6">6 versions</option>
                                             </select>
                                         </div>
-                                        <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Each version shuffles questions differently</p>
+                                        <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Each version has different questions/order</p>
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <input type="checkbox" id="exam-include-id" class="w-4 h-4 rounded text-sky-600">
@@ -713,6 +713,15 @@
                                             <i data-lucide="shuffle" class="w-4 h-4"></i>
                                             Shuffle
                                         </button>
+                                    </div>
+                                </div>
+                                <!-- Version tabs (shown when multiple versions) -->
+                                <div id="version-tabs" class="hidden mb-3">
+                                    <div class="flex gap-1 border-b border-gray-200 dark:border-slate-700" id="version-tabs-list">
+                                        <!-- Tabs populated by JS -->
+                                    </div>
+                                    <div id="version-stats" class="mt-2 text-xs text-gray-500 dark:text-slate-400">
+                                        <!-- Per-version stats -->
                                     </div>
                                 </div>
                                 <div id="exam-preview" class="space-y-2 max-h-[400px] overflow-y-auto">
