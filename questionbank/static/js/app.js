@@ -46,9 +46,10 @@
             // Load data - courses must complete first for dropdowns
             console.log('[DEBUG] Loading courses...');
             await loadCourses();
-            console.log('[DEBUG] Courses loaded, loading tags and questions...');
+            console.log('[DEBUG] Courses loaded, loading tags...');
             loadTags();
-            loadQuestions();
+            // Don't load all questions at startup - wait for course selection
+            showSelectCoursePrompt();
             // Load trash count for sidebar badge
             updateTrashCount();
             // Load usage stats for sidebar
@@ -436,6 +437,13 @@
             const course = document.getElementById('filter-course')?.value;
             const type = document.getElementById('filter-type')?.value;
             const difficulty = document.getElementById('filter-difficulty')?.value;
+
+            // Don't load all questions if no course is selected (unless searching)
+            if (!course && !search) {
+                showSelectCoursePrompt();
+                return;
+            }
+
             if (search) params.append('search', search);
             if (course) params.append('course', course);
             selectedTags.forEach(tag => params.append('tags', tag));
@@ -468,6 +476,20 @@
 
             const data = await api(`questions/?${params.toString()}`);
             renderExamQuestions(data.results || data || []);
+        }
+
+        // Show prompt to select a course before loading questions
+        function showSelectCoursePrompt() {
+            const container = document.getElementById('questions-list');
+            if (!container) return;
+            container.innerHTML = `<div class="p-12 text-center text-gray-400 dark:text-slate-500">
+                <i data-lucide="folder-open" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                <p class="font-medium">Select a course to view questions</p>
+                <p class="text-sm mt-1">Use the Course filter above to narrow down your questions</p>
+            </div>`;
+            lucide.createIcons();
+            document.getElementById('stat-questions').textContent = '-';
+            document.getElementById('nav-count').textContent = '-';
         }
 
         // Renderers

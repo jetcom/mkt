@@ -43,6 +43,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     search_fields = ['name', 'code']
     lookup_field = 'code'
+    pagination_class = None  # Return all courses without pagination
 
     def get_queryset(self):
         user = self.request.user
