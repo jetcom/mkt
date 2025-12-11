@@ -1647,6 +1647,7 @@ class GenerateExamView(APIView):
 \\begin{center}
 \\vspace*{1in}
 
+
 '''
             # Build cover page dynamically to avoid LaTeX errors with empty fields
             # School and Department line
@@ -1666,11 +1667,11 @@ class GenerateExamView(APIView):
             if term:
                 latex += f'\\textsc{{\\LARGE {term}}}\\\\[1cm]\n'
 
-            # Instructor line
+            # Instructor line (no line break spacing after - mkt.py style)
             if instructor:
                 latex += f'{instructor}\n'
 
-            # Title (always required)
+            # Title (always required) - Huge with 1cm spacing
             latex += f'\\textsc{{\\Huge {title}}}\\\\[1cm]\n'
 
             # Version line (if multiple versions)
@@ -1682,6 +1683,7 @@ class GenerateExamView(APIView):
                 latex += f'{instructions}\n'
 
             latex += '''\\vfill
+
 
 '''
             if include_answers:
