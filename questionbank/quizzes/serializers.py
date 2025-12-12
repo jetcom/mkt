@@ -149,70 +149,52 @@ class QuizSessionCreateSerializer(serializers.ModelSerializer):
         return quiz
 
     def _populate_questions_from_template(self, quiz):
-        """Pull questions from the template's selection rules (sections)."""
+        """Pull questions from the template's generated exam or selection rules."""
         from questions.models import Question
         from django.db.models import Q
         import random
 
         template = quiz.template
-        selection_rules = template.selection_rules
 
-        if not selection_rules:
-            # Fall back to filter_banks if no sections defined
-            if template.filter_banks.exists():
-                questions = Question.objects.filter(
-                    question_bank__in=template.filter_banks.all(),
-                    deleted_at__isnull=True
-                )
-                quiz.questions.set(questions[:100])  # Limit to 100
+        # Priority 1: If quiz has a specific generated_exam, use its questions
+        if quiz.generated_exam and quiz.generated_exam.questions.exists():
+            quiz.questions.set(quiz.generated_exam.questions.all())
             return
 
-        # Handle case where selection_rules is not a list of dicts
-        # (e.g., it might be a dict or have unexpected format)
-        if not isinstance(selection_rules, list):
-            # Fall back to filter_banks
-            if template.filter_banks.exists():
-                questions = Question.objects.filter(
-                    question_bank__in=template.filter_banks.all(),
-                    deleted_at__isnull=True
-                )
-                quiz.questions.set(questions[:100])
+        # Priority 2: Use the most recent generated exam from the template
+        latest_exam = template.generated_exams.order_by('-created_at').first()
+        if latest_exam and latest_exam.questions.exists():
+            quiz.questions.set(latest_exam.questions.all())
             return
 
-        # Process each section in selection_rules
-        all_questions = []
-
-        for section in selection_rules:
-            # Skip non-dict entries (strings, etc.)
-            if not isinstance(section, dict):
-                continue
-            section_questions = self._get_section_questions(template, section)
-
-            # Apply count limit if specified
-            count = section.get('count') or section.get('questionCount')
-            if count and count < len(section_questions):
-                section_questions = random.sample(section_questions, count)
-
-            all_questions.extend(section_questions)
-
-        # If we got questions from sections, use them; otherwise fall back to filter_banks or course
-        if all_questions:
-            quiz.questions.set(all_questions)
-        elif template.filter_banks.exists():
+        # Priority 3: Use filter_banks if defined
+        if template.filter_banks.exists():
             questions = Question.objects.filter(
                 question_bank__in=template.filter_banks.all(),
-                deleted_at__isnull=True
-            )
-            quiz.questions.set(questions[:100])
-        elif template.course:
-            # Fall back to all questions from the template's course
-            questions = Question.objects.filter(
-                question_bank__course=template.course,
                 deleted_at__isnull=True
             ).filter(
                 Q(block__isnull=True) | Q(variant_number=1)
             )
-            quiz.questions.set(questions[:100])
+            if questions.exists():
+                quiz.questions.set(questions[:100])
+                return
+
+        # Priority 4: Try selection_rules if they're properly formatted
+        selection_rules = template.selection_rules
+        if selection_rules and isinstance(selection_rules, list):
+            all_questions = []
+            for section in selection_rules:
+                if not isinstance(section, dict):
+                    continue
+                section_questions = self._get_section_questions(template, section)
+                count = section.get('count') or section.get('questionCount')
+                if count and count < len(section_questions):
+                    section_questions = random.sample(section_questions, count)
+                all_questions.extend(section_questions)
+
+            if all_questions:
+                quiz.questions.set(all_questions)
+                return
 
     def _get_section_questions(self, template, section):
         """Get questions matching section criteria."""

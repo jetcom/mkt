@@ -340,19 +340,24 @@ class QuizStartView(APIView):
         # Get questions
         questions = list(quiz.questions.all())
         if not questions and quiz.template:
-            # Fall back to template filter_banks
-            if quiz.template.filter_banks.exists():
-                questions = list(quiz.template.filter_banks.all()[0].questions.filter(deleted_at__isnull=True)[:50])
-            # Fall back to template course
-            if not questions and quiz.template.course:
-                from questions.models import Question
+            # Try generated_exam first
+            if quiz.generated_exam and quiz.generated_exam.questions.exists():
+                questions = list(quiz.generated_exam.questions.all())
+            # Then try latest generated exam from template
+            if not questions:
+                latest_exam = quiz.template.generated_exams.order_by('-created_at').first()
+                if latest_exam and latest_exam.questions.exists():
+                    questions = list(latest_exam.questions.all())
+            # Then try filter_banks
+            if not questions and quiz.template.filter_banks.exists():
                 from django.db.models import Q
-                questions = list(Question.objects.filter(
-                    question_bank__course=quiz.template.course,
-                    deleted_at__isnull=True
-                ).filter(
-                    Q(block__isnull=True) | Q(variant_number=1)
-                )[:50])
+                for bank in quiz.template.filter_banks.all():
+                    bank_questions = list(bank.questions.filter(deleted_at__isnull=True).filter(
+                        Q(block__isnull=True) | Q(variant_number=1)
+                    )[:50])
+                    if bank_questions:
+                        questions = bank_questions
+                        break
 
         if not questions:
             return Response({'error': 'No questions configured for this quiz'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
