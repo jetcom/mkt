@@ -648,11 +648,21 @@ class QuizResultsView(APIView):
         if quiz.show_correct_answers:
             responses = []
             for resp in submission.responses.select_related('question').order_by('question_number'):
+                # Format student's answer for display
+                response_data = resp.response_data or {}
+                if resp.question.question_type == 'multipleChoice':
+                    your_answer = response_data.get('selected', '')
+                elif resp.question.question_type == 'trueFalse':
+                    selected = response_data.get('selected')
+                    your_answer = 'True' if selected else 'False' if selected is not None else ''
+                else:
+                    your_answer = response_data.get('text', '')
+
                 resp_data = {
                     'question_number': resp.question_number,
                     'question_text': resp.question.text,
                     'question_type': resp.question.question_type,
-                    'your_answer': resp.response_data,
+                    'your_answer': your_answer,
                     'points_earned': float(resp.get_final_score()) if resp.get_final_score() else 0,
                     'points_possible': float(resp.points_possible),
                     'is_correct': resp.is_correct,
@@ -664,7 +674,8 @@ class QuizResultsView(APIView):
                 if resp.question.question_type == 'multipleChoice':
                     resp_data['correct_answer'] = answer_data.get('correct')
                 elif resp.question.question_type == 'trueFalse':
-                    resp_data['correct_answer'] = answer_data.get('correct')
+                    correct = answer_data.get('correct')
+                    resp_data['correct_answer'] = 'True' if correct else 'False' if correct is not None else ''
                 else:
                     resp_data['correct_answer'] = answer_data.get('solution')
 
