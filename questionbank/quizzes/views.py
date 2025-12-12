@@ -89,6 +89,29 @@ class QuizSessionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
+    def questions(self, request, pk=None):
+        """Get all questions for this quiz."""
+        from questions.serializers import QuestionListSerializer
+        quiz = self.get_object()
+
+        # Get questions from various sources
+        questions = list(quiz.questions.all())
+
+        if not questions and quiz.generated_exam:
+            questions = list(quiz.generated_exam.questions.all())
+
+        if not questions and quiz.template:
+            latest_exam = quiz.template.generated_exams.order_by('-created_at').first()
+            if latest_exam:
+                questions = list(latest_exam.questions.all())
+
+        serializer = QuestionListSerializer(questions, many=True)
+        return Response({
+            'questions': serializer.data,
+            'source': 'direct' if quiz.questions.exists() else 'generated_exam' if quiz.generated_exam else 'template'
+        })
+
+    @action(detail=True, methods=['get'])
     def export(self, request, pk=None):
         """Export grades as CSV."""
         quiz = self.get_object()

@@ -3880,8 +3880,11 @@
                             <button onclick="previewQuiz('${q.id}')" class="px-3 py-1.5 text-sm bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 flex items-center gap-1" title="Preview quiz as student">
                                 <i data-lucide="eye" class="w-4 h-4"></i>Preview
                             </button>
+                            <button onclick="viewQuizQuestions('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 rounded-lg hover:bg-cyan-200 flex items-center gap-1" title="View/edit quiz questions">
+                                <i data-lucide="help-circle" class="w-4 h-4"></i>Questions
+                            </button>
                             <button onclick="viewSubmissions('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 flex items-center gap-1">
-                                <i data-lucide="list" class="w-4 h-4"></i>View
+                                <i data-lucide="list" class="w-4 h-4"></i>Submissions
                             </button>
                             <button onclick="editQuizSession('${q.id}')" class="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg">
                                 <i data-lucide="edit-2" class="w-4 h-4"></i>
@@ -4049,6 +4052,83 @@
         function previewQuiz(quizId) {
             // Open quiz preview in a new tab
             window.open(`/quiz/preview/${quizId}/`, '_blank');
+        }
+
+        // ===============================
+        // QUIZ QUESTIONS MANAGEMENT
+        // ===============================
+        let currentQuizQuestionsId = null;
+
+        async function viewQuizQuestions(quizId, quizName) {
+            currentQuizQuestionsId = quizId;
+            document.getElementById('quiz-questions-name').textContent = quizName;
+
+            try {
+                const data = await api(`quizzes/sessions/${quizId}/questions/`);
+                const questions = data.questions || [];
+                renderQuizQuestions(questions, data.source);
+                showModal('quiz-questions-modal');
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Error loading quiz questions:', err);
+                alert('Error loading questions. Please try again.');
+            }
+        }
+
+        function renderQuizQuestions(questions, source) {
+            const container = document.getElementById('quiz-questions-list');
+
+            if (!questions.length) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 dark:text-slate-500 py-8">
+                        <i data-lucide="help-circle" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p>No questions found for this quiz</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="mb-4 text-sm text-gray-500 dark:text-slate-400">
+                    ${questions.length} questions • Source: ${source}
+                </div>
+                ${questions.map((q, i) => `
+                    <div class="border dark:border-slate-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-gray-500 dark:text-slate-400">Q${i + 1}</span>
+                                <span class="badge ${getQuestionTypeBadge(q.question_type)}">${q.question_type}</span>
+                                <span class="text-xs text-gray-400">${q.points} pts</span>
+                            </div>
+                            <button onclick="editQuestionInQuiz(${q.id})" class="text-sky-500 hover:text-sky-600 text-sm flex items-center gap-1">
+                                <i data-lucide="edit-2" class="w-3 h-3"></i>Edit
+                            </button>
+                        </div>
+                        <div class="text-gray-900 dark:text-white mb-2">${escapeHtml(q.text)}</div>
+                        ${q.question_type === 'multipleChoice' && q.answer_data?.choices ? `
+                            <div class="text-sm text-gray-600 dark:text-slate-400 ml-4">
+                                ${q.answer_data.choices.map((c, ci) => `
+                                    <div class="${c === q.answer_data.correct ? 'text-emerald-600 dark:text-emerald-400 font-medium' : ''}">
+                                        ${String.fromCharCode(65 + ci)}. ${escapeHtml(c)} ${c === q.answer_data.correct ? '✓' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        ${q.question_type === 'trueFalse' ? `
+                            <div class="text-sm text-emerald-600 dark:text-emerald-400 ml-4">
+                                Answer: ${q.answer_data?.correct ? 'True' : 'False'}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function editQuestionInQuiz(questionId) {
+            // Navigate to the questions tab and select this question for editing
+            hideModal('quiz-questions-modal');
+            showSection('questions');
+            // Load the question for editing
+            setTimeout(() => editQuestion(questionId), 300);
         }
 
         // ===============================

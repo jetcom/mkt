@@ -1272,7 +1272,32 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=20251211a"></script>
+    <!-- Quiz Questions Modal -->
+    <div id="quiz-questions-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden fade-in max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quiz Questions</h3>
+                    <p id="quiz-questions-name" class="text-sm text-gray-500 dark:text-slate-400"></p>
+                </div>
+                <button onclick="hideModal('quiz-questions-modal')" class="w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div id="quiz-questions-list" class="space-y-4">
+                    <!-- Questions loaded here -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-end">
+                <button onclick="hideModal('quiz-questions-modal')" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 font-medium">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=20251211b"></script>
     <script>
         // Initialize import modal bank select when opened
         function openImportModal() {
