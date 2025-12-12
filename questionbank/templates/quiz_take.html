@@ -1,8 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -169,6 +171,11 @@
         let timerInterval = null;
         let expiresAt = null;
 
+        // CSRF token for POST requests
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
+
         // Preview mode (set by Django template)
         const previewMode = {{ preview_mode|yesno:"true,false" }};
         const previewCode = '{{ code|default:"" }}';
@@ -262,7 +269,10 @@
                 }
                 const res = await fetch(`/api/quizzes/take/${quizCode}/start/`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
                     credentials: 'include',
                     body: JSON.stringify(bodyData)
                 });
@@ -412,8 +422,10 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Quiz-Session': sessionToken
+                        'X-Quiz-Session': sessionToken,
+                        'X-CSRFToken': getCSRFToken()
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         question_id: questionId,
                         answer: data
@@ -468,8 +480,10 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Quiz-Session': sessionToken
-                    }
+                        'X-Quiz-Session': sessionToken,
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    credentials: 'include'
                 });
                 const data = await res.json();
 
