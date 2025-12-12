@@ -4325,7 +4325,7 @@
                         <div class="text-sm text-gray-700 dark:text-slate-300 mb-3">${escapeHtml(r.question_text || '')}</div>
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-3 mb-3">
                             <div class="text-xs text-gray-500 dark:text-slate-400 mb-1">Student's Answer:</div>
-                            <div class="text-gray-900 dark:text-white">${formatResponseData(r.response_data, r.question_type)}</div>
+                            <div class="text-gray-900 dark:text-white">${escapeHtml(r.formatted_answer || '')}</div>
                         </div>
                         ${r.ai_feedback || r.override_feedback ? `
                             <div class="bg-sky-50 dark:bg-sky-900/30 rounded-lg p-3 text-sm">

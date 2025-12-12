@@ -12,25 +12,44 @@ class QuestionResponseSerializer(serializers.ModelSerializer):
     question_text = serializers.CharField(source='question.text', read_only=True)
     question_type = serializers.CharField(source='question.question_type', read_only=True)
     final_score = serializers.SerializerMethodField()
+    formatted_answer = serializers.SerializerMethodField()
 
     class Meta:
         model = QuestionResponse
         fields = [
             'id', 'question_number', 'question', 'question_text', 'question_type',
-            'response_data', 'points_possible', 'points_earned', 'final_score',
+            'response_data', 'formatted_answer', 'points_possible', 'points_earned', 'final_score',
             'grading_status', 'is_correct',
             'ai_score', 'ai_feedback', 'ai_reasoning', 'ai_confidence', 'ai_graded_at',
             'override_score', 'override_feedback', 'override_by', 'override_at',
             'answered_at'
         ]
         read_only_fields = [
-            'id', 'question_text', 'question_type', 'final_score',
+            'id', 'question_text', 'question_type', 'final_score', 'formatted_answer',
             'ai_score', 'ai_feedback', 'ai_reasoning', 'ai_confidence', 'ai_graded_at',
             'override_score', 'override_feedback', 'override_by', 'override_at'
         ]
 
     def get_final_score(self, obj):
         return float(obj.get_final_score()) if obj.get_final_score() is not None else None
+
+    def get_formatted_answer(self, obj):
+        """Format the response_data into a human-readable string."""
+        response_data = obj.response_data or {}
+        question_type = obj.question.question_type
+
+        if question_type == 'multipleChoice':
+            return response_data.get('selected', '')
+        elif question_type == 'trueFalse':
+            selected = response_data.get('selected')
+            if selected is True:
+                return 'True'
+            elif selected is False:
+                return 'False'
+            return ''
+        else:
+            # shortAnswer, longAnswer
+            return response_data.get('text', '')
 
 
 class StudentSubmissionListSerializer(serializers.ModelSerializer):
