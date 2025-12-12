@@ -128,8 +128,12 @@
             </div>
 
             <div id="score-display" class="bg-gray-50 rounded-lg p-6 text-center mb-6">
-                <div class="text-4xl font-bold text-sky-600" id="score-percentage">--%</div>
-                <div class="text-gray-500" id="score-points">-- / -- points</div>
+                <div class="text-4xl font-bold text-sky-600" id="score-percentage"></div>
+                <div class="text-gray-500" id="score-points"></div>
+                <div id="grading-pending-message" class="hidden text-amber-600">
+                    <i data-lucide="clock" class="w-6 h-6 inline-block mr-2"></i>
+                    <span>Your submission is being graded. Check back later for your score.</span>
+                </div>
             </div>
 
             <div id="results-details" class="hidden">
@@ -455,6 +459,11 @@
                 document.getElementById('score-percentage').textContent = pct;
                 document.getElementById('score-points').textContent =
                     `${submitData.score.points_earned} / ${submitData.score.points_possible} points`;
+            } else if (submitData.grading_pending) {
+                document.getElementById('score-percentage').classList.add('hidden');
+                document.getElementById('score-points').classList.add('hidden');
+                document.getElementById('grading-pending-message').classList.remove('hidden');
+                lucide.createIcons();
             }
 
             // Load full results if available

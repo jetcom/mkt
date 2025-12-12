@@ -593,11 +593,16 @@ class QuizSubmitView(APIView):
         }
 
         if quiz.show_score_immediately:
-            result['score'] = {
-                'points_earned': float(submission.total_points_earned),
-                'points_possible': float(submission.total_points_possible),
-                'percentage': float(submission.percentage_score) if submission.percentage_score else None
-            }
+            # Only show score if fully graded (no pending responses)
+            if submission.status == StudentSubmission.Status.GRADED:
+                result['score'] = {
+                    'points_earned': float(submission.total_points_earned),
+                    'points_possible': float(submission.total_points_possible),
+                    'percentage': float(submission.percentage_score) if submission.percentage_score else None
+                }
+            else:
+                result['grading_pending'] = True
+                result['grading_message'] = 'Your submission is being graded. Check back later for your score.'
 
         return Response(result)
 
@@ -627,12 +632,18 @@ class QuizResultsView(APIView):
             'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else None,
             'is_late': submission.is_late,
             'status': submission.status,
-            'score': {
+        }
+
+        # Only show score if fully graded
+        if submission.status in [StudentSubmission.Status.GRADED, StudentSubmission.Status.REVIEWED]:
+            result['score'] = {
                 'points_earned': float(submission.total_points_earned),
                 'points_possible': float(submission.total_points_possible),
                 'percentage': float(submission.percentage_score) if submission.percentage_score else None
             }
-        }
+        else:
+            result['grading_pending'] = True
+            result['grading_message'] = 'Your submission is being graded. Check back later for your score.'
 
         if quiz.show_correct_answers:
             responses = []
