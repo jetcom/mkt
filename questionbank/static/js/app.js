@@ -3877,6 +3877,9 @@
                                     <i data-lucide="square" class="w-4 h-4"></i>Close
                                 </button>
                             ` : ''}
+                            <button onclick="viewRoster('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 rounded-lg hover:bg-violet-200 flex items-center gap-1">
+                                <i data-lucide="users" class="w-4 h-4"></i>Roster
+                            </button>
                             <button onclick="viewSubmissions('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 flex items-center gap-1">
                                 <i data-lucide="list" class="w-4 h-4"></i>View
                             </button>
@@ -4041,6 +4044,145 @@
             const url = `${window.location.origin}/quiz/${code}/`;
             navigator.clipboard.writeText(url);
             alert(`Quiz link copied to clipboard:\n${url}`);
+        }
+
+        // ===============================
+        // ROSTER / INVITATIONS MANAGEMENT
+        // ===============================
+        let currentRosterQuizId = null;
+
+        async function viewRoster(quizId, quizName) {
+            currentRosterQuizId = quizId;
+            document.getElementById('roster-quiz-name').textContent = `Roster: ${quizName}`;
+            document.getElementById('quiz-roster-section').classList.remove('hidden');
+            await loadInvitations(quizId);
+        }
+
+        function hideRoster() {
+            document.getElementById('quiz-roster-section').classList.add('hidden');
+            currentRosterQuizId = null;
+        }
+
+        async function loadInvitations(quizId) {
+            try {
+                const data = await api(`quizzes/invitations/?quiz_session=${quizId}`);
+                const invitations = data.results || data || [];
+                renderInvitations(invitations);
+            } catch (err) {
+                console.error('Error loading invitations:', err);
+            }
+        }
+
+        function renderInvitations(invitations) {
+            const container = document.getElementById('quiz-invitations-list');
+            if (!invitations.length) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 dark:text-slate-500">
+                        <i data-lucide="users" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p>No students added yet. Import a roster to get started.</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = invitations.map(inv => `
+                <div class="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 dark:text-white truncate">${escapeHtml(inv.student_name)}</div>
+                        <div class="text-sm text-gray-500 dark:text-slate-400 truncate">${escapeHtml(inv.student_email)}</div>
+                    </div>
+                    <div class="flex items-center gap-2 ml-4">
+                        ${inv.is_used ? `
+                            <span class="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs rounded-full">Completed</span>
+                        ` : inv.email_sent_at ? `
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs rounded-full">Sent</span>
+                        ` : `
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400 text-xs rounded-full">Pending</span>
+                        `}
+                        <button onclick="copyInviteLink('${inv.code}')" class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300" title="Copy invite link">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function copyInviteLink(code) {
+            const url = `${window.location.origin}/quiz/${code}/`;
+            navigator.clipboard.writeText(url);
+            alert(`Personal quiz link copied:\n${url}`);
+        }
+
+        function showRosterImport() {
+            document.getElementById('roster-import-area').classList.toggle('hidden');
+        }
+
+        async function importRoster() {
+            if (!currentRosterQuizId) return;
+
+            const fileInput = document.getElementById('roster-file-input');
+            const textInput = document.getElementById('roster-text-input');
+
+            let formData = new FormData();
+
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            } else if (textInput.value.trim()) {
+                // Parse text input (email per line or CSV format)
+                const lines = textInput.value.trim().split('\n');
+                const students = lines.map(line => {
+                    const parts = line.split(',').map(p => p.trim());
+                    if (parts.length >= 2) {
+                        return { email: parts[0], name: parts[1], student_id: parts[2] || '' };
+                    } else {
+                        return { email: parts[0], name: parts[0].split('@')[0] };
+                    }
+                }).filter(s => s.email && s.email.includes('@'));
+
+                formData.append('students', JSON.stringify(students));
+            } else {
+                alert('Please upload a CSV file or enter student emails');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/quizzes/sessions/${currentRosterQuizId}/roster/import/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`Imported ${data.created} students (${data.skipped} already existed)`);
+                    document.getElementById('roster-import-area').classList.add('hidden');
+                    fileInput.value = '';
+                    textInput.value = '';
+                    await loadInvitations(currentRosterQuizId);
+                } else {
+                    alert('Import error: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Error importing roster:', err);
+                alert('Error importing roster. Please try again.');
+            }
+        }
+
+        async function sendAllInvitations() {
+            if (!currentRosterQuizId) return;
+            if (!confirm('Send quiz invitation emails to all students who haven\\'t received one yet?')) return;
+
+            try {
+                const data = await api(`quizzes/sessions/${currentRosterQuizId}/invitations/send/`, 'POST', {});
+                alert(`Sent ${data.sent} emails${data.failed > 0 ? ` (${data.failed} failed)` : ''}`);
+                await loadInvitations(currentRosterQuizId);
+            } catch (err) {
+                console.error('Error sending invitations:', err);
+                alert('Error sending invitations: ' + (err.message || 'Unknown error'));
+            }
         }
 
         // Submissions management

@@ -768,6 +768,61 @@
                         </div>
                     </div>
 
+                    <!-- Roster Section -->
+                    <div id="quiz-roster-section" class="hidden mt-8">
+                        <div class="card overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <h3 class="font-semibold text-gray-900 dark:text-white">
+                                    <span id="roster-quiz-name">Roster</span>
+                                </h3>
+                                <div class="flex gap-2">
+                                    <button onclick="showRosterImport()" class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 flex items-center gap-1">
+                                        <i data-lucide="upload" class="w-4 h-4"></i>
+                                        Import Roster
+                                    </button>
+                                    <button onclick="sendAllInvitations()" class="px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 flex items-center gap-1">
+                                        <i data-lucide="send" class="w-4 h-4"></i>
+                                        Send Invitations
+                                    </button>
+                                    <button onclick="hideRoster()" class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400">
+                                        <i data-lucide="x" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Import Area (hidden by default) -->
+                            <div id="roster-import-area" class="hidden p-6 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-emerald-900 dark:text-emerald-200 mb-2">Import Student Roster</h4>
+                                        <p class="text-sm text-emerald-700 dark:text-emerald-300 mb-3">
+                                            Upload a CSV file with columns: email, name, student_id (optional)<br>
+                                            Or enter student emails below (one per line, or email,name format)
+                                        </p>
+                                        <div class="flex items-center gap-3 mb-3">
+                                            <label class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
+                                                <i data-lucide="file-up" class="w-5 h-5 text-emerald-600"></i>
+                                                <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Select CSV File</span>
+                                                <input type="file" id="roster-file-input" accept=".csv" class="hidden">
+                                            </label>
+                                        </div>
+                                        <textarea id="roster-text-input" rows="4" class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white" placeholder="Or paste emails here (one per line):&#10;student@email.com, Student Name&#10;another@email.com"></textarea>
+                                        <div class="mt-3 flex gap-2">
+                                            <button onclick="importRoster()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium">
+                                                Import Students
+                                            </button>
+                                            <button onclick="showRosterImport()" class="px-4 py-2 text-emerald-600 dark:text-emerald-400 text-sm">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="quiz-invitations-list" class="divide-y divide-gray-100 dark:divide-slate-700 max-h-96 overflow-y-auto">
+                                <!-- Invitations will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Submissions Section -->
                     <div id="quiz-submissions-section" class="hidden mt-8">
                         <div class="card overflow-hidden">
