@@ -35,7 +35,8 @@ urlpatterns = [
     path('take/<str:code>/results/', views.QuizResultsView.as_view(), name='quiz-results'),
 ]
 
-# HTML page URL (for quiz taking interface)
+# HTML page URLs (for quiz taking interface)
 html_urlpatterns = [
     path('quiz/<str:code>/', views.quiz_take_page, name='quiz-take-page'),
+    path('quiz/preview/<uuid:quiz_id>/', views.quiz_preview_page, name='quiz-preview-page'),
 ]

@@ -1022,3 +1022,23 @@ def quiz_take_page(request, code):
     else:
         quiz = get_object_or_404(QuizSession, access_code=code.upper())
         return render(request, 'quiz_take.html', {'quiz': quiz, 'code': code})
+
+
+def quiz_preview_page(request, quiz_id):
+    """Render the quiz preview page for instructors."""
+    if not request.user.is_authenticated:
+        from django.shortcuts import redirect
+        return redirect(f'/login/?next=/quiz/preview/{quiz_id}/')
+
+    quiz = get_object_or_404(QuizSession, id=quiz_id)
+
+    # Verify ownership
+    if quiz.created_by != request.user and (not quiz.template or quiz.template.owner != request.user):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Not authorized to preview this quiz')
+
+    return render(request, 'quiz_take.html', {
+        'quiz': quiz,
+        'code': quiz.access_code,
+        'preview_mode': True
+    })

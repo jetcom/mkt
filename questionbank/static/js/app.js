@@ -3880,6 +3880,9 @@
                             <button onclick="viewRoster('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 rounded-lg hover:bg-violet-200 flex items-center gap-1">
                                 <i data-lucide="users" class="w-4 h-4"></i>Roster
                             </button>
+                            <button onclick="previewQuiz('${q.id}')" class="px-3 py-1.5 text-sm bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 flex items-center gap-1" title="Preview quiz as student">
+                                <i data-lucide="eye" class="w-4 h-4"></i>Preview
+                            </button>
                             <button onclick="viewSubmissions('${q.id}', '${escapeHtml(q.name)}')" class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 flex items-center gap-1">
                                 <i data-lucide="list" class="w-4 h-4"></i>View
                             </button>
@@ -4044,6 +4047,11 @@
             const url = `${window.location.origin}/quiz/${code}/`;
             navigator.clipboard.writeText(url);
             alert(`Quiz link copied to clipboard:\n${url}`);
+        }
+
+        function previewQuiz(quizId) {
+            // Open quiz preview in a new tab
+            window.open(`/quiz/preview/${quizId}/`, '_blank');
         }
 
         // ===============================

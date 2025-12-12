@@ -6,6 +6,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
+from quizzes.views import quiz_take_page, quiz_preview_page
 
 
 class ProtectedHomeView(LoginRequiredMixin, TemplateView):
@@ -27,8 +28,9 @@ urlpatterns = [
     # Authentication
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
-    # Public quiz taking page (no auth required)
-    path('quiz/<str:code>/', TemplateView.as_view(template_name='quiz_take.html'), name='quiz-take'),
+    # Public quiz taking pages (quiz_take uses view function for context variables)
+    path('quiz/preview/<uuid:quiz_id>/', quiz_preview_page, name='quiz-preview'),
+    path('quiz/<str:code>/', quiz_take_page, name='quiz-take'),
     # Frontend routes - protected
     path('', ProtectedHomeView.as_view(), name='home'),
 ]

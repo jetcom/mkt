@@ -169,10 +169,19 @@
         let timerInterval = null;
         let expiresAt = null;
 
+        // Preview mode (set by Django template)
+        const previewMode = {{ preview_mode|yesno:"true,false" }};
+        const previewCode = '{{ code|default:"" }}';
+
         // Extract code from URL if present
         const pathParts = window.location.pathname.split('/');
         const codeFromUrl = pathParts[pathParts.indexOf('quiz') + 1];
-        if (codeFromUrl && codeFromUrl.length >= 4) {
+
+        // Handle preview mode - skip code entry
+        if (previewMode && previewCode) {
+            document.getElementById('access-code').value = previewCode.toUpperCase();
+            setTimeout(checkAccessCode, 300);
+        } else if (codeFromUrl && codeFromUrl.length >= 4) {
             document.getElementById('access-code').value = codeFromUrl.toUpperCase();
             // Auto-check
             setTimeout(checkAccessCode, 500);
@@ -215,6 +224,20 @@
             if (!quizInfo.require_student_id) {
                 document.getElementById('student-id-field').classList.add('hidden');
                 document.getElementById('student-id').removeAttribute('required');
+            }
+
+            // In preview mode, auto-fill instructor info and auto-start
+            if (previewMode) {
+                document.getElementById('student-name').value = 'Instructor Preview';
+                document.getElementById('student-id').value = 'PREVIEW';
+                document.getElementById('student-email').value = '';
+                // Show a preview banner
+                const banner = document.createElement('div');
+                banner.className = 'bg-amber-100 dark:bg-amber-900/50 border border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-200 px-4 py-2 rounded-lg mb-4 text-center';
+                banner.innerHTML = '<strong>Preview Mode</strong> - This submission will not be saved.';
+                document.getElementById('start-view').insertBefore(banner, document.getElementById('quiz-title'));
+                // Auto-start after a brief delay
+                setTimeout(startQuiz, 500);
             }
 
             lucide.createIcons();
