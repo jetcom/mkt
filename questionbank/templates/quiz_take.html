@@ -193,7 +193,9 @@
 
             try {
                 const previewParam = previewMode ? '?preview=true' : '';
-                const res = await fetch(`/api/quizzes/take/${code}/${previewParam}`);
+                const res = await fetch(`/api/quizzes/take/${code}/${previewParam}`, {
+                    credentials: 'include'
+                });
                 const data = await res.json();
 
                 if (!res.ok) {
@@ -261,6 +263,7 @@
                 const res = await fetch(`/api/quizzes/take/${quizCode}/start/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(bodyData)
                 });
                 const data = await res.json();

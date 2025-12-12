@@ -355,7 +355,10 @@ class QuizStartView(APIView):
 
     def _is_instructor_preview(self, request, quiz):
         """Check if this is a valid instructor preview request."""
-        if request.data.get('preview') != True and request.query_params.get('preview') != 'true':
+        preview_data = request.data.get('preview')
+        preview_param = request.query_params.get('preview')
+        is_preview = preview_data in (True, 'true', 'True') or preview_param in ('true', 'True', '1')
+        if not is_preview:
             return False
         if not request.user.is_authenticated:
             return False
