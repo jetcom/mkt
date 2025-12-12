@@ -1,10 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+        // Check for dark mode preference
+        if (localStorage.getItem('theme') === 'dark' ||
+            (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .timer-warning { animation: pulse 1s infinite; }
@@ -14,98 +26,98 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 dark:bg-slate-900 min-h-screen transition-colors">
     <!-- Quiz Container -->
     <div id="quiz-app" class="max-w-4xl mx-auto p-4">
 
         <!-- Access Code Entry -->
-        <div id="access-view" class="bg-white rounded-lg shadow-lg p-8 mt-20">
-            <h1 class="text-2xl font-bold text-center mb-6">Enter Quiz Access Code</h1>
+        <div id="access-view" class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mt-20">
+            <h1 class="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">Enter Quiz Access Code</h1>
             <div class="max-w-sm mx-auto">
                 <input type="text" id="access-code"
-                    class="w-full text-center text-3xl font-mono tracking-widest border-2 border-gray-300 rounded-lg p-4 uppercase"
+                    class="w-full text-center text-3xl font-mono tracking-widest border-2 border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-4 uppercase"
                     placeholder="ABC123" maxlength="10" autocomplete="off">
                 <button onclick="checkAccessCode()"
                     class="w-full mt-4 bg-sky-600 text-white py-3 rounded-lg font-medium hover:bg-sky-700">
                     Continue
                 </button>
-                <p id="access-error" class="text-red-500 text-center mt-2 hidden"></p>
+                <p id="access-error" class="text-red-500 dark:text-red-400 text-center mt-2 hidden"></p>
             </div>
         </div>
 
         <!-- Student Info & Start -->
-        <div id="start-view" class="bg-white rounded-lg shadow-lg p-8 hidden">
-            <h1 id="quiz-title" class="text-2xl font-bold mb-2">Quiz</h1>
-            <p id="quiz-description" class="text-gray-600 mb-6"></p>
+        <div id="start-view" class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 hidden">
+            <h1 id="quiz-title" class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Quiz</h1>
+            <p id="quiz-description" class="text-gray-600 dark:text-slate-400 mb-6"></p>
 
-            <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 class="font-medium mb-2">Quiz Details</h3>
-                <ul class="text-sm text-gray-600 space-y-1">
+            <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 mb-6">
+                <h3 class="font-medium mb-2 text-gray-900 dark:text-white">Quiz Details</h3>
+                <ul class="text-sm text-gray-600 dark:text-slate-400 space-y-1">
                     <li><i data-lucide="clock" class="w-4 h-4 inline mr-1"></i> Time Limit: <span id="time-limit">60</span> minutes</li>
                     <li><i data-lucide="list" class="w-4 h-4 inline mr-1"></i> Questions: <span id="question-count">-</span></li>
                 </ul>
             </div>
 
-            <div id="quiz-instructions" class="bg-blue-50 text-blue-800 rounded-lg p-4 mb-6 hidden">
+            <div id="quiz-instructions" class="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-lg p-4 mb-6 hidden">
                 <h3 class="font-medium mb-2">Instructions</h3>
                 <div id="instructions-text"></div>
             </div>
 
             <form id="student-form" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Your Name *</label>
                     <input type="text" id="student-name" required
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2">
                 </div>
                 <div id="student-id-field">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Student ID *</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Student ID *</label>
                     <input type="text" id="student-id"
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email (optional)</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Email (optional)</label>
                     <input type="email" id="student-email"
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2">
                 </div>
                 <button type="submit"
                     class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700">
                     Start Quiz
                 </button>
             </form>
-            <p id="start-error" class="text-red-500 text-center mt-2 hidden"></p>
+            <p id="start-error" class="text-red-500 dark:text-red-400 text-center mt-2 hidden"></p>
         </div>
 
         <!-- Quiz Taking -->
         <div id="quiz-view" class="hidden">
             <!-- Timer Header -->
-            <div class="bg-white rounded-lg shadow-lg p-4 mb-4 sticky top-0 z-10 flex justify-between items-center">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 mb-4 sticky top-0 z-10 flex justify-between items-center">
                 <div>
-                    <h1 id="quiz-header-title" class="font-bold"></h1>
-                    <p class="text-sm text-gray-500">Question <span id="current-q">1</span> of <span id="total-q">0</span></p>
+                    <h1 id="quiz-header-title" class="font-bold text-gray-900 dark:text-white"></h1>
+                    <p class="text-sm text-gray-500 dark:text-slate-400">Question <span id="current-q">1</span> of <span id="total-q">0</span></p>
                 </div>
-                <div id="timer" class="text-2xl font-mono font-bold text-gray-900">
+                <div id="timer" class="text-2xl font-mono font-bold text-gray-900 dark:text-white">
                     <i data-lucide="clock" class="w-5 h-5 inline mr-1"></i>
                     <span id="timer-display">60:00</span>
                 </div>
             </div>
 
             <!-- Question Navigation -->
-            <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 mb-4">
                 <div id="question-nav" class="flex flex-wrap gap-2">
                     <!-- Question number buttons generated dynamically -->
                 </div>
             </div>
 
             <!-- Question Display -->
-            <div id="question-container" class="bg-white rounded-lg shadow-lg p-6 mb-4">
-                <div id="question-text" class="text-lg mb-6"></div>
+            <div id="question-container" class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-4">
+                <div id="question-text" class="text-lg mb-6 text-gray-900 dark:text-white"></div>
                 <div id="answer-area"></div>
             </div>
 
             <!-- Navigation Buttons -->
             <div class="flex justify-between">
                 <button onclick="prevQuestion()" id="prev-btn"
-                    class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50">
+                    class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50">
                     Previous
                 </button>
                 <button onclick="nextQuestion()" id="next-btn"
@@ -120,24 +132,24 @@
         </div>
 
         <!-- Results View -->
-        <div id="results-view" class="bg-white rounded-lg shadow-lg p-8 hidden">
+        <div id="results-view" class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 hidden">
             <div class="text-center">
                 <i data-lucide="check-circle" class="w-16 h-16 mx-auto text-green-500 mb-4"></i>
-                <h1 class="text-2xl font-bold mb-2">Quiz Submitted!</h1>
-                <p id="results-name" class="text-gray-600 mb-6"></p>
+                <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Quiz Submitted!</h1>
+                <p id="results-name" class="text-gray-600 dark:text-slate-400 mb-6"></p>
             </div>
 
-            <div id="score-display" class="bg-gray-50 rounded-lg p-6 text-center mb-6">
-                <div class="text-4xl font-bold text-sky-600" id="score-percentage"></div>
-                <div class="text-gray-500" id="score-points"></div>
-                <div id="grading-pending-message" class="hidden text-amber-600">
+            <div id="score-display" class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-6 text-center mb-6">
+                <div class="text-4xl font-bold text-sky-600 dark:text-sky-400" id="score-percentage"></div>
+                <div class="text-gray-500 dark:text-slate-400" id="score-points"></div>
+                <div id="grading-pending-message" class="hidden text-amber-600 dark:text-amber-400">
                     <i data-lucide="clock" class="w-6 h-6 inline-block mr-2"></i>
                     <span>Your submission is being graded. Check back later for your score.</span>
                 </div>
             </div>
 
             <div id="results-details" class="hidden">
-                <h3 class="font-medium mb-4">Your Answers</h3>
+                <h3 class="font-medium mb-4 text-gray-900 dark:text-white">Your Answers</h3>
                 <div id="results-list" class="space-y-4">
                     <!-- Results will be populated here -->
                 </div>
@@ -278,7 +290,7 @@
             const nav = document.getElementById('question-nav');
             nav.innerHTML = questions.map((q, i) => `
                 <button onclick="showQuestion(${i})" id="nav-${i}"
-                    class="w-10 h-10 rounded-lg font-medium ${i === 0 ? 'bg-sky-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-sky-500 hover:text-white">
+                    class="w-10 h-10 rounded-lg font-medium ${i === 0 ? 'bg-sky-600 text-white' : 'bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-200'} hover:bg-sky-500 hover:text-white">
                     ${i + 1}
                 </button>
             `).join('');
@@ -296,7 +308,7 @@
                 btn.className = `w-10 h-10 rounded-lg font-medium ${
                     i === index ? 'bg-sky-600 text-white' :
                     answers[q.id] ? 'bg-green-500 text-white' :
-                    'bg-gray-200 text-gray-700'
+                    'bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-200'
                 } hover:bg-sky-500 hover:text-white`;
             });
 
@@ -307,22 +319,22 @@
             if (q.question_type === 'multipleChoice') {
                 const choices = q.answer_data.choices || [];
                 area.innerHTML = choices.map((choice, i) => `
-                    <label class="flex items-center p-4 border rounded-lg mb-2 cursor-pointer hover:bg-gray-50 ${savedAnswer.selected === choice ? 'border-sky-500 bg-sky-50' : ''}">
+                    <label class="flex items-center p-4 border dark:border-slate-600 rounded-lg mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 ${savedAnswer.selected === choice ? 'border-sky-500 dark:border-sky-400 bg-sky-50 dark:bg-sky-900/30' : 'bg-white dark:bg-slate-800'}">
                         <input type="radio" name="mc" value="${escapeHtml(choice)}"
                             ${savedAnswer.selected === choice ? 'checked' : ''}
                             onchange="saveAnswer('${q.id}', {selected: this.value})"
                             class="w-5 h-5 text-sky-600">
-                        <span class="ml-3">${formatText(choice)}</span>
+                        <span class="ml-3 text-gray-900 dark:text-white">${formatText(choice)}</span>
                     </label>
                 `).join('');
             } else if (q.question_type === 'trueFalse') {
                 area.innerHTML = ['True', 'False'].map(choice => `
-                    <label class="flex items-center p-4 border rounded-lg mb-2 cursor-pointer hover:bg-gray-50 ${String(savedAnswer.selected) === choice.toLowerCase() ? 'border-sky-500 bg-sky-50' : ''}">
+                    <label class="flex items-center p-4 border dark:border-slate-600 rounded-lg mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 ${String(savedAnswer.selected) === choice.toLowerCase() ? 'border-sky-500 dark:border-sky-400 bg-sky-50 dark:bg-sky-900/30' : 'bg-white dark:bg-slate-800'}">
                         <input type="radio" name="tf" value="${choice.toLowerCase()}"
                             ${String(savedAnswer.selected) === choice.toLowerCase() ? 'checked' : ''}
                             onchange="saveAnswer('${q.id}', {selected: this.value === 'true'})"
                             class="w-5 h-5 text-sky-600">
-                        <span class="ml-3 font-medium">${choice}</span>
+                        <span class="ml-3 font-medium text-gray-900 dark:text-white">${choice}</span>
                     </label>
                 `).join('');
             } else {
@@ -330,7 +342,7 @@
                 const rows = q.question_type === 'longAnswer' ? 8 : 3;
                 area.innerHTML = `
                     <textarea id="text-answer" rows="${rows}"
-                        class="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-sky-500"
+                        class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-4 focus:ring-2 focus:ring-sky-500"
                         placeholder="Enter your answer..."
                         onblur="saveAnswer('${q.id}', {text: this.value})">${savedAnswer.text || ''}</textarea>
                 `;
@@ -477,13 +489,13 @@
                     document.getElementById('results-details').classList.remove('hidden');
                     const list = document.getElementById('results-list');
                     list.innerHTML = data.responses.map(r => `
-                        <div class="border rounded-lg p-4 ${r.is_correct ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}">
+                        <div class="border rounded-lg p-4 ${r.is_correct ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30' : 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/30'}">
                             <div class="flex justify-between items-start mb-2">
-                                <span class="font-medium">Question ${r.question_number}</span>
-                                <span class="${r.is_correct ? 'text-green-600' : 'text-red-600'}">${r.points_earned}/${r.points_possible} pts</span>
+                                <span class="font-medium text-gray-900 dark:text-white">Question ${r.question_number}</span>
+                                <span class="${r.is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${r.points_earned}/${r.points_possible} pts</span>
                             </div>
-                            <div class="text-sm text-gray-700 mb-2">${formatText(r.question_text)}</div>
-                            ${r.feedback ? `<div class="text-sm text-gray-600 mt-2"><strong>Feedback:</strong> ${r.feedback}</div>` : ''}
+                            <div class="text-sm text-gray-700 dark:text-slate-300 mb-2">${formatText(r.question_text)}</div>
+                            ${r.feedback ? `<div class="text-sm text-gray-600 dark:text-slate-400 mt-2"><strong>Feedback:</strong> ${r.feedback}</div>` : ''}
                         </div>
                     `).join('');
                 }
@@ -512,7 +524,7 @@
             return text
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded">$1</code>')
+                .replace(/`(.*?)`/g, '<code class="bg-gray-100 dark:bg-slate-700 px-1 rounded">$1</code>')
                 .replace(/\n/g, '<br>');
         }
 

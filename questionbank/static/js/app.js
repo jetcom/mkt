@@ -4173,7 +4173,7 @@
 
         async function sendAllInvitations() {
             if (!currentRosterQuizId) return;
-            if (!confirm('Send quiz invitation emails to all students who haven\\'t received one yet?')) return;
+            if (!confirm("Send quiz invitation emails to all students who haven't received one yet?")) return;
 
             try {
                 const data = await api(`quizzes/sessions/${currentRosterQuizId}/invitations/send/`, 'POST', {});
