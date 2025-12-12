@@ -16,12 +16,12 @@ import random
 import csv
 import secrets
 
-from .models import QuizSession, StudentSubmission, QuestionResponse, ScannedExam
+from .models import QuizSession, StudentSubmission, QuestionResponse, ScannedExam, QuizInvitation
 from .serializers import (
     QuizSessionListSerializer, QuizSessionDetailSerializer, QuizSessionCreateSerializer,
     StudentSubmissionListSerializer, StudentSubmissionDetailSerializer,
     QuestionResponseSerializer, ScannedExamSerializer,
-    QuizInfoSerializer, QuizQuestionSerializer
+    QuizInfoSerializer, QuizQuestionSerializer, QuizInvitationSerializer
 )
 from .services.grading import AIGradingService
 
@@ -285,11 +285,21 @@ class BatchGradeView(APIView):
 # ==========================================
 
 class QuizAccessView(APIView):
-    """Get quiz info by access code (public)."""
+    """Get quiz info by access code or invitation code (public)."""
     permission_classes = [AllowAny]
 
     def get(self, request, code):
-        quiz = get_object_or_404(QuizSession, access_code=code.upper())
+        code = code.upper()
+        invitation = None
+
+        # Check if this is an invitation code (8 chars) or access code (6 chars)
+        if len(code) == 8:
+            invitation = QuizInvitation.objects.filter(code=code).select_related('quiz_session').first()
+            if not invitation:
+                return Response({'error': 'Invalid invitation code'}, status=status.HTTP_404_NOT_FOUND)
+            quiz = invitation.quiz_session
+        else:
+            quiz = get_object_or_404(QuizSession, access_code=code)
 
         if not quiz.is_available():
             if quiz.status == QuizSession.Status.DRAFT:
@@ -304,7 +314,20 @@ class QuizAccessView(APIView):
             elif quiz.end_time and timezone.now() > quiz.end_time:
                 return Response({'error': 'Quiz has ended'}, status=status.HTTP_410_GONE)
 
-        return Response(QuizInfoSerializer(quiz).data)
+        data = QuizInfoSerializer(quiz).data
+
+        # If invitation, include student info (pre-filled)
+        if invitation:
+            data['invitation'] = {
+                'student_name': invitation.student_name,
+                'student_email': invitation.student_email,
+                'student_id': invitation.student_id,
+                'is_used': invitation.is_used
+            }
+            if invitation.is_used:
+                data['invitation']['already_submitted'] = True
+
+        return Response(data)
 
 
 class QuizStartView(APIView):
@@ -312,30 +335,50 @@ class QuizStartView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, code):
-        quiz = get_object_or_404(QuizSession, access_code=code.upper())
+        code = code.upper()
+        invitation = None
+
+        # Check if this is an invitation code (8 chars) or access code (6 chars)
+        if len(code) == 8:
+            invitation = QuizInvitation.objects.filter(code=code).select_related('quiz_session').first()
+            if not invitation:
+                return Response({'error': 'Invalid invitation code'}, status=status.HTTP_404_NOT_FOUND)
+            quiz = invitation.quiz_session
+
+            # Check if invitation already used
+            if invitation.is_used:
+                return Response({'error': 'This quiz invitation has already been used'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Use invitation data for student info
+            student_name = invitation.student_name
+            student_id = invitation.student_id
+            student_email = invitation.student_email
+        else:
+            quiz = get_object_or_404(QuizSession, access_code=code)
+
+            student_name = request.data.get('student_name', '').strip()
+            student_id = request.data.get('student_id', '').strip()
+            student_email = request.data.get('student_email', '').strip()
+
+            if not student_name:
+                return Response({'error': 'Student name is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if quiz.require_student_id and not student_id:
+                return Response({'error': 'Student ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not quiz.is_available():
             return Response({'error': 'Quiz is not available'}, status=status.HTTP_400_BAD_REQUEST)
 
-        student_name = request.data.get('student_name', '').strip()
-        student_id = request.data.get('student_id', '').strip()
-        student_email = request.data.get('student_email', '').strip()
+        # Check max attempts (skip for invitation-based access - they get 1 attempt)
+        if not invitation:
+            existing_attempts = StudentSubmission.objects.filter(
+                quiz_session=quiz,
+                student_id=student_id if student_id else None,
+                student_name=student_name
+            ).count()
 
-        if not student_name:
-            return Response({'error': 'Student name is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if quiz.require_student_id and not student_id:
-            return Response({'error': 'Student ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check max attempts
-        existing_attempts = StudentSubmission.objects.filter(
-            quiz_session=quiz,
-            student_id=student_id if student_id else None,
-            student_name=student_name
-        ).count()
-
-        if existing_attempts >= quiz.max_attempts:
-            return Response({'error': 'Maximum attempts reached'}, status=status.HTTP_403_FORBIDDEN)
+            if existing_attempts >= quiz.max_attempts:
+                return Response({'error': 'Maximum attempts reached'}, status=status.HTTP_403_FORBIDDEN)
 
         # Get questions
         questions = list(quiz.questions.all())
@@ -372,6 +415,7 @@ class QuizStartView(APIView):
         expires_at = timezone.now() + timedelta(minutes=quiz.time_limit_minutes)
 
         # Create submission
+        attempt_number = 1 if invitation else (existing_attempts + 1)
         submission = StudentSubmission.objects.create(
             quiz_session=quiz,
             student_name=student_name,
@@ -380,9 +424,15 @@ class QuizStartView(APIView):
             ip_address=self._get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
             expires_at=expires_at,
-            attempt_number=existing_attempts + 1,
+            attempt_number=attempt_number,
             question_order=question_ids
         )
+
+        # Link invitation to submission and mark as used
+        if invitation:
+            invitation.used_at = timezone.now()
+            invitation.submission = submission
+            invitation.save(update_fields=['used_at', 'submission'])
 
         # Create empty responses for each question
         total_points = 0
@@ -805,10 +855,170 @@ class ScannedExamViewSet(viewsets.ModelViewSet):
 
 
 # ==========================================
+# Quiz Invitations (Roster Management)
+# ==========================================
+
+class QuizInvitationViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing quiz invitations."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = QuizInvitationSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = QuizInvitation.objects.filter(
+            Q(quiz_session__created_by=user) | Q(quiz_session__template__owner=user)
+        ).select_related('quiz_session', 'submission')
+
+        # Filter by quiz_session if provided
+        quiz_session_id = self.request.query_params.get('quiz_session')
+        if quiz_session_id:
+            queryset = queryset.filter(quiz_session_id=quiz_session_id)
+
+        return queryset
+
+
+class RosterImportView(APIView):
+    """Import a roster of students and create invitations."""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, quiz_id):
+        quiz = get_object_or_404(QuizSession, id=quiz_id)
+
+        # Verify ownership
+        if quiz.created_by != request.user and (not quiz.template or quiz.template.owner != request.user):
+            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Get CSV file or JSON data
+        csv_file = request.FILES.get('file')
+        json_data = request.data.get('students')
+
+        students = []
+
+        if csv_file:
+            # Parse CSV
+            try:
+                decoded = csv_file.read().decode('utf-8').splitlines()
+                reader = csv.DictReader(decoded)
+                for row in reader:
+                    # Support various column name formats
+                    name = row.get('name') or row.get('Name') or row.get('student_name') or row.get('Student Name', '')
+                    email = row.get('email') or row.get('Email') or row.get('student_email') or row.get('Student Email', '')
+                    student_id = row.get('id') or row.get('ID') or row.get('student_id') or row.get('Student ID', '')
+
+                    if email:  # Email is required
+                        students.append({
+                            'name': name.strip(),
+                            'email': email.strip().lower(),
+                            'student_id': str(student_id).strip()
+                        })
+            except Exception as e:
+                return Response({'error': f'CSV parse error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif json_data:
+            # JSON array of students
+            import json
+            if isinstance(json_data, str):
+                json_data = json.loads(json_data)
+            for s in json_data:
+                if s.get('email'):
+                    students.append({
+                        'name': s.get('name', '').strip(),
+                        'email': s.get('email', '').strip().lower(),
+                        'student_id': s.get('student_id', '').strip()
+                    })
+        else:
+            return Response({'error': 'No file or students data provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not students:
+            return Response({'error': 'No valid students found in import'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create invitations
+        created = 0
+        skipped = 0
+        errors = []
+
+        for student in students:
+            try:
+                invitation, was_created = QuizInvitation.objects.get_or_create(
+                    quiz_session=quiz,
+                    student_email=student['email'],
+                    defaults={
+                        'student_name': student['name'] or student['email'].split('@')[0],
+                        'student_id': student['student_id']
+                    }
+                )
+                if was_created:
+                    created += 1
+                else:
+                    skipped += 1
+            except Exception as e:
+                errors.append(f"{student['email']}: {str(e)}")
+
+        return Response({
+            'success': True,
+            'created': created,
+            'skipped': skipped,
+            'total': len(students),
+            'errors': errors
+        })
+
+
+class SendInvitationsView(APIView):
+    """Send email invitations to students."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, quiz_id):
+        quiz = get_object_or_404(QuizSession, id=quiz_id)
+
+        # Verify ownership
+        if quiz.created_by != request.user and (not quiz.template or quiz.template.owner != request.user):
+            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Get invitations to send
+        invitation_ids = request.data.get('invitation_ids')  # Optional: specific invitations
+        resend_all = request.data.get('resend', False)  # Resend to already sent
+
+        queryset = quiz.invitations.all()
+
+        if invitation_ids:
+            queryset = queryset.filter(id__in=invitation_ids)
+
+        if not resend_all:
+            queryset = queryset.filter(email_sent_at__isnull=True)
+
+        invitations = list(queryset)
+
+        if not invitations:
+            return Response({'error': 'No invitations to send'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Send emails
+        from .services.email import send_quiz_invitations
+        results = send_quiz_invitations(quiz, invitations, request)
+
+        return Response({
+            'success': True,
+            'sent': results['sent'],
+            'failed': results['failed'],
+            'errors': results['errors']
+        })
+
+
+# ==========================================
 # Quiz Taking Page (HTML)
 # ==========================================
 
 def quiz_take_page(request, code):
     """Render the quiz taking page."""
-    quiz = get_object_or_404(QuizSession, access_code=code.upper())
-    return render(request, 'quiz_take.html', {'quiz': quiz, 'code': code})
+    # Check if this is an invitation code (8 chars) or access code (6 chars)
+    if len(code) == 8:
+        invitation = get_object_or_404(QuizInvitation, code=code.upper())
+        quiz = invitation.quiz_session
+        return render(request, 'quiz_take.html', {
+            'quiz': quiz,
+            'code': code,
+            'invitation': invitation
+        })
+    else:
+        quiz = get_object_or_404(QuizSession, access_code=code.upper())
+        return render(request, 'quiz_take.html', {'quiz': quiz, 'code': code})

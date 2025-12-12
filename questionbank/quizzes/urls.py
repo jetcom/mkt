@@ -10,6 +10,7 @@ router.register(r'sessions', views.QuizSessionViewSet, basename='quiz-sessions')
 router.register(r'submissions', views.StudentSubmissionViewSet, basename='submissions')
 router.register(r'responses', views.QuestionResponseViewSet, basename='responses')
 router.register(r'scanned', views.ScannedExamViewSet, basename='scanned-exams')
+router.register(r'invitations', views.QuizInvitationViewSet, basename='invitations')
 
 urlpatterns = [
     # Instructor API endpoints (auth required)
@@ -20,6 +21,10 @@ urlpatterns = [
 
     # Scanned exam upload
     path('scan/upload/', views.ScannedExamUploadView.as_view(), name='scan-upload'),
+
+    # Roster and invitations
+    path('sessions/<uuid:quiz_id>/roster/import/', views.RosterImportView.as_view(), name='roster-import'),
+    path('sessions/<uuid:quiz_id>/invitations/send/', views.SendInvitationsView.as_view(), name='send-invitations'),
 
     # Public student API endpoints (no auth required)
     path('take/<str:code>/', views.QuizAccessView.as_view(), name='quiz-access'),

@@ -148,6 +148,11 @@ LOGOUT_REDIRECT_URL = '/login/'
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 
+# Email (Resend)
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+FROM_EMAIL = os.getenv('FROM_EMAIL', 'quizzes@yourdomain.com')
+BASE_URL = os.getenv('BASE_URL', 'https://mkt-production.up.railway.app')
+
 # Production security settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

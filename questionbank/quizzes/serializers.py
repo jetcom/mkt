@@ -2,7 +2,7 @@
 Serializers for quiz models.
 """
 from rest_framework import serializers
-from .models import QuizSession, StudentSubmission, QuestionResponse, ScannedExam
+from .models import QuizSession, StudentSubmission, QuestionResponse, ScannedExam, QuizInvitation
 from questions.serializers import QuestionListSerializer
 from exams.serializers import ExamTemplateSerializer
 
@@ -302,4 +302,27 @@ class ScannedExamSerializer(serializers.ModelSerializer):
             'id', 'page_count', 'status', 'error_message',
             'ocr_text', 'ocr_confidence', 'extracted_answers',
             'submission', 'uploaded_at', 'processed_at'
+        ]
+
+
+class QuizInvitationSerializer(serializers.ModelSerializer):
+    """Serializer for quiz invitations."""
+    quiz_name = serializers.CharField(source='quiz_session.name', read_only=True)
+    quiz_url = serializers.CharField(read_only=True)
+    is_used = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = QuizInvitation
+        fields = [
+            'id', 'quiz_session', 'quiz_name',
+            'student_name', 'student_email', 'student_id',
+            'code', 'quiz_url',
+            'email_sent_at', 'email_error',
+            'used_at', 'is_used', 'submission',
+            'created_at'
+        ]
+        read_only_fields = [
+            'id', 'code', 'quiz_url', 'is_used',
+            'email_sent_at', 'email_error',
+            'used_at', 'submission', 'created_at'
         ]

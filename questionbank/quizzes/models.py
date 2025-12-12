@@ -229,6 +229,55 @@ class QuestionResponse(models.Model):
         return self.points_earned
 
 
+def generate_invitation_code():
+    """Generate a unique 8-character invitation code."""
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+
+class QuizInvitation(models.Model):
+    """Individual invitation for a student to take a quiz."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    quiz_session = models.ForeignKey(QuizSession, on_delete=models.CASCADE, related_name='invitations')
+
+    # Student info (from roster import)
+    student_name = models.CharField(max_length=200)
+    student_email = models.EmailField(db_index=True)
+    student_id = models.CharField(max_length=50, blank=True)
+
+    # Unique code for this student
+    code = models.CharField(max_length=12, unique=True, default=generate_invitation_code, db_index=True)
+
+    # Email tracking
+    email_sent_at = models.DateTimeField(null=True, blank=True)
+    email_error = models.TextField(blank=True)
+
+    # Usage tracking
+    used_at = models.DateTimeField(null=True, blank=True)
+    submission = models.OneToOneField(
+        'StudentSubmission', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='invitation'
+    )
+
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['student_name']
+        unique_together = ['quiz_session', 'student_email']
+
+    def __str__(self):
+        return f"{self.student_name} - {self.quiz_session.name} ({self.code})"
+
+    @property
+    def is_used(self):
+        return self.used_at is not None
+
+    @property
+    def quiz_url(self):
+        return f"/quiz/{self.code}/"
+
+
 class ScannedExam(models.Model):
     """A scanned paper exam uploaded for OCR processing."""
 
