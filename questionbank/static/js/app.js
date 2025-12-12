@@ -3870,9 +3870,6 @@
                                 </button>
                             ` : ''}
                             ${q.status === 'active' ? `
-                                <button onclick="copyAccessCode('${q.access_code}')" class="px-3 py-1.5 text-sm bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-200 flex items-center gap-1" title="Copy quiz link">
-                                    <i data-lucide="copy" class="w-4 h-4"></i>Link
-                                </button>
                                 <button onclick="closeQuiz('${q.id}')" class="px-3 py-1.5 text-sm bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 flex items-center gap-1">
                                     <i data-lucide="square" class="w-4 h-4"></i>Close
                                 </button>

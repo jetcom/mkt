@@ -288,6 +288,19 @@ class QuizAccessView(APIView):
     """Get quiz info by access code or invitation code (public)."""
     permission_classes = [AllowAny]
 
+    def _is_instructor_preview(self, request, quiz):
+        """Check if this is a valid instructor preview request."""
+        if request.query_params.get('preview') != 'true':
+            return False
+        if not request.user.is_authenticated:
+            return False
+        # Verify ownership
+        if quiz.created_by == request.user:
+            return True
+        if quiz.template and quiz.template.owner == request.user:
+            return True
+        return False
+
     def get(self, request, code):
         code = code.upper()
         invitation = None
@@ -301,7 +314,9 @@ class QuizAccessView(APIView):
         else:
             quiz = get_object_or_404(QuizSession, access_code=code)
 
-        if not quiz.is_available():
+        # Check availability (skip for instructor preview)
+        is_preview = self._is_instructor_preview(request, quiz)
+        if not is_preview and not quiz.is_available():
             if quiz.status == QuizSession.Status.DRAFT:
                 return Response({'error': 'Quiz is not yet available'}, status=status.HTTP_404_NOT_FOUND)
             elif quiz.status == QuizSession.Status.CLOSED:
@@ -327,12 +342,29 @@ class QuizAccessView(APIView):
             if invitation.is_used:
                 data['invitation']['already_submitted'] = True
 
+        # Mark as preview mode
+        if is_preview:
+            data['preview_mode'] = True
+
         return Response(data)
 
 
 class QuizStartView(APIView):
     """Start a quiz attempt (public)."""
     permission_classes = [AllowAny]
+
+    def _is_instructor_preview(self, request, quiz):
+        """Check if this is a valid instructor preview request."""
+        if request.data.get('preview') != True and request.query_params.get('preview') != 'true':
+            return False
+        if not request.user.is_authenticated:
+            return False
+        # Verify ownership
+        if quiz.created_by == request.user:
+            return True
+        if quiz.template and quiz.template.owner == request.user:
+            return True
+        return False
 
     def post(self, request, code):
         code = code.upper()
@@ -366,7 +398,9 @@ class QuizStartView(APIView):
             if quiz.require_student_id and not student_id:
                 return Response({'error': 'Student ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not quiz.is_available():
+        # Check availability (skip for instructor preview)
+        is_preview = self._is_instructor_preview(request, quiz)
+        if not is_preview and not quiz.is_available():
             return Response({'error': 'Quiz is not available'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check max attempts (skip for invitation-based access - they get 1 attempt)

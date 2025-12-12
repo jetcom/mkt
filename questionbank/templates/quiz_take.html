@@ -192,7 +192,8 @@
             if (!code) return;
 
             try {
-                const res = await fetch(`/api/quizzes/take/${code}/`);
+                const previewParam = previewMode ? '?preview=true' : '';
+                const res = await fetch(`/api/quizzes/take/${code}/${previewParam}`);
                 const data = await res.json();
 
                 if (!res.ok) {
@@ -231,11 +232,6 @@
                 document.getElementById('student-name').value = 'Instructor Preview';
                 document.getElementById('student-id').value = 'PREVIEW';
                 document.getElementById('student-email').value = '';
-                // Show a preview banner
-                const banner = document.createElement('div');
-                banner.className = 'bg-amber-100 dark:bg-amber-900/50 border border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-200 px-4 py-2 rounded-lg mb-4 text-center';
-                banner.innerHTML = '<strong>Preview Mode</strong> - This submission will not be saved.';
-                document.getElementById('start-view').insertBefore(banner, document.getElementById('quiz-title'));
                 // Auto-start after a brief delay
                 setTimeout(startQuiz, 500);
             }
@@ -254,14 +250,18 @@
             const email = document.getElementById('student-email').value.trim();
 
             try {
+                const bodyData = {
+                    student_name: name,
+                    student_id: studentId,
+                    student_email: email
+                };
+                if (previewMode) {
+                    bodyData.preview = true;
+                }
                 const res = await fetch(`/api/quizzes/take/${quizCode}/start/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        student_name: name,
-                        student_id: studentId,
-                        student_email: email
-                    })
+                    body: JSON.stringify(bodyData)
                 });
                 const data = await res.json();
 
