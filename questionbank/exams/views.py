@@ -1846,15 +1846,16 @@ If the intended mark is not clear, you will receive a 0 for that question.
                 latex += f'\\question[{points}]\n'
 
                 if is_quiz:
-                    # Quiz mode: compact inline True/False with bubbles on the right
+                    # Quiz mode: True/False bubbles on their own line, right-justified
                     latex += f'{question_text}\n'
+                    latex += '\\nopagebreak\n'
                     latex += '\\ifprintanswers\n'
                     if correct:
-                        latex += '\\hfill\\textbf{\\textcolor{red}{$\\CIRCLE$} True \\hspace{2mm}$\\ocircle$ False}\n'
+                        latex += '\\par\\hfill\\textbf{\\textcolor{red}{$\\CIRCLE$} True \\hspace{2mm}$\\ocircle$ False}\n'
                     else:
-                        latex += '\\hfill\\textbf{$\\ocircle$ True \\hspace{2mm}\\textcolor{red}{$\\CIRCLE$} False}\n'
+                        latex += '\\par\\hfill\\textbf{$\\ocircle$ True \\hspace{2mm}\\textcolor{red}{$\\CIRCLE$} False}\n'
                     latex += '\\else\n'
-                    latex += '\\hfill\\textbf{$\\ocircle$ True \\hspace{2mm}$\\ocircle$ False}\n'
+                    latex += '\\par\\hfill\\textbf{$\\ocircle$ True \\hspace{2mm}$\\ocircle$ False}\n'
                     latex += '\\fi\n'
                 else:
                     # Exam mode: Circle True/False at beginning
