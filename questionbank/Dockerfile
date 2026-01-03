@@ -35,5 +35,5 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Run gunicorn
-CMD gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+# Run migrations and gunicorn
+CMD python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
