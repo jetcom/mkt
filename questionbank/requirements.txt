@@ -20,6 +20,7 @@ jiter==0.12.0
 Markdown==3.9
 openai==2.9.0
 packaging==25.0
+Pillow==11.0.0
 psycopg2-binary==2.9.11
 pydantic==2.12.5
 pydantic_core==2.41.5
