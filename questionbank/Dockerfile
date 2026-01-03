@@ -35,5 +35,9 @@ USER appuser
 # Expose port
 EXPOSE 8080
 
+# Health check with start-period to allow time for migrations
+HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health/')" || exit 1
+
 # Run migrations and gunicorn
 CMD python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
