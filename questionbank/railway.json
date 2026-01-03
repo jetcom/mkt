@@ -6,7 +6,7 @@
   "deploy": {
     "numReplicas": 1,
     "startCommand": "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT",
-    "healthcheckPath": "/api/courses/",
+    "healthcheckPath": "/health/",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
