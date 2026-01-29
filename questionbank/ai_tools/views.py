@@ -461,15 +461,32 @@ class ExtractFileContentView(APIView):
 
     def _extract_pptx(self, file):
         from pptx import Presentation
+        from pptx.enum.shapes import MSO_SHAPE_TYPE
 
         prs = Presentation(io.BytesIO(file.read()))
         slides_content = []
 
         for slide_num, slide in enumerate(prs.slides, 1):
             slide_text = []
+
+            # Extract text from shapes
             for shape in slide.shapes:
+                # Regular text shapes
                 if hasattr(shape, "text") and shape.text.strip():
                     slide_text.append(shape.text.strip())
+
+                # Tables
+                if shape.has_table:
+                    for row in shape.table.rows:
+                        row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                        if row_text:
+                            slide_text.append(" | ".join(row_text))
+
+            # Extract notes
+            if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
+                notes = slide.notes_slide.notes_text_frame.text.strip()
+                if notes:
+                    slide_text.append(f"\n[Notes: {notes}]")
 
             if slide_text:
                 slides_content.append(f"--- Slide {slide_num} ---\n" + "\n".join(slide_text))

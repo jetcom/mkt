@@ -298,7 +298,7 @@
             if (view === 'trash') {
                 loadTrash();
             }
-            if (view === 'ai') {
+            if (view === 'generate') {
                 loadAiBankSelector();
             }
             saveViewState();
