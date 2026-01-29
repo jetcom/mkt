@@ -1321,7 +1321,10 @@
                     <span class="w-4 h-4 rounded-full" style="background-color: ${t.color || '#10b981'}"></span>
                     <span class="flex-1 text-sm text-gray-700 dark:text-slate-300">${escapeHtml(t.name)}</span>
                     <span class="text-xs text-gray-400">${t.question_count || 0} questions</span>
-                    <button onclick="deleteTag(${t.id}, '${escapeHtml(t.name)}')" class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500">
+                    <button onclick="renameTag(${t.id}, '${escapeHtml(t.name).replace(/'/g, "\\'")}')" class="p-1 hover:bg-sky-100 dark:hover:bg-sky-900/30 rounded text-sky-500" title="Rename tag">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteTag(${t.id}, '${escapeHtml(t.name)}')" class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500" title="Delete tag">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -1343,6 +1346,14 @@
         async function deleteTag(id, name) {
             if (!confirm(`Delete tag "${name}"? This will remove it from all questions.`)) return;
             await api(`tags/${id}/`, 'DELETE');
+            await loadTagList();
+            await loadTags();
+        }
+
+        async function renameTag(id, currentName) {
+            const newName = prompt(`Rename tag "${currentName}" to:`, currentName);
+            if (!newName || newName.trim() === '' || newName.trim() === currentName) return;
+            await api(`tags/${id}/`, 'PATCH', { name: newName.trim() });
             await loadTagList();
             await loadTags();
         }
