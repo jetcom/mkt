@@ -39,5 +39,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health/')" || exit 1
 
-# Run migrations and gunicorn
-CMD python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+# Run migrations and gunicorn (timeout 120s for AI generation requests)
+CMD python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --timeout 120
