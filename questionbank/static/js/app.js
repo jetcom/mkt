@@ -2936,7 +2936,7 @@
 
             // Make sure banks are loaded
             if (!banks || banks.length === 0) {
-                const data = await api('question-banks/');
+                const data = await api('banks/');
                 banks = data.results || data || [];
             }
 
