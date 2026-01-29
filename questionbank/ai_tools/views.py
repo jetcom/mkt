@@ -484,6 +484,7 @@ class ExtractFileContentView(APIView):
 
         uploaded_file = request.FILES['file']
         filename = uploaded_file.name.lower()
+        print(f"[ExtractFile] Received file: {uploaded_file.name}, size: {uploaded_file.size}")
 
         try:
             if filename.endswith('.pptx'):
@@ -498,19 +499,27 @@ class ExtractFileContentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            print(f"[ExtractFile] Extracted {len(content)} chars from {uploaded_file.name}")
             return Response({
                 'content': content,
                 'filename': uploaded_file.name,
                 'chars': len(content)
             })
         except Exception as e:
+            import traceback
+            print(f"[ExtractFile] Error: {str(e)}")
+            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _extract_pptx(self, file):
         from pptx import Presentation
-        from pptx.enum.shapes import MSO_SHAPE_TYPE
 
-        prs = Presentation(io.BytesIO(file.read()))
+        file_bytes = file.read()
+        print(f"[PPTX] Read {len(file_bytes)} bytes from file")
+
+        prs = Presentation(io.BytesIO(file_bytes))
+        print(f"[PPTX] Presentation loaded, {len(prs.slides)} slides")
+
         slides_content = []
 
         for slide_num, slide in enumerate(prs.slides, 1):
@@ -523,19 +532,23 @@ class ExtractFileContentView(APIView):
                     slide_text.append(shape.text.strip())
 
                 # Tables
-                if shape.has_table:
+                if hasattr(shape, "has_table") and shape.has_table:
                     for row in shape.table.rows:
                         row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
                         if row_text:
                             slide_text.append(" | ".join(row_text))
 
             # Extract notes
-            if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
-                notes = slide.notes_slide.notes_text_frame.text.strip()
-                if notes:
-                    slide_text.append(f"\n[Notes: {notes}]")
+            if hasattr(slide, "has_notes_slide") and slide.has_notes_slide:
+                if slide.notes_slide and hasattr(slide.notes_slide, "notes_text_frame"):
+                    notes_frame = slide.notes_slide.notes_text_frame
+                    if notes_frame and hasattr(notes_frame, "text"):
+                        notes = notes_frame.text.strip()
+                        if notes:
+                            slide_text.append(f"\n[Notes: {notes}]")
 
             if slide_text:
                 slides_content.append(f"--- Slide {slide_num} ---\n" + "\n".join(slide_text))
+                print(f"[PPTX] Slide {slide_num}: {len(slide_text)} text items")
 
         return "\n\n".join(slides_content)
