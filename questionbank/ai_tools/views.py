@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
-from questions.models import Question
+from questions.models import Question, Course
 from questions.serializers import QuestionDetailSerializer
 import json
 import io
+import difflib
 
 
 class GenerateQuestionsView(APIView):
@@ -19,19 +20,37 @@ class GenerateQuestionsView(APIView):
         count = min(int(request.data.get('count', 5)), 20)  # Max 20 at a time
         difficulty = request.data.get('difficulty', 'medium')
         examples = request.data.get('examples', [])  # Example questions for style
+        course_id = request.data.get('course_id')  # For duplicate detection
+        tag_name = request.data.get('tag_name')  # For duplicate detection
 
         if not content:
             return Response({'error': 'Content is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Fetch existing questions for duplicate detection
+        existing_questions = []
+        if course_id:
+            qs = Question.objects.filter(course_id=course_id, deleted_at__isnull=True)
+            if tag_name:
+                qs = qs.filter(tags__name=tag_name)
+            existing_questions = list(qs.values_list('text', flat=True)[:100])  # Limit to 100 for prompt size
+
         try:
-            print(f"[AI Generate] Provider: {provider}, Type: {question_type}, Count: {count}, Content length: {len(content)}")
+            print(f"[AI Generate] Provider: {provider}, Type: {question_type}, Count: {count}, Content length: {len(content)}, Existing: {len(existing_questions)}")
 
             if provider == 'claude':
-                questions = self._generate_with_claude(content, question_type, count, difficulty, examples)
+                questions = self._generate_with_claude(content, question_type, count, difficulty, examples, existing_questions)
             elif provider == 'openai':
-                questions = self._generate_with_openai(content, question_type, count, difficulty, examples)
+                questions = self._generate_with_openai(content, question_type, count, difficulty, examples, existing_questions)
             else:
                 return Response({'error': 'Invalid provider'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Post-generation duplicate filtering
+            if existing_questions:
+                original_count = len(questions)
+                questions = self._filter_duplicates(questions, existing_questions)
+                filtered_count = original_count - len(questions)
+                if filtered_count > 0:
+                    print(f"[AI Generate] Filtered {filtered_count} duplicate questions")
 
             print(f"[AI Generate] Success: {len(questions)} questions generated")
             return Response({'questions': questions})
@@ -41,7 +60,25 @@ class GenerateQuestionsView(APIView):
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _build_prompt(self, content, question_type, count, difficulty, examples):
+    def _filter_duplicates(self, new_questions, existing_texts, threshold=0.85):
+        """Filter out questions that are too similar to existing ones."""
+        unique_questions = []
+        for q in new_questions:
+            new_text = q.get('text', '').lower().strip()
+            is_duplicate = False
+            for existing_text in existing_texts:
+                existing_lower = existing_text.lower().strip()
+                # Use sequence matcher for similarity
+                similarity = difflib.SequenceMatcher(None, new_text, existing_lower).ratio()
+                if similarity >= threshold:
+                    print(f"[Duplicate] Skipping question (similarity={similarity:.2f}): {new_text[:50]}...")
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                unique_questions.append(q)
+        return unique_questions
+
+    def _build_prompt(self, content, question_type, count, difficulty, examples, existing_questions=None):
         type_instructions = {
             'multipleChoice': 'Create multiple choice questions with exactly 4 options (1 correct, 3 wrong).',
             'trueFalse': 'Create true/false questions.',
@@ -54,6 +91,15 @@ class GenerateQuestionsView(APIView):
             example_text = "\n\nHere are example questions to match the style:\n"
             for i, ex in enumerate(examples[:3], 1):
                 example_text += f"\nExample {i}:\n{ex}\n"
+
+        # Add existing questions to avoid duplicates
+        existing_text = ""
+        if existing_questions:
+            existing_text = "\n\nIMPORTANT: The following questions already exist. DO NOT create questions that are similar to these:\n"
+            for i, eq in enumerate(existing_questions[:30], 1):  # Limit to 30 to save tokens
+                truncated = eq[:200] + "..." if len(eq) > 200 else eq
+                existing_text += f"- {truncated}\n"
+            existing_text += "\nCreate DIFFERENT questions that cover other aspects of the material.\n"
 
         # Handle mixed question types
         if question_type == 'mixed':
@@ -120,7 +166,7 @@ Each question MUST include a "question_type" field specifying its type."""
         prompt = f"""Generate {count} {difficulty} difficulty questions based on the following content.
 
 {type_instruction}
-
+{existing_text}
 Return your response as a JSON array with this structure:
 {json_format}
 
@@ -159,14 +205,14 @@ Return ONLY the JSON array, no other text."""
             preview = response_text[:500] if len(response_text) > 500 else response_text
             raise ValueError(f"Failed to parse AI response as JSON: {e}. Response preview: {preview}")
 
-    def _generate_with_claude(self, content, question_type, count, difficulty, examples):
+    def _generate_with_claude(self, content, question_type, count, difficulty, examples, existing_questions=None):
         import anthropic
 
         if not settings.ANTHROPIC_API_KEY:
             raise ValueError("Anthropic API key not configured")
 
         client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        prompt = self._build_prompt(content, question_type, count, difficulty, examples)
+        prompt = self._build_prompt(content, question_type, count, difficulty, examples, existing_questions)
 
         print(f"[Claude] Sending request, prompt length: {len(prompt)}")
 
@@ -195,14 +241,14 @@ Return ONLY the JSON array, no other text."""
 
         return self._parse_json_response(response_text)
 
-    def _generate_with_openai(self, content, question_type, count, difficulty, examples):
+    def _generate_with_openai(self, content, question_type, count, difficulty, examples, existing_questions=None):
         from openai import OpenAI
 
         if not settings.OPENAI_API_KEY:
             raise ValueError("OpenAI API key not configured")
 
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        prompt = self._build_prompt(content, question_type, count, difficulty, examples)
+        prompt = self._build_prompt(content, question_type, count, difficulty, examples, existing_questions)
 
         response = client.chat.completions.create(
             model="gpt-4o",

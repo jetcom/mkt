@@ -3129,12 +3129,19 @@
             lucide.createIcons();
 
             try {
+                // Get course and tag for duplicate detection
+                const courseCode = document.getElementById('ai-course').value;
+                const tagName = document.getElementById('ai-tag').value;
+                const course = courseCode ? courses.find(c => c.code === courseCode) : null;
+
                 const res = await api('ai/generate/', 'POST', {
                     provider: document.getElementById('ai-provider').value,
                     content: content,
                     type: document.getElementById('ai-type').value,
                     difficulty: document.getElementById('ai-difficulty').value,
                     count: parseInt(document.getElementById('ai-count').value),
+                    course_id: course?.id,  // For duplicate detection
+                    tag_name: tagName && tagName !== '__new__' ? tagName : null,  // For duplicate detection
                 });
                 if (res.error) throw new Error(res.error);
                 // Append to existing questions instead of replacing
