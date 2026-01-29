@@ -24,6 +24,8 @@ class GenerateQuestionsView(APIView):
             return Response({'error': 'Content is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            print(f"[AI Generate] Provider: {provider}, Type: {question_type}, Count: {count}, Content length: {len(content)}")
+
             if provider == 'claude':
                 questions = self._generate_with_claude(content, question_type, count, difficulty, examples)
             elif provider == 'openai':
@@ -31,8 +33,12 @@ class GenerateQuestionsView(APIView):
             else:
                 return Response({'error': 'Invalid provider'}, status=status.HTTP_400_BAD_REQUEST)
 
+            print(f"[AI Generate] Success: {len(questions)} questions generated")
             return Response({'questions': questions})
         except Exception as e:
+            import traceback
+            print(f"[AI Generate] Error: {str(e)}")
+            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _build_prompt(self, content, question_type, count, difficulty, examples):
@@ -162,15 +168,31 @@ Return ONLY the JSON array, no other text."""
         client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         prompt = self._build_prompt(content, question_type, count, difficulty, examples)
 
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+        print(f"[Claude] Sending request, prompt length: {len(prompt)}")
+
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+        except Exception as api_error:
+            print(f"[Claude] API error: {api_error}")
+            raise ValueError(f"Claude API error: {str(api_error)}")
+
+        print(f"[Claude] Response received, stop_reason: {message.stop_reason}")
+
+        if not message.content:
+            raise ValueError("Claude returned empty content")
 
         response_text = message.content[0].text
+        print(f"[Claude] Response text length: {len(response_text) if response_text else 0}")
+
+        if not response_text:
+            raise ValueError("Claude returned empty text in response")
+
         return self._parse_json_response(response_text)
 
     def _generate_with_openai(self, content, question_type, count, difficulty, examples):
