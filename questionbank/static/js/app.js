@@ -3156,8 +3156,8 @@
                 longAnswer: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
             };
 
-            const bankSelected = document.getElementById('ai-bank').value;
-            const addAllBtn = bankSelected ? `
+            const courseSelected = document.getElementById('ai-course').value;
+            const addAllBtn = courseSelected ? `
                 <div class="mb-4 flex justify-end">
                     <button onclick="addAllGeneratedQuestions()" id="add-all-btn" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
@@ -3182,7 +3182,7 @@
                             <span class="badge bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">Q${i + 1}</span>
                             <span class="badge ${typeClass}">${typeLabel}</span>
                         </div>
-                        <button onclick="addGeneratedQuestion(${i})" class="text-sm text-sky-600 hover:text-sky-700 font-medium">+ Add to Bank</button>
+                        <button onclick="addGeneratedQuestion(${i})" class="text-sm text-sky-600 hover:text-sky-700 font-medium">+ Add to Course</button>
                     </div>
                     <p class="text-gray-800 dark:text-slate-200 text-sm mb-2">${escapeHtml(q.text)}</p>
                     <div class="text-xs text-gray-500 dark:text-slate-400">${answerPreview}</div>
