@@ -2926,7 +2926,67 @@
             }
         }
 
-        // AI Generation
+        // AI Generation - File Drop Handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('border-sky-400', 'bg-sky-50', 'dark:bg-sky-900/20');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-sky-400', 'bg-sky-50', 'dark:bg-sky-900/20');
+        }
+
+        async function handleFileDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-sky-400', 'bg-sky-50', 'dark:bg-sky-900/20');
+
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+
+            const validExts = ['.pptx', '.txt', '.md'];
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!validExts.includes(ext)) {
+                alert('Unsupported file type. Please use .pptx, .txt, or .md files.');
+                return;
+            }
+
+            const dropzone = document.getElementById('ai-dropzone');
+            dropzone.innerHTML = '<i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-sky-500 animate-spin"></i><p class="text-sm text-gray-500">Extracting content...</p>';
+            lucide.createIcons();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const res = await fetch('/api/ai/extract-file/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    }
+                });
+                const data = await res.json();
+
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('ai-content').value = data.content;
+                dropzone.innerHTML = `
+                    <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-green-500"></i>
+                    <p class="text-sm text-green-600">${escapeHtml(data.filename)} loaded (${data.chars} chars)</p>
+                    <p class="text-xs text-gray-400 mt-1">Drop another file to replace</p>
+                `;
+                lucide.createIcons();
+            } catch (err) {
+                dropzone.innerHTML = `
+                    <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
+                    <p class="text-sm text-red-600">${err.message}</p>
+                    <p class="text-xs text-gray-400 mt-1">Try again or paste content manually</p>
+                `;
+                lucide.createIcons();
+            }
+        }
+
         async function generateQuestions() {
             const btn = document.getElementById('generate-btn');
             const content = document.getElementById('ai-content').value;
@@ -2957,21 +3017,41 @@
 
         function renderGeneratedQuestions(questions) {
             window.generatedQuestions = questions;
-            document.getElementById('generated-questions').innerHTML = questions.map((q, i) => `
-                <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            const typeColors = {
+                multipleChoice: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+                trueFalse: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+                shortAnswer: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
+                longAnswer: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
+            };
+            document.getElementById('generated-questions').innerHTML = questions.map((q, i) => {
+                const qType = q.question_type || document.getElementById('ai-type').value;
+                const typeLabel = formatType(qType);
+                const typeClass = typeColors[qType] || 'bg-purple-100 text-purple-700';
+                const answerPreview = q.answer_data.correct !== undefined
+                    ? `Answer: ${q.answer_data.correct}`
+                    : q.answer_data.solution
+                        ? `Solution: ${q.answer_data.solution.substring(0, 100)}...`
+                        : '';
+                return `
+                <div class="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="badge bg-purple-100 text-purple-700">Q${i + 1}</span>
+                        <div class="flex gap-2">
+                            <span class="badge bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">Q${i + 1}</span>
+                            <span class="badge ${typeClass}">${typeLabel}</span>
+                        </div>
                         <button onclick="addGeneratedQuestion(${i})" class="text-sm text-sky-600 hover:text-sky-700 font-medium">+ Add to Bank</button>
                     </div>
-                    <p class="text-gray-800 text-sm mb-2">${escapeHtml(q.text)}</p>
-                    <div class="text-xs text-gray-500">${q.answer_data.correct !== undefined ? `Answer: ${q.answer_data.correct}` : q.answer_data.solution ? `Solution: ${q.answer_data.solution.substring(0, 100)}...` : ''}</div>
+                    <p class="text-gray-800 dark:text-slate-200 text-sm mb-2">${escapeHtml(q.text)}</p>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">${answerPreview}</div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function addGeneratedQuestion(i) {
             const q = window.generatedQuestions[i];
-            document.getElementById('q-type').value = document.getElementById('ai-type').value;
+            // Use question's type if available (for mixed mode), otherwise fall back to dropdown
+            const qType = q.question_type || document.getElementById('ai-type').value;
+            document.getElementById('q-type').value = qType;
             document.getElementById('q-difficulty').value = q.difficulty || 'medium';
             document.getElementById('q-points').value = q.points || 2;
             if (editor) editor.setValue(q.text);

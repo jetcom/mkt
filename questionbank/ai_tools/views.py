@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 from questions.models import Question
 from questions.serializers import QuestionDetailSerializer
 import json
+import io
 
 
 class GenerateQuestionsView(APIView):
@@ -47,14 +49,52 @@ class GenerateQuestionsView(APIView):
             for i, ex in enumerate(examples[:3], 1):
                 example_text += f"\nExample {i}:\n{ex}\n"
 
-        prompt = f"""Generate {count} {difficulty} difficulty {question_type} questions based on the following content.
+        # Handle mixed question types
+        if question_type == 'mixed':
+            type_instruction = """Create a MIX of different question types. Include a variety of:
+- Multiple choice questions (4 options: 1 correct, 3 wrong)
+- True/false questions
+- Short answer questions (1-2 sentence answers)
 
-{type_instructions.get(question_type, 'Create questions appropriate for the type specified.')}
+Aim for roughly: 40% multiple choice, 30% true/false, 30% short answer.
+Each question MUST include a "question_type" field specifying its type."""
 
-Return your response as a JSON array with this structure:
-[
+            json_format = """[
+  {
+    "text": "The question text",
+    "question_type": "multipleChoice",
+    "answer_data": {
+      "correct": "The correct answer",
+      "wrong": ["Wrong 1", "Wrong 2", "Wrong 3"]
+    },
+    "difficulty": "medium",
+    "points": 2
+  },
+  {
+    "text": "Is this statement true or false?",
+    "question_type": "trueFalse",
+    "answer_data": {
+      "correct": true
+    },
+    "difficulty": "medium",
+    "points": 1
+  },
+  {
+    "text": "Explain briefly...",
+    "question_type": "shortAnswer",
+    "answer_data": {
+      "solution": "The expected answer"
+    },
+    "difficulty": "medium",
+    "points": 2
+  }
+]"""
+        else:
+            type_instruction = type_instructions.get(question_type, 'Create questions appropriate for the type specified.')
+            json_format = f"""[
   {{
     "text": "The question text",
+    "question_type": "{question_type}",
     "answer_data": {{
       // For multipleChoice:
       "correct": "The correct answer",
@@ -69,7 +109,14 @@ Return your response as a JSON array with this structure:
     "difficulty": "{difficulty}",
     "points": 2
   }}
-]
+]"""
+
+        prompt = f"""Generate {count} {difficulty} difficulty questions based on the following content.
+
+{type_instruction}
+
+Return your response as a JSON array with this structure:
+{json_format}
 
 Content to generate questions from:
 ---
@@ -378,3 +425,53 @@ Return ONLY the JSON object, no other text."""
             temperature=0.8,
         )
         return json.loads(response.choices[0].message.content)
+
+
+class ExtractFileContentView(APIView):
+    """Extract text content from uploaded files (PPTX, PDF, TXT)"""
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        uploaded_file = request.FILES['file']
+        filename = uploaded_file.name.lower()
+
+        try:
+            if filename.endswith('.pptx'):
+                content = self._extract_pptx(uploaded_file)
+            elif filename.endswith('.txt'):
+                content = uploaded_file.read().decode('utf-8')
+            elif filename.endswith('.md'):
+                content = uploaded_file.read().decode('utf-8')
+            else:
+                return Response(
+                    {'error': f'Unsupported file type. Supported: .pptx, .txt, .md'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            return Response({
+                'content': content,
+                'filename': uploaded_file.name,
+                'chars': len(content)
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _extract_pptx(self, file):
+        from pptx import Presentation
+
+        prs = Presentation(io.BytesIO(file.read()))
+        slides_content = []
+
+        for slide_num, slide in enumerate(prs.slides, 1):
+            slide_text = []
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text.strip():
+                    slide_text.append(shape.text.strip())
+
+            if slide_text:
+                slides_content.append(f"--- Slide {slide_num} ---\n" + "\n".join(slide_text))
+
+        return "\n\n".join(slides_content)

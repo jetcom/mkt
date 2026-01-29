@@ -23,6 +23,7 @@ packaging==25.0
 Pillow==11.0.0
 psycopg2-binary==2.9.11
 pydantic==2.12.5
+python-pptx==1.0.2
 pydantic_core==2.41.5
 python-dotenv==1.2.1
 PyYAML==6.0.3
