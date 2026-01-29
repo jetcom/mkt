@@ -127,6 +127,32 @@ Content to generate questions from:
 Return ONLY the JSON array, no other text."""
         return prompt
 
+    def _parse_json_response(self, response_text):
+        """Extract and parse JSON from LLM response, handling markdown code blocks."""
+        import re
+
+        if not response_text or not response_text.strip():
+            raise ValueError("Empty response from AI")
+
+        text = response_text.strip()
+
+        # Try to extract JSON from markdown code blocks
+        code_block_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
+        if code_block_match:
+            text = code_block_match.group(1).strip()
+
+        # Try to find JSON array
+        array_match = re.search(r'\[[\s\S]*\]', text)
+        if array_match:
+            text = array_match.group(0)
+
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            # Include part of the response in error for debugging
+            preview = response_text[:500] if len(response_text) > 500 else response_text
+            raise ValueError(f"Failed to parse AI response as JSON: {e}. Response preview: {preview}")
+
     def _generate_with_claude(self, content, question_type, count, difficulty, examples):
         import anthropic
 
@@ -145,8 +171,7 @@ Return ONLY the JSON array, no other text."""
         )
 
         response_text = message.content[0].text
-        # Parse JSON from response
-        return json.loads(response_text)
+        return self._parse_json_response(response_text)
 
     def _generate_with_openai(self, content, question_type, count, difficulty, examples):
         from openai import OpenAI
@@ -160,14 +185,14 @@ Return ONLY the JSON array, no other text."""
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are an expert educator who creates clear, well-structured exam questions."},
+                {"role": "system", "content": "You are an expert educator who creates clear, well-structured exam questions. Always respond with valid JSON only."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
         )
 
         response_text = response.choices[0].message.content
-        return json.loads(response_text)
+        return self._parse_json_response(response_text)
 
 
 class ImproveQuestionView(APIView):
