@@ -55,7 +55,13 @@ class CourseViewSet(viewsets.ModelViewSet):
         ).distinct()
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        course = serializer.save(owner=self.request.user)
+        # Auto-create a default question bank for this course
+        QuestionBank.objects.create(
+            name='Questions',
+            course=course,
+            owner=self.request.user
+        )
 
     @action(detail=True, methods=['post'])
     def share(self, request, code=None):
