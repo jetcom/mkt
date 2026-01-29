@@ -298,6 +298,9 @@
             if (view === 'trash') {
                 loadTrash();
             }
+            if (view === 'ai') {
+                loadAiBankSelector();
+            }
             saveViewState();
         }
 
@@ -2926,6 +2929,51 @@
             }
         }
 
+        // AI Generation - Bank/Tag Selectors
+        async function loadAiBankSelector() {
+            const bankSelect = document.getElementById('ai-bank');
+            const tagSelect = document.getElementById('ai-tag');
+
+            // Populate banks grouped by course
+            bankSelect.innerHTML = '<option value="">Select a bank...</option>';
+            const courseGroups = {};
+            banks.forEach(b => {
+                if (!courseGroups[b.course_code]) courseGroups[b.course_code] = [];
+                courseGroups[b.course_code].push(b);
+            });
+            Object.keys(courseGroups).sort().forEach(course => {
+                const group = document.createElement('optgroup');
+                group.label = course;
+                courseGroups[course].forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.id;
+                    opt.textContent = b.name;
+                    group.appendChild(opt);
+                });
+                bankSelect.appendChild(group);
+            });
+
+            // Load tags when bank changes
+            bankSelect.onchange = async () => {
+                const bankId = bankSelect.value;
+                tagSelect.innerHTML = '<option value="">No tag</option>';
+                if (!bankId) return;
+
+                const bank = banks.find(b => b.id == bankId);
+                if (!bank) return;
+
+                // Get tags for this course
+                const data = await api(`tags/?course=${bank.course_code}`);
+                const tags = data.results || data || [];
+                tags.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.name;
+                    opt.textContent = t.name;
+                    tagSelect.appendChild(opt);
+                });
+            };
+        }
+
         // AI Generation - File Drop Handlers
         function handleDragOver(e) {
             e.preventDefault();
@@ -3023,7 +3071,18 @@
                 shortAnswer: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
                 longAnswer: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
             };
-            document.getElementById('generated-questions').innerHTML = questions.map((q, i) => {
+
+            const bankSelected = document.getElementById('ai-bank').value;
+            const addAllBtn = bankSelected ? `
+                <div class="mb-4 flex justify-end">
+                    <button onclick="addAllGeneratedQuestions()" id="add-all-btn" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        Add All ${questions.length} Questions
+                    </button>
+                </div>
+            ` : '';
+
+            document.getElementById('generated-questions').innerHTML = addAllBtn + questions.map((q, i) => {
                 const qType = q.question_type || document.getElementById('ai-type').value;
                 const typeLabel = formatType(qType);
                 const typeClass = typeColors[qType] || 'bg-purple-100 text-purple-700';
@@ -3045,21 +3104,114 @@
                     <div class="text-xs text-gray-500 dark:text-slate-400">${answerPreview}</div>
                 </div>
             `}).join('');
+            lucide.createIcons();
         }
 
-        function addGeneratedQuestion(i) {
+        async function addAllGeneratedQuestions() {
+            const bankId = document.getElementById('ai-bank').value;
+            const tagName = document.getElementById('ai-tag').value;
+            if (!bankId) return alert('Please select a bank first');
+
+            const btn = document.getElementById('add-all-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Adding...';
+            lucide.createIcons();
+
+            let added = 0;
+            let failed = 0;
+
+            for (const q of window.generatedQuestions) {
+                try {
+                    const qType = q.question_type || document.getElementById('ai-type').value;
+                    const payload = {
+                        question_bank: parseInt(bankId),
+                        question_type: qType,
+                        text: q.text,
+                        answer_data: q.answer_data,
+                        points: q.points || 2,
+                        difficulty: q.difficulty || 'medium',
+                        tag_ids: []
+                    };
+
+                    if (tagName) {
+                        const tag = allTags.find(t => t.name === tagName);
+                        if (tag) payload.tag_ids = [tag.id];
+                    }
+
+                    await api('questions/', 'POST', payload);
+                    added++;
+                } catch (e) {
+                    failed++;
+                }
+            }
+
+            btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Added ${added} questions${failed ? ` (${failed} failed)` : ''}`;
+            btn.classList.remove('btn-primary');
+            btn.classList.add('bg-green-500');
+            lucide.createIcons();
+        }
+
+        async function addGeneratedQuestion(i) {
             const q = window.generatedQuestions[i];
-            // Use question's type if available (for mixed mode), otherwise fall back to dropdown
-            const qType = q.question_type || document.getElementById('ai-type').value;
-            document.getElementById('q-type').value = qType;
-            document.getElementById('q-difficulty').value = q.difficulty || 'medium';
-            document.getElementById('q-points').value = q.points || 2;
-            if (editor) editor.setValue(q.text);
-            updateAnswerFields(q.answer_data);
-            editingQuestionId = null;
-            document.getElementById('modal-title').textContent = 'Add Generated Question';
-            document.getElementById('delete-btn').classList.add('hidden');
-            showModal('question-modal');
+            const bankId = document.getElementById('ai-bank').value;
+            const tagName = document.getElementById('ai-tag').value;
+
+            // If bank is selected, save directly
+            if (bankId) {
+                const qType = q.question_type || document.getElementById('ai-type').value;
+                const btn = event.target;
+                btn.disabled = true;
+                btn.textContent = 'Adding...';
+
+                try {
+                    const payload = {
+                        question_bank: parseInt(bankId),
+                        question_type: qType,
+                        text: q.text,
+                        answer_data: q.answer_data,
+                        points: q.points || 2,
+                        difficulty: q.difficulty || 'medium',
+                        tag_ids: []
+                    };
+
+                    // If tag selected, find its ID
+                    if (tagName) {
+                        const tag = allTags.find(t => t.name === tagName);
+                        if (tag) payload.tag_ids = [tag.id];
+                    }
+
+                    await api('questions/', 'POST', payload);
+                    btn.textContent = 'Added!';
+                    btn.classList.remove('text-sky-600', 'hover:text-sky-700');
+                    btn.classList.add('text-green-600');
+                    setTimeout(() => {
+                        btn.textContent = '+ Add to Bank';
+                        btn.classList.add('text-sky-600', 'hover:text-sky-700');
+                        btn.classList.remove('text-green-600');
+                        btn.disabled = false;
+                    }, 2000);
+                } catch (e) {
+                    btn.textContent = 'Error';
+                    btn.classList.add('text-red-600');
+                    setTimeout(() => {
+                        btn.textContent = '+ Add to Bank';
+                        btn.classList.remove('text-red-600');
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            } else {
+                // Fall back to modal if no bank selected
+                const qType = q.question_type || document.getElementById('ai-type').value;
+                document.getElementById('q-type').value = qType;
+                document.getElementById('q-difficulty').value = q.difficulty || 'medium';
+                document.getElementById('q-points').value = q.points || 2;
+                if (editor) editor.setValue(q.text);
+                updateAnswerFields(q.answer_data);
+                editingQuestionId = null;
+                document.getElementById('modal-title').textContent = 'Add Generated Question';
+                document.getElementById('delete-btn').classList.add('hidden');
+                showModal('question-modal');
+            }
         }
 
         // Helpers

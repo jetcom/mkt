@@ -943,6 +943,21 @@
                                 </div>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Add to Bank</label>
+                                    <select id="ai-bank" class="input-modern w-full px-3 py-2 rounded-lg">
+                                        <option value="">Select a bank...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Tag</label>
+                                    <select id="ai-tag" class="input-modern w-full px-3 py-2 rounded-lg">
+                                        <option value="">No tag</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <button onclick="generateQuestions()" id="generate-btn"
                                 class="btn-primary w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl font-medium">
                                 <i data-lucide="sparkles" class="w-5 h-5"></i>
