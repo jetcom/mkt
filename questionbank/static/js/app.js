@@ -3137,7 +3137,9 @@
                     count: parseInt(document.getElementById('ai-count').value),
                 });
                 if (res.error) throw new Error(res.error);
-                renderGeneratedQuestions(res.questions);
+                // Append to existing questions instead of replacing
+                const existing = window.generatedQuestions || [];
+                renderGeneratedQuestions([...existing, ...res.questions]);
             } catch (e) {
                 document.getElementById('generated-questions').innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg">${e.message}</div>`;
             } finally {
@@ -3157,16 +3159,22 @@
             };
 
             const courseSelected = document.getElementById('ai-course').value;
-            const addAllBtn = courseSelected ? `
-                <div class="mb-4 flex justify-end">
+            const headerBtns = `
+                <div class="mb-4 flex justify-between items-center">
+                    <button onclick="clearGeneratedQuestions()" class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Clear All
+                    </button>
+                    ${courseSelected ? `
                     <button onclick="addAllGeneratedQuestions()" id="add-all-btn" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
                         Add All ${questions.length} Questions
                     </button>
+                    ` : '<span class="text-sm text-gray-400">Select a course to add questions</span>'}
                 </div>
-            ` : '';
+            `;
 
-            document.getElementById('generated-questions').innerHTML = addAllBtn + questions.map((q, i) => {
+            document.getElementById('generated-questions').innerHTML = headerBtns + questions.map((q, i) => {
                 const qType = q.question_type || document.getElementById('ai-type').value;
                 const typeLabel = formatType(qType);
                 const typeClass = typeColors[qType] || 'bg-purple-100 text-purple-700';
@@ -3189,6 +3197,11 @@
                 </div>
             `}).join('');
             lucide.createIcons();
+        }
+
+        function clearGeneratedQuestions() {
+            window.generatedQuestions = [];
+            document.getElementById('generated-questions').innerHTML = '<p class="text-gray-400 dark:text-slate-500 text-sm">Questions will appear here after generation</p>';
         }
 
         async function addAllGeneratedQuestions() {
