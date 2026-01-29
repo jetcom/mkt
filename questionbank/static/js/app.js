@@ -2929,52 +2929,44 @@
             }
         }
 
-        // AI Generation - Bank/Tag Selectors
+        // AI Generation - Course/Tag Selectors
         async function loadAiBankSelector() {
-            const bankSelect = document.getElementById('ai-bank');
+            const courseSelect = document.getElementById('ai-course');
             const tagSelect = document.getElementById('ai-tag');
 
-            // Make sure banks are loaded
+            // Make sure courses and banks are loaded
+            if (!courses || courses.length === 0) {
+                const data = await api('courses/');
+                courses = data.results || data || [];
+            }
             if (!banks || banks.length === 0) {
                 const data = await api('banks/');
                 banks = data.results || data || [];
             }
 
-            // Populate banks grouped by course
-            bankSelect.innerHTML = '<option value="">Select a bank...</option>';
-            const courseGroups = {};
-            banks.forEach(b => {
-                if (!courseGroups[b.course_code]) courseGroups[b.course_code] = [];
-                courseGroups[b.course_code].push(b);
-            });
-            Object.keys(courseGroups).sort().forEach(course => {
-                const group = document.createElement('optgroup');
-                group.label = course;
-                courseGroups[course].forEach(b => {
-                    const opt = document.createElement('option');
-                    opt.value = b.id;
-                    opt.textContent = b.name;
-                    group.appendChild(opt);
-                });
-                bankSelect.appendChild(group);
+            // Populate courses
+            courseSelect.innerHTML = '<option value="">Select a course...</option>';
+            courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.code;
+                opt.textContent = `${c.code} - ${c.name}`;
+                courseSelect.appendChild(opt);
             });
 
-            // Load tags when bank changes
-            bankSelect.onchange = async () => {
-                const bankId = bankSelect.value;
+            // Load tags when course changes
+            courseSelect.onchange = async () => {
+                const courseCode = courseSelect.value;
                 tagSelect.innerHTML = '<option value="">No tag</option><option value="__new__">+ Create new tag...</option>';
-                if (!bankId) return;
-
-                const bank = banks.find(b => b.id == bankId);
-                if (!bank) return;
+                if (!courseCode) return;
 
                 // Get tags for this course
-                const data = await api(`tags/?course=${bank.course_code}`);
+                const data = await api(`tags/?course=${courseCode}`);
                 const tags = data.results || data || [];
                 tags.forEach(t => {
                     const opt = document.createElement('option');
                     opt.value = t.name;
                     opt.textContent = t.name;
+                    opt.dataset.tagId = t.id;
                     tagSelect.insertBefore(opt, tagSelect.lastChild);
                 });
             };
@@ -3200,9 +3192,13 @@
         }
 
         async function addAllGeneratedQuestions() {
-            const bankId = document.getElementById('ai-bank').value;
+            const courseCode = document.getElementById('ai-course').value;
             const tagName = document.getElementById('ai-tag').value;
-            if (!bankId) return alert('Please select a bank first');
+            if (!courseCode) return alert('Please select a course first');
+
+            // Find first bank for selected course
+            const bank = banks.find(b => b.course_code === courseCode);
+            if (!bank) return alert('No question bank found for this course. Please create one first.');
 
             const btn = document.getElementById('add-all-btn');
             btn.disabled = true;
@@ -3216,7 +3212,7 @@
                 try {
                     const qType = q.question_type || document.getElementById('ai-type').value;
                     const payload = {
-                        question_bank: parseInt(bankId),
+                        question_bank: bank.id,
                         question_type: qType,
                         text: q.text,
                         answer_data: q.answer_data,
@@ -3247,11 +3243,14 @@
 
         async function addGeneratedQuestion(i) {
             const q = window.generatedQuestions[i];
-            const bankId = document.getElementById('ai-bank').value;
+            const courseCode = document.getElementById('ai-course').value;
             const tagName = document.getElementById('ai-tag').value;
 
-            // If bank is selected, save directly
-            if (bankId) {
+            // Find first bank for selected course
+            const bank = banks.find(b => b.course_code === courseCode);
+
+            // If course is selected (and has a bank), save directly
+            if (courseCode && bank) {
                 const qType = q.question_type || document.getElementById('ai-type').value;
                 const btn = event.target;
                 btn.disabled = true;
@@ -3259,7 +3258,7 @@
 
                 try {
                     const payload = {
-                        question_bank: parseInt(bankId),
+                        question_bank: bank.id,
                         question_type: qType,
                         text: q.text,
                         answer_data: q.answer_data,
@@ -3293,8 +3292,10 @@
                         btn.disabled = false;
                     }, 2000);
                 }
+            } else if (courseCode && !bank) {
+                alert('No question bank found for this course. Please create one first.');
             } else {
-                // Fall back to modal if no bank selected
+                // Fall back to modal if no course selected
                 const qType = q.question_type || document.getElementById('ai-type').value;
                 document.getElementById('q-type').value = qType;
                 document.getElementById('q-difficulty').value = q.difficulty || 'medium';
