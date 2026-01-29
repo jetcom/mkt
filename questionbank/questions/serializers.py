@@ -33,7 +33,7 @@ class CourseSerializer(serializers.ModelSerializer):
         read_only_fields = ['owner']
 
     def get_question_count(self, obj):
-        return Question.objects.filter(question_bank__course=obj).count()
+        return obj.questions.count()
 
     def get_is_owner(self, obj):
         request = self.context.get('request')
@@ -120,8 +120,8 @@ class QuestionBlockSerializer(serializers.ModelSerializer):
 class QuestionListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views"""
     tags = TagSerializer(many=True, read_only=True)
-    course_code = serializers.CharField(source='question_bank.course.code', read_only=True)
-    bank_name = serializers.CharField(source='question_bank.name', read_only=True)
+    course_code = serializers.CharField(source='course.code', read_only=True)
+    bank_name = serializers.CharField(source='question_bank.name', read_only=True, allow_null=True)  # Deprecated
     linked_count = serializers.SerializerMethodField()
     block_name = serializers.CharField(source='block.name', read_only=True, allow_null=True)
     block_max_questions = serializers.IntegerField(source='block.max_questions', read_only=True, allow_null=True)
@@ -190,8 +190,8 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
     tag_ids = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True, write_only=True, source='tags', required=False
     )
-    course_code = serializers.CharField(source='question_bank.course.code', read_only=True)
-    bank_name = serializers.CharField(source='question_bank.name', read_only=True)
+    course_code = serializers.CharField(source='course.code', read_only=True)
+    bank_name = serializers.CharField(source='question_bank.name', read_only=True, allow_null=True)  # Deprecated
     block_name = serializers.CharField(source='block.name', read_only=True, allow_null=True)
     block_max_questions = serializers.IntegerField(source='block.max_questions', read_only=True, allow_null=True)
     block_variant_count = serializers.SerializerMethodField()
@@ -201,7 +201,7 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields = [
-            'id', 'question_bank', 'question_type', 'text', 'points', 'difficulty',
+            'id', 'course', 'question_bank', 'question_type', 'text', 'points', 'difficulty',
             'answer_data', 'tags', 'tag_ids', 'course_code', 'bank_name',
             'block', 'block_name', 'block_max_questions', 'variant_number', 'block_variant_count',
             'week', 'week_number', 'week_name',
@@ -210,6 +210,10 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             'created_by', 'created_at', 'updated_at'
         ]
         read_only_fields = ['content_hash', 'times_used', 'last_used', 'created_by']
+        extra_kwargs = {
+            'question_bank': {'required': False, 'allow_null': True},  # Deprecated
+            'course': {'required': False},  # Will be required once migration complete
+        }
 
     def get_block_variant_count(self, obj):
         """Count of variants in the block"""

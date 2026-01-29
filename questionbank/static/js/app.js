@@ -3196,9 +3196,9 @@
             const tagName = document.getElementById('ai-tag').value;
             if (!courseCode) return alert('Please select a course first');
 
-            // Find first bank for selected course
-            const bank = banks.find(b => b.course_code === courseCode);
-            if (!bank) return alert('No question bank found for this course. Please create one first.');
+            // Find course by code
+            const course = courses.find(c => c.code === courseCode);
+            if (!course) return alert('Course not found');
 
             const btn = document.getElementById('add-all-btn');
             btn.disabled = true;
@@ -3212,7 +3212,7 @@
                 try {
                     const qType = q.question_type || document.getElementById('ai-type').value;
                     const payload = {
-                        question_bank: bank.id,
+                        course: course.id,
                         question_type: qType,
                         text: q.text,
                         answer_data: q.answer_data,
@@ -3246,11 +3246,11 @@
             const courseCode = document.getElementById('ai-course').value;
             const tagName = document.getElementById('ai-tag').value;
 
-            // Find first bank for selected course
-            const bank = banks.find(b => b.course_code === courseCode);
+            // Find course by code
+            const course = courses.find(c => c.code === courseCode);
 
-            // If course is selected (and has a bank), save directly
-            if (courseCode && bank) {
+            // If course is selected, save directly
+            if (courseCode && course) {
                 const qType = q.question_type || document.getElementById('ai-type').value;
                 const btn = event.target;
                 btn.disabled = true;
@@ -3258,7 +3258,7 @@
 
                 try {
                     const payload = {
-                        question_bank: bank.id,
+                        course: course.id,
                         question_type: qType,
                         text: q.text,
                         answer_data: q.answer_data,
@@ -3278,7 +3278,7 @@
                     btn.classList.remove('text-sky-600', 'hover:text-sky-700');
                     btn.classList.add('text-green-600');
                     setTimeout(() => {
-                        btn.textContent = '+ Add to Bank';
+                        btn.textContent = '+ Add to Course';
                         btn.classList.add('text-sky-600', 'hover:text-sky-700');
                         btn.classList.remove('text-green-600');
                         btn.disabled = false;
@@ -3287,13 +3287,13 @@
                     btn.textContent = 'Error';
                     btn.classList.add('text-red-600');
                     setTimeout(() => {
-                        btn.textContent = '+ Add to Bank';
+                        btn.textContent = '+ Add to Course';
                         btn.classList.remove('text-red-600');
                         btn.disabled = false;
                     }, 2000);
                 }
-            } else if (courseCode && !bank) {
-                alert('No question bank found for this course. Please create one first.');
+            } else if (courseCode && !course) {
+                alert('Course not found');
             } else {
                 // Fall back to modal if no course selected
                 const qType = q.question_type || document.getElementById('ai-type').value;

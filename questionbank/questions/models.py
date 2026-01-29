@@ -170,7 +170,8 @@ class Question(models.Model):
         HARD = 'hard', 'Hard'
 
     # Core fields
-    question_bank = models.ForeignKey(QuestionBank, on_delete=models.CASCADE, related_name='questions')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='questions', null=True, blank=True)
+    question_bank = models.ForeignKey(QuestionBank, on_delete=models.SET_NULL, null=True, blank=True, related_name='questions')  # Deprecated - use course
     question_type = models.CharField(max_length=20, choices=QuestionType.choices)
     text = models.TextField(help_text="Question text in Markdown format")
     points = models.DecimalField(max_digits=5, decimal_places=2, default=1.0)
@@ -237,7 +238,7 @@ class Question(models.Model):
         indexes = [
             models.Index(fields=['question_type']),
             models.Index(fields=['difficulty']),
-            models.Index(fields=['question_bank']),
+            models.Index(fields=['course']),
             models.Index(fields=['canonical']),
             models.Index(fields=['-updated_at']),
             models.Index(fields=['-created_at']),
@@ -250,10 +251,6 @@ class Question(models.Model):
 
     def __str__(self):
         return f"{self.question_type}: {self.text[:50]}..."
-
-    @property
-    def course(self):
-        return self.question_bank.course
 
     @property
     def is_deleted(self):

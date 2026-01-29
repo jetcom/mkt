@@ -403,13 +403,13 @@ class ExamTemplateViewSet(viewsets.ModelViewSet):
 
         # Start with questions from the template's course
         queryset = Question.objects.select_related(
-            'question_bank__course', 'block'
+            'course', 'question_bank', 'block'
         ).prefetch_related('tags').filter(
-            question_bank__course=template.course,
+            course=template.course,
             canonical__isnull=True  # Only canonical questions
         )
 
-        # Apply filter_banks if set
+        # Apply filter_banks if set (deprecated, but still supported)
         if template.filter_banks.exists():
             queryset = queryset.filter(question_bank__in=template.filter_banks.all())
 
@@ -430,7 +430,7 @@ class ExamTemplateViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(difficulty=template.filter_difficulty)
 
         # Order by block/variant for consistent results
-        queryset = queryset.order_by('question_bank__name', 'block__name', 'variant_number', 'id')
+        queryset = queryset.order_by('block__name', 'variant_number', 'id')
 
         # Limit results if max_questions is set
         if template.max_questions:
@@ -2077,7 +2077,7 @@ Answers that are not legible or not made in the space provided will result in a 
 
             # If no template, try to find or create one based on course
             if not template and questions:
-                course = questions[0].question_bank.course
+                course = questions[0].course
                 # Try to find an existing template with this title
                 template = ExamTemplate.objects.filter(
                     name=title,
@@ -2126,7 +2126,7 @@ class ExamPreviewView(APIView):
         if not question_ids:
             return Response({'error': 'No questions selected'}, status=status.HTTP_400_BAD_REQUEST)
 
-        questions = Question.objects.filter(id__in=question_ids).select_related('question_bank__course', 'block')
+        questions = Question.objects.filter(id__in=question_ids).select_related('course', 'block')
 
         preview_data = {
             'question_count': questions.count(),
@@ -2147,7 +2147,7 @@ class ExamPreviewView(APIView):
                 'type': q.question_type,
                 'text': q.text[:200] + '...' if len(q.text) > 200 else q.text,
                 'points': float(q.points),
-                'course': q.question_bank.course.code,
+                'course': q.course.code if q.course else '',
             })
 
         return Response(preview_data)
@@ -2169,7 +2169,7 @@ class MultiVersionPreviewView(APIView):
 
         # Fetch all questions with block info
         questions = list(Question.objects.filter(id__in=question_ids).select_related(
-            'question_bank__course', 'block'
+            'course', 'block'
         ).prefetch_related('tags'))
 
         # Generate preview for each version
@@ -2196,7 +2196,7 @@ class MultiVersionPreviewView(APIView):
                     'type': q.question_type,
                     'text': q.text,
                     'points': float(q.points),
-                    'course': q.question_bank.course.code,
+                    'course': q.course.code if q.course else '',
                     'block_id': q.block_id,
                     'block_name': q.block.name if q.block else None,
                     'variant_number': q.variant_number,

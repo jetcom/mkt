@@ -55,13 +55,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         ).distinct()
 
     def perform_create(self, serializer):
-        course = serializer.save(owner=self.request.user)
-        # Auto-create a default question bank for this course
-        QuestionBank.objects.create(
-            name='Questions',
-            course=course,
-            owner=self.request.user
-        )
+        serializer.save(owner=self.request.user)
 
     @action(detail=True, methods=['post'])
     def share(self, request, code=None):
@@ -287,19 +281,17 @@ class QuestionViewSet(viewsets.ModelViewSet):
             return Question.objects.none()
 
         queryset = Question.objects.select_related(
-            'question_bank__course',
+            'course',
+            'question_bank',  # Keep for backwards compatibility
             'block',  # Add block to avoid N+1 for block info
             'week'   # Add week to avoid N+1 for week info
         ).prefetch_related('tags')
 
-        # Filter by question bank ownership/sharing
-        # User can see questions if they own the bank, bank is shared with them,
-        # they own the course, or course is shared with them
+        # Filter by course ownership/sharing
+        # User can see questions if they own the course or it's shared with them
         queryset = queryset.filter(
-            Q(question_bank__owner=user) |
-            Q(question_bank__shares__shared_with=user) |
-            Q(question_bank__course__owner=user) |
-            Q(question_bank__course__shares__shared_with=user)
+            Q(course__owner=user) |
+            Q(course__shares__shared_with=user)
         ).distinct()
 
         # Check if we're viewing trash
@@ -329,7 +321,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
         # Filter by course
         course = self.request.query_params.get('course')
         if course:
-            queryset = queryset.filter(question_bank__course__code=course)
+            queryset = queryset.filter(course__code=course)
 
         # Filter by question bank
         bank = self.request.query_params.get('bank')
@@ -383,6 +375,10 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        # If question_bank provided but not course, derive course from bank (backwards compatibility)
+        validated_data = serializer.validated_data
+        if validated_data.get('question_bank') and not validated_data.get('course'):
+            validated_data['course'] = validated_data['question_bank'].course
         serializer.save(created_by=self.request.user if self.request.user.is_authenticated else None)
 
     def destroy(self, request, *args, **kwargs):
@@ -423,8 +419,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
         deleted = Question.objects.filter(
             deleted_at__isnull=False
         ).filter(
-            Q(question_bank__course__owner=user) |
-            Q(question_bank__owner=user) |
+            Q(course__owner=user) |
             Q(created_by=user)
         )
         count = deleted.count()
@@ -441,8 +436,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
         count = Question.objects.filter(
             deleted_at__isnull=False
         ).filter(
-            Q(question_bank__course__owner=user) |
-            Q(question_bank__owner=user) |
+            Q(course__owner=user) |
             Q(created_by=user)
         ).count()
         return Response({'count': count})
