@@ -2934,6 +2934,12 @@
             const bankSelect = document.getElementById('ai-bank');
             const tagSelect = document.getElementById('ai-tag');
 
+            // Make sure banks are loaded
+            if (!banks || banks.length === 0) {
+                const data = await api('question-banks/');
+                banks = data.results || data || [];
+            }
+
             // Populate banks grouped by course
             bankSelect.innerHTML = '<option value="">Select a bank...</option>';
             const courseGroups = {};
@@ -2956,7 +2962,7 @@
             // Load tags when bank changes
             bankSelect.onchange = async () => {
                 const bankId = bankSelect.value;
-                tagSelect.innerHTML = '<option value="">No tag</option>';
+                tagSelect.innerHTML = '<option value="">No tag</option><option value="__new__">+ Create new tag...</option>';
                 if (!bankId) return;
 
                 const bank = banks.find(b => b.id == bankId);
@@ -2969,8 +2975,33 @@
                     const opt = document.createElement('option');
                     opt.value = t.name;
                     opt.textContent = t.name;
-                    tagSelect.appendChild(opt);
+                    tagSelect.insertBefore(opt, tagSelect.lastChild);
                 });
+            };
+
+            // Handle new tag creation
+            tagSelect.onchange = async () => {
+                if (tagSelect.value === '__new__') {
+                    const newTagName = prompt('Enter new tag name:');
+                    if (newTagName && newTagName.trim()) {
+                        try {
+                            const res = await api('tags/', 'POST', { name: newTagName.trim() });
+                            // Add the new tag to the dropdown and select it
+                            const opt = document.createElement('option');
+                            opt.value = res.name;
+                            opt.textContent = res.name;
+                            tagSelect.insertBefore(opt, tagSelect.lastChild);
+                            tagSelect.value = res.name;
+                            // Refresh allTags
+                            await loadTags();
+                        } catch (e) {
+                            alert('Failed to create tag: ' + e.message);
+                            tagSelect.value = '';
+                        }
+                    } else {
+                        tagSelect.value = '';
+                    }
+                }
             };
         }
 
@@ -3011,8 +3042,9 @@
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
-                    }
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    credentials: 'same-origin'
                 });
                 const data = await res.json();
 
