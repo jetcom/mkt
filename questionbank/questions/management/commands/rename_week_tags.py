@@ -45,8 +45,8 @@ class Command(BaseCommand):
         self.stdout.write(f'Found {tags.count()} tags for course {course_code}\n')
 
         # Pattern: week followed by number(s), optionally with leading zeros
-        # e.g., week03-foo, week04-bar, week10-baz
-        pattern = re.compile(r'^week(\d+)[-_]?(.*)$', re.IGNORECASE)
+        # e.g., week03-foo, week-03-foo, week04-bar, week10-baz
+        pattern = re.compile(r'^week-?(\d+)-?(.*)$', re.IGNORECASE)
 
         renames = []
         for tag in tags:
@@ -62,14 +62,23 @@ class Command(BaseCommand):
                     self.stdout.write(f'  SKIP: {tag.name} (would become week0 or negative)')
                     continue
 
-                # Preserve original formatting (leading zeros)
+                # Preserve original formatting (leading zeros and hyphen style)
                 original_num_str = match.group(1)
                 new_num_str = str(new_week_num).zfill(len(original_num_str))
 
-                if suffix:
-                    new_name = f'week{new_num_str}-{suffix}'
+                # Detect if original had hyphen after 'week'
+                has_hyphen_after_week = tag.name.lower().startswith('week-')
+
+                if has_hyphen_after_week:
+                    if suffix:
+                        new_name = f'week-{new_num_str}-{suffix}'
+                    else:
+                        new_name = f'week-{new_num_str}'
                 else:
-                    new_name = f'week{new_num_str}'
+                    if suffix:
+                        new_name = f'week{new_num_str}-{suffix}'
+                    else:
+                        new_name = f'week{new_num_str}'
 
                 if new_name != tag.name:
                     renames.append((tag, tag.name, new_name))
