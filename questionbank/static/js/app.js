@@ -2993,35 +2993,54 @@
                             return;
                         }
 
-                        try {
-                            const res = await api('tags/', 'POST', { name: trimmedName });
-                            // Add the new tag to the dropdown with ID as data attribute
+                        // Check if tag already exists in allTags
+                        let existingTag = allTags.find(t => t.name === trimmedName);
+                        if (existingTag) {
                             const opt = document.createElement('option');
                             opt.value = trimmedName;
                             opt.textContent = trimmedName;
-                            opt.dataset.tagId = res.id;  // Store the ID
+                            opt.dataset.tagId = existingTag.id;
                             tagSelect.insertBefore(opt, tagSelect.lastChild);
                             tagSelect.value = trimmedName;
-                            // Add to allTags so lookup works
-                            allTags.push({ id: res.id, name: res.name });
-                        } catch (e) {
-                            // If tag already exists, try to find and select it
-                            if (e.message && e.message.includes('already exists')) {
-                                await loadTags();  // Refresh to get the existing tag
-                                const existingTag = allTags.find(t => t.name === trimmedName);
-                                if (existingTag) {
-                                    const opt = document.createElement('option');
-                                    opt.value = trimmedName;
-                                    opt.textContent = trimmedName;
-                                    opt.dataset.tagId = existingTag.id;
-                                    tagSelect.insertBefore(opt, tagSelect.lastChild);
-                                    tagSelect.value = trimmedName;
-                                    return;
-                                }
-                            }
-                            alert('Failed to create tag: ' + e.message);
-                            tagSelect.value = '';
+                            return;
                         }
+
+                        const res = await api('tags/', 'POST', { name: trimmedName });
+
+                        // Check if response indicates error (400 returns error object)
+                        if (res.name && res.name[0] && res.name[0].includes('already exists')) {
+                            // Tag exists - reload tags and find it
+                            await loadTags();
+                            existingTag = allTags.find(t => t.name === trimmedName);
+                            if (existingTag) {
+                                const opt = document.createElement('option');
+                                opt.value = trimmedName;
+                                opt.textContent = trimmedName;
+                                opt.dataset.tagId = existingTag.id;
+                                tagSelect.insertBefore(opt, tagSelect.lastChild);
+                                tagSelect.value = trimmedName;
+                                return;
+                            }
+                            alert('Tag exists but could not be found. Please refresh the page.');
+                            tagSelect.value = '';
+                            return;
+                        }
+
+                        if (!res.id) {
+                            console.error('[Tag] Unexpected response:', res);
+                            alert('Failed to create tag');
+                            tagSelect.value = '';
+                            return;
+                        }
+
+                        // Success - add the new tag
+                        const opt = document.createElement('option');
+                        opt.value = trimmedName;
+                        opt.textContent = trimmedName;
+                        opt.dataset.tagId = res.id;
+                        tagSelect.insertBefore(opt, tagSelect.lastChild);
+                        tagSelect.value = trimmedName;
+                        allTags.push({ id: res.id, name: res.name });
                     } else {
                         tagSelect.value = '';
                     }
