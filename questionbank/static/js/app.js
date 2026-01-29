@@ -3165,14 +3165,16 @@
                         tag_ids: []
                     };
 
-                    if (tagName) {
+                    if (tagName && tagName !== '__new__') {
                         const tag = allTags.find(t => t.name === tagName);
+                        console.log('[AddAll] Looking for tag:', tagName, 'Found:', tag);
                         if (tag) payload.tag_ids = [tag.id];
                     }
 
                     await api('questions/', 'POST', payload);
                     added++;
                 } catch (e) {
+                    console.error('[AddAll] Error adding question:', e);
                     failed++;
                 }
             }
