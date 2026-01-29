@@ -33,7 +33,7 @@ class TagViewSet(viewsets.ModelViewSet):
         if course:
             # Get tags used by questions in this course
             queryset = queryset.filter(
-                questions__question_bank__course__code=course
+                questions__course__code=course
             ).distinct()
         return queryset.order_by('name')
 
