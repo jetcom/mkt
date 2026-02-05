@@ -82,8 +82,8 @@ class GenerateQuestionsView(APIView):
         type_instructions = {
             'multipleChoice': 'Create multiple choice questions with exactly 4 options (1 correct, 3 wrong).',
             'trueFalse': 'Create true/false questions.',
-            'shortAnswer': 'Create short answer questions that can be answered in 1-2 sentences.',
-            'longAnswer': 'Create long answer/essay questions that require detailed responses.',
+            'shortAnswer': 'Create fill-in-the-blank questions with a blank line (use _____) where the answer goes. The answer should be 2-3 words maximum.',
+            'longAnswer': 'Create fill-in-the-blank questions that require explanations (more than 2-3 words). Use whitespace in the question where the answer goes (do NOT use a blank line like _____).',
         }
 
         example_text = ""
@@ -106,7 +106,7 @@ class GenerateQuestionsView(APIView):
             type_instruction = """Create a MIX of different question types. Include a variety of:
 - Multiple choice questions (4 options: 1 correct, 3 wrong)
 - True/false questions
-- Short answer questions (1-2 sentence answers)
+- Short answer questions (fill-in-the-blank with _____, answer is 2-3 words)
 
 Aim for roughly: 40% multiple choice, 30% true/false, 30% short answer.
 Each question MUST include a "question_type" field specifying its type."""
@@ -132,10 +132,10 @@ Each question MUST include a "question_type" field specifying its type."""
     "points": 1
   },
   {
-    "text": "Explain briefly...",
+    "text": "The process of _____ converts light energy into chemical energy.",
     "question_type": "shortAnswer",
     "answer_data": {
-      "solution": "The expected answer"
+      "solution": "photosynthesis"
     },
     "difficulty": "medium",
     "points": 2
